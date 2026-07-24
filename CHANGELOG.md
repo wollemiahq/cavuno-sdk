@@ -3,7 +3,7 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
-## Unreleased
+## 2.0.2 — 2026-07-24
 
 - Changed the public contact address to `hi@cavuno.com`.
 - Simplified repository documentation for external contributors.
