@@ -62,7 +62,7 @@ extra locales are prefixed (`/de/`, `/fr/`).
    from `getLocale()` (it replaces the static `board.language` in the root).
 5. **Seam.** Point `boardCopy` at the URL locale (`getLocale()`) instead of
    only `board.language`, so `/de/` renders German chrome even on an English
-   board. This is the opt-in that  adds over the single-language model.
+   board. This is the opt-in over the single-language model.
 6. **SEO slice.** Per-locale `hreflang`, canonical, and sitemap entries are
    part of completing multi-language — do them when you add real locales, not
    in the foundation.
@@ -78,5 +78,4 @@ extra locales are prefixed (`/de/`, `/fr/`).
 - **Do not scatter catalog calls** through markup — everything imports the one
   seam, so the catalog→code migration is a single-file change.
 
-Reference:  (starter i18n),  (copy catalog),  (entity
-translation). Wiring flavor: `cavuno-board-tanstack-start`.
+Wiring flavor: `cavuno-board-tanstack-start`.

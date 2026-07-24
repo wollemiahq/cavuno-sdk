@@ -1,8 +1,12 @@
 # Changelog
 
-This changelog starts with the standalone public SDK. It records changes that
-affect Board API compatibility, exported types, runtime behavior, or supported
-integration patterns.
+This changelog records changes that affect Board API compatibility, exported
+types, runtime behavior, or supported integration patterns.
+
+## Unreleased
+
+- Changed the public contact address to `hi@cavuno.com`.
+- Simplified repository documentation for external contributors.
 
 ## 2.0.1 — 2026-07-24
 
