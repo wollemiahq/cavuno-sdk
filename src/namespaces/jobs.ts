@@ -1,0 +1,141 @@
+import type { BoardClient, FetchOptions } from '../client';
+import type { ListEnvelope } from '../types/common';
+import type {
+  JobCardListEnvelope,
+  JobCardSearchEnvelope,
+  JobsListQuery,
+  JobsSearchBody,
+  JobsSimilarQuery,
+  PublicJob,
+  PublicJobCard,
+} from '../types/jobs';
+import type { Application, ApplyBody } from '../types/me';
+
+export function jobsNamespace(client: BoardClient) {
+  return {
+    /**
+     * List published jobs.
+     *
+     * @example
+     * const { data, nextCursor } = await board.jobs.list({ limit: 20 });
+     */
+    list(query?: JobsListQuery, options?: FetchOptions) {
+      return client.fetch<JobCardListEnvelope>('/jobs', {
+        ...options,
+        query,
+      });
+    },
+
+    /**
+     * Retrieve one published job by slug.
+     *
+     * @example
+     * const job = await board.jobs.retrieve('senior-chef');
+     */
+    retrieve(
+      jobSlug: string,
+      query?: Record<string, never>,
+      options?: FetchOptions,
+    ) {
+      return client.fetch<PublicJob>(`/jobs/${encodeURIComponent(jobSlug)}`, {
+        ...options,
+        query,
+      });
+    },
+
+    /**
+     * Free-text + faceted job search.
+     *
+     * @example
+     * const { data } = await board.jobs.search({
+     *   query: 'chef',
+     *   filters: { seniority: ['senior'] },
+     * });
+     */
+    search(
+      body: JobsSearchBody,
+      query?: Record<string, never>,
+      options?: FetchOptions,
+    ) {
+      return client.fetch<JobCardSearchEnvelope>('/jobs/search', {
+        ...options,
+        method: 'POST',
+        body,
+        query,
+      });
+    },
+
+    /**
+     * List jobs similar to one job — the same ranking that powers the
+     * on-page similar-jobs rail. Returns up to `limit` slim cards (default
+     * 5), excluding the job itself and any role at the same company.
+     *
+     * @example
+     * const { data } = await board.jobs.similar('senior-chef', { limit: 5 });
+     */
+    similar(jobSlug: string, query?: JobsSimilarQuery, options?: FetchOptions) {
+      return client.fetch<ListEnvelope<PublicJobCard>>(
+        `/jobs/${encodeURIComponent(jobSlug)}/similar`,
+        {
+          ...options,
+          query,
+        },
+      );
+    },
+
+    /**
+     * Apply to a job natively. Optional auth: a signed-in candidate
+     * applies from their profile (omit name/email); a guest supplies them
+     * (allowed only when the board permits applications without sign-up).
+     * Idempotent — a repeat apply returns the existing application.
+     *
+     * @example
+     * const application = await board.jobs.apply('senior-chef', {
+     *   coverNote: 'Excited to cook here.',
+     * });
+     */
+    apply(jobSlug: string, body?: ApplyBody, options?: FetchOptions) {
+      return client.fetch<Application>(
+        `/jobs/${encodeURIComponent(jobSlug)}/apply`,
+        { ...options, method: 'POST', body: body ?? {} },
+      );
+    },
+
+    /**
+     * Upload + attach a resume to an application (multipart). Signed-in
+     * candidates target their own application for the job; a guest passes the
+     * `applicationId` returned by `apply`. Returns the updated application.
+     *
+     * @example
+     * await board.jobs.uploadApplicationResume('senior-chef', file);
+     */
+    uploadApplicationResume(
+      jobSlug: string,
+      file: Blob,
+      opts?: { applicationId?: string },
+      options?: FetchOptions,
+    ) {
+      const form = new FormData();
+      form.append('file', file);
+      if (opts?.applicationId) form.append('applicationId', opts.applicationId);
+      return client.fetch<Application>(
+        `/jobs/${encodeURIComponent(jobSlug)}/apply/resume`,
+        { ...options, method: 'POST', body: form },
+      );
+    },
+
+    /**
+     * The authenticated candidate's application for this job (the apply-button
+     * "have I applied?" check). Throws a 404 `BoardApiError` when there is none.
+     *
+     * @example
+     * const application = await board.jobs.myApplication('senior-chef');
+     */
+    myApplication(jobSlug: string, options?: FetchOptions) {
+      return client.fetch<Application>(
+        `/jobs/${encodeURIComponent(jobSlug)}/application`,
+        options,
+      );
+    },
+  };
+}

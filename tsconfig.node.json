@@ -1,0 +1,20 @@
+{
+  // Node-only toolkit surface: the `setup` CLI, the skill-corpus loader, and
+  // their tests + scripts. These genuinely use Node built-ins, so they get
+  // Node types — unlike the isomorphic core (tsconfig.json, `types: []`).
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.node.json"
+  },
+  "include": [
+    "src/skills.ts",
+    "src/bin.ts",
+    "src/setup",
+    "src/doctor",
+    "src/skill-symbols.test.ts",
+    "src/error-codes.test.ts",
+    "scripts"
+  ],
+  "exclude": ["node_modules", "dist"]
+}

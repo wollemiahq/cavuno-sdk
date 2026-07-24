@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "incremental": true,
+    "noUncheckedIndexedAccess": true,
+    "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json",
+    "target": "ES2022",
+    // Isomorphism guard: no ambient Node globals in src/. Tests import
+    // everything from vitest explicitly; the runtime code may only use
+    // web-standard globals (fetch, Headers, URLSearchParams).
+    "types": []
+  },
+  "include": ["src", "tsup.config.ts", "vitest.config.ts"],
+  // The Node-only toolkit files (setup CLI, skill-corpus loader) are checked
+  // by tsconfig.node.json with Node types — keeping this program's `types: []`
+  // isomorphism guard intact for the published core.
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/bin.ts",
+    "src/skills.ts",
+    "src/setup",
+    "src/skill-symbols.test.ts",
+    "src/error-codes.test.ts"
+  ]
+}

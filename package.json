@@ -1,0 +1,233 @@
+{
+  "name": "@cavuno/board",
+  "version": "2.0.1",
+  "description": "TypeScript SDK for building headless job boards with the Cavuno Board API",
+  "keywords": [
+    "api-client",
+    "careers-page",
+    "cavuno",
+    "headless-job-board",
+    "hiring",
+    "job-board",
+    "job-board-api",
+    "job-board-sdk",
+    "jobs",
+    "openapi",
+    "recruitment",
+    "sdk",
+    "sitemap",
+    "structured-data",
+    "typescript"
+  ],
+  "homepage": "https://cavuno.com/docs/sdk",
+  "bugs": {
+    "url": "https://github.com/wollemiahq/cavuno-sdk/issues",
+    "email": "support@cavuno.com"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Cavuno",
+    "email": "support@cavuno.com",
+    "url": "https://cavuno.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wollemiahq/cavuno-sdk.git"
+  },
+  "bin": {
+    "cavuno-board": "./dist/bin.mjs"
+  },
+  "files": [
+    "dist",
+    "skills",
+    "LICENSE",
+    "TRADEMARKS.md",
+    "SECURITY.md",
+    "CONTRIBUTING.md",
+    "CHANGELOG.md"
+  ],
+  "type": "commonjs",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    },
+    "./format": {
+      "import": {
+        "types": "./dist/format.d.mts",
+        "default": "./dist/format.mjs"
+      },
+      "require": {
+        "types": "./dist/format.d.ts",
+        "default": "./dist/format.js"
+      }
+    },
+    "./filters": {
+      "import": {
+        "types": "./dist/filters.d.mts",
+        "default": "./dist/filters.mjs"
+      },
+      "require": {
+        "types": "./dist/filters.d.ts",
+        "default": "./dist/filters.js"
+      }
+    },
+    "./suggest": {
+      "import": {
+        "types": "./dist/suggest.d.mts",
+        "default": "./dist/suggest.mjs"
+      },
+      "require": {
+        "types": "./dist/suggest.d.ts",
+        "default": "./dist/suggest.js"
+      }
+    },
+    "./theme": {
+      "import": {
+        "types": "./dist/theme.d.mts",
+        "default": "./dist/theme.mjs"
+      },
+      "require": {
+        "types": "./dist/theme.d.ts",
+        "default": "./dist/theme.js"
+      }
+    },
+    "./seo": {
+      "import": {
+        "types": "./dist/seo.d.mts",
+        "default": "./dist/seo.mjs"
+      },
+      "require": {
+        "types": "./dist/seo.d.ts",
+        "default": "./dist/seo.js"
+      }
+    },
+    "./sitemap": {
+      "import": {
+        "types": "./dist/sitemap.d.mts",
+        "default": "./dist/sitemap.mjs"
+      },
+      "require": {
+        "types": "./dist/sitemap.d.ts",
+        "default": "./dist/sitemap.js"
+      }
+    },
+    "./paths": {
+      "import": {
+        "types": "./dist/paths.d.mts",
+        "default": "./dist/paths.mjs"
+      },
+      "require": {
+        "types": "./dist/paths.d.ts",
+        "default": "./dist/paths.js"
+      }
+    },
+    "./go": {
+      "import": {
+        "types": "./dist/go.d.mts",
+        "default": "./dist/go.mjs"
+      },
+      "require": {
+        "types": "./dist/go.d.ts",
+        "default": "./dist/go.js"
+      }
+    },
+    "./route-contract": {
+      "import": {
+        "types": "./dist/route-contract.d.mts",
+        "default": "./dist/route-contract.mjs"
+      },
+      "require": {
+        "types": "./dist/route-contract.d.ts",
+        "default": "./dist/route-contract.js"
+      }
+    },
+    "./well-known": {
+      "import": {
+        "types": "./dist/well-known.d.mts",
+        "default": "./dist/well-known.mjs"
+      },
+      "require": {
+        "types": "./dist/well-known.d.ts",
+        "default": "./dist/well-known.js"
+      }
+    },
+    "./server": {
+      "import": {
+        "types": "./dist/server.d.mts",
+        "default": "./dist/server.mjs"
+      },
+      "require": {
+        "types": "./dist/server.d.ts",
+        "default": "./dist/server.js"
+      }
+    },
+    "./skills": {
+      "import": {
+        "types": "./dist/skills.d.mts",
+        "default": "./dist/skills.mjs"
+      },
+      "require": {
+        "types": "./dist/skills.d.ts",
+        "default": "./dist/skills.js"
+      }
+    },
+    "./skills/types": {
+      "import": {
+        "types": "./dist/skills-types.d.mts",
+        "default": "./dist/skills-types.mjs"
+      },
+      "require": {
+        "types": "./dist/skills-types.d.ts",
+        "default": "./dist/skills-types.js"
+      }
+    },
+    "./doctor": {
+      "import": {
+        "types": "./dist/doctor.d.mts",
+        "default": "./dist/doctor.mjs"
+      },
+      "require": {
+        "types": "./dist/doctor.d.ts",
+        "default": "./dist/doctor.js"
+      }
+    },
+    "./skills/*": "./skills/*"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsup",
+    "clean": "git clean -xdf .turbo dist node_modules src/generated",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.node.json",
+    "test": "vitest run",
+    "check:publish": "publint --strict && attw --pack . --profile node16",
+    "gen:skills-manifest": "tsx scripts/generate-skills-manifest.ts",
+    "assert-publish-target": "node -e \"const p=require('./package.json'); if(p.name!=='@cavuno/board'){throw new Error('Refusing to publish: package.json name is '+p.name+', expected @cavuno/board')}; if(p.private){throw new Error('Refusing to publish: package.json has private:true')}\"",
+    "prepublishOnly": "pnpm run assert-publish-target && pnpm run gen:skills-manifest && pnpm run build"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.2",
+    "@types/node": "24.9.1",
+    "publint": "^0.3.12",
+    "tsup": "^8.4.0",
+    "tsx": "^4.19.2",
+    "vitest": "^2.1.9",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@10.19.0"
+}
