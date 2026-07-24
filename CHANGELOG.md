@@ -3,6 +3,13 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 2.0.3 — 2026-07-24
+
+- Added verifiable npm provenance generated from the public Cavuno SDK source
+  repository.
+- Moved publishing to short-lived GitHub Actions credentials and made
+  dependency installation reproducible with a committed lockfile.
+
 ## 2.0.2 — 2026-07-24
 
 - Changed the public contact address to `hi@cavuno.com`.
