@@ -1,8 +1,9 @@
-# @cavuno/board
+# Cavuno Board SDK
 
-Typed, isomorphic client for the [Cavuno](https://cavuno.com) Board API —
-the headless toolkit for building fully custom job board frontends. Zero
-dependencies; runs in the browser, Node ≥ 20, and Cloudflare Workers.
+`@cavuno/board` is the official typed, isomorphic client for the
+[Cavuno job board platform](https://cavuno.com) Board API—the headless toolkit
+for building fully custom job board frontends. It has zero runtime dependencies
+and runs in browsers, Node.js 20 or newer, and Cloudflare Workers.
 
 You bring the framework and own the layout; the SDK brings the job board:
 jobs and search, companies, salaries, blog, board-user auth, saved jobs,
@@ -86,9 +87,13 @@ SDK doesn't cover yet.
 
 ## Docs
 
-- SDK guides and reference: https://cavuno.com/docs/sdk
-- The OpenAPI document: `GET https://api.cavuno.com/v1/openapi.json`
+- Cavuno: <https://cavuno.com>
+- SDK guides and reference: <https://cavuno.com/docs/sdk>
+- API documentation: <https://cavuno.com/docs/api>
+- OpenAPI document: `GET https://api.cavuno.com/v1/openapi.json`
+- Source: <https://github.com/wollemiahq/cavuno-sdk>
+- Issues: <https://github.com/wollemiahq/cavuno-sdk/issues>
 - Reference starter (TanStack Start on Cloudflare Workers):
-  https://github.com/wollemiahq/cavuno-board-starter
+  <https://github.com/wollemiahq/cavuno-board-starter>
 
 MIT © Wollemia
