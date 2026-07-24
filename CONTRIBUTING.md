@@ -6,9 +6,9 @@ Thank you for helping improve the Cavuno Board SDK.
 
 - Search existing issues and pull requests.
 - Open an issue first for significant behavior or interface changes.
-- Never commit API keys, access tokens, customer data, private API contracts,
-  internal infrastructure details, or generated artifacts from an unfiltered
-  service specification.
+- Never commit API keys, access tokens, customer data, non-public information,
+  vulnerability details, or generated artifacts from an unreviewed
+  specification.
 
 ## Development
 
@@ -18,8 +18,8 @@ Thank you for helping improve the Cavuno Board SDK.
 4. Build with `pnpm build`.
 5. Run `pnpm test`, `pnpm typecheck`, and `pnpm check:publish`.
 
-Keep changes focused and add tests for changed behavior. Public SDK methods
-must use the documented Board API rather than private service endpoints.
+Keep changes focused and add tests for changed behavior. SDK methods must use
+the documented Board API.
 
 By submitting a contribution, you agree that it may be distributed under the
 MIT License and that you have the right to submit it.

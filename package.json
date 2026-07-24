@@ -22,12 +22,12 @@
   "homepage": "https://cavuno.com/docs/sdk",
   "bugs": {
     "url": "https://github.com/wollemiahq/cavuno-sdk/issues",
-    "email": "support@cavuno.com"
+    "email": "hi@cavuno.com"
   },
   "license": "MIT",
   "author": {
     "name": "Cavuno",
-    "email": "support@cavuno.com",
+    "email": "hi@cavuno.com",
     "url": "https://cavuno.com"
   },
   "repository": {
