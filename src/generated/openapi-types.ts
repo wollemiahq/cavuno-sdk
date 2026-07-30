@@ -7590,6 +7590,13 @@ export interface operations {
                         offset?: number;
                         /** @description Jobs hidden behind the candidate paywall for the current viewer; absent or 0 for an entitled viewer. */
                         gatedCount?: number;
+                        /** @description Silent zero-result typo rescue. Present only when a free-text query was rewritten; data/count belong to correctedQuery. */
+                        correction?: {
+                            originalQuery: string;
+                            correctedQuery: string;
+                            originalToken: string;
+                            correctedToken: string;
+                        };
                     };
                 };
             };
@@ -8381,6 +8388,13 @@ export interface operations {
                             term: string;
                             count: number;
                         }[];
+                        /** @description Silent zero-result typo rescue. Present only when a free-text query was rewritten; data/count belong to correctedQuery. */
+                        correction?: {
+                            originalQuery: string;
+                            correctedQuery: string;
+                            originalToken: string;
+                            correctedToken: string;
+                        };
                     };
                 };
             };
@@ -8450,6 +8464,13 @@ export interface operations {
                         offset?: number;
                         /** @description Jobs hidden behind the candidate paywall for the current viewer; absent or 0 for an entitled viewer. */
                         gatedCount?: number;
+                        /** @description Silent zero-result typo rescue. Present only when a free-text query was rewritten; data/count belong to correctedQuery. */
+                        correction?: {
+                            originalQuery: string;
+                            correctedQuery: string;
+                            originalToken: string;
+                            correctedToken: string;
+                        };
                     };
                 };
             };

@@ -1,7 +1,7 @@
 {
   "name": "@cavuno/board",
-  "version": "2.0.3",
-  "description": "TypeScript SDK for building headless job boards with the Cavuno Board API",
+  "version": "2.0.5",
+  "description": "Build custom job boards and careers pages with Cavuno’s TypeScript SDK.",
   "keywords": [
     "api-client",
     "careers-page",
@@ -224,7 +224,7 @@
     "publint": "^0.3.12",
     "tsup": "^8.4.0",
     "tsx": "^4.19.2",
-    "vitest": "^3.2.6",
+    "vitest": "^2.1.9",
     "typescript": "^5.9.3"
   },
   "engines": {
