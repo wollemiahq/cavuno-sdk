@@ -5,9 +5,9 @@ description: TanStack-Start-on-Cloudflare-Workers reference wiring for a headles
 
 # Reference flavor: TanStack Start on Cloudflare Workers
 
-This is the framework-specific layer for the conformance starter ([`wollemiahq/cavuno-board-starter`](https://github.com/wollemiahq/cavuno-board-starter)). The core skills (`cavuno-board-client`, `-jobs`, `-auth`, `-errors`) define the SDK surface; this skill shows how to wire it into TanStack Start on Workers. Read the core skills first.
+This is the framework-specific layer for using `@cavuno/board` with TanStack Start on Cloudflare Workers. The core skills (`cavuno-board-client`, `-jobs`, `-auth`, `-errors`) define the SDK surface; this skill shows how to wire it into TanStack Start on Workers. Read the core skills first.
 
-For a complete, clone-and-own frontend rather than the conformance fixture, use the [Cavuno TanStack Start + shadcn/ui job board template](https://github.com/wollemiahq/cavuno-tanstack-start-shadcn-job-board-template).
+For a complete, clone-and-own frontend, use the [Cavuno TanStack Start + shadcn/ui job board template](https://github.com/wollemiahq/cavuno-tanstack-start-shadcn-job-board-template).
 
 ## When to use
 

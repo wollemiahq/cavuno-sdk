@@ -94,8 +94,6 @@ SDK doesn't cover yet.
 - OpenAPI document: `GET https://api.cavuno.com/v1/openapi.json`
 - Source: <https://github.com/wollemiahq/cavuno-sdk>
 - Issues: <https://github.com/wollemiahq/cavuno-sdk/issues>
-- Conformance starter (TanStack Start on Cloudflare Workers):
-  <https://github.com/wollemiahq/cavuno-board-starter>
 - Clone-and-own TanStack Start + shadcn/ui template:
   <https://github.com/wollemiahq/cavuno-tanstack-start-shadcn-job-board-template>
 
