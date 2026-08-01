@@ -111,5 +111,5 @@ await board.me.alerts.update(alertId, {
 - [ ] Manage page reads `subscription` + `token` from the email link's query string; writes send `subscriptionId` in the body.
 - [ ] Editing one preference field leaves the others intact (full-replace round-trip, both surfaces).
 - [ ] Alert UI only promises filtering on job function / place / remote option.
-- [ ] Alert UI offers weekly cadence only and never sends a legacy daily value.
+- [ ] Alert UI uses the weekly cadence.
 - [ ] Alert surfaces are hidden when `features.jobAlerts` is false.
