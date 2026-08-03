@@ -3,6 +3,22 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 3.0.0 — 2026-08-03
+
+- Removed runtime theme data from `board.context()` and removed the
+  `PublicBoardTheme` type and `@cavuno/board/theme` export. Applications now
+  own their presentation tokens and styling independently of Board API data.
+- Retired the Cavuno theme skill and the bundled TanStack Start flavor. The
+  framework-neutral SDK skills were rewritten around concrete integration
+  tasks, with clearer names for API client setup, server sessions, search
+  suggestions, and public job posting.
+
+## 2.1.0 — 2026-08-01
+
+- Removed private starter-repository links from the public SDK documentation.
+- Repaired the audited public-repository export metadata and standalone
+  package lockfile used by trusted publishing.
+
 ## 2.0.5 — 2026-07-30
 
 - Added the optional `correction` object to board job catalog responses. It is

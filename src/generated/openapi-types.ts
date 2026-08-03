@@ -12,7 +12,7 @@ export interface paths {
         };
         /**
          * Retrieve public board context
-         * @description Returns the on-brand render payload a headless board frontend needs: identity, brand, capability flags, and theme tokens, through a public-safe allowlist. The `:identifier` is the board slug, `boards_…` ID, or `pk_…` publishable key.
+         * @description Returns the public board context a headless frontend needs: identity, brand metadata, and capability flags through a public-safe allowlist. The `:identifier` is the board slug, `boards_…` ID, or `pk_…` publishable key.
          */
         get: operations["getBoard"];
         put?: never;
@@ -4735,22 +4735,6 @@ export interface components {
                 linkedInPartnerId: string | null;
                 cookieConsentRequired: boolean;
             };
-            theme: {
-                mode: string;
-                schemeId: string;
-                typography: {
-                    fontSans: string;
-                    fontHeading?: string | null;
-                };
-                colors: {
-                    light: {
-                        [key: string]: unknown;
-                    };
-                    dark: {
-                        [key: string]: unknown;
-                    };
-                };
-            } | null;
             /** @description Operator-defined custom job-field definitions, in display order. Board-wide; the frontend uses these to render and localize each job's opaque `customFieldValues`. Empty when the board defines none. Display-only: not filterable or searchable in v1. */
             customFields: components["schemas"]["CustomFieldDefinition"][];
             /** @description Stored operator label overrides by config group (`jobCardLabels`, `navLabels`, `breadcrumbsLabels`, …): plain-text chrome copy to merge over the `@cavuno/board` `uiCopy(language)` catalog via `uiCopy(language, labels)`. Empty object when the board stores none. */
@@ -4903,12 +4887,12 @@ export interface components {
             company: components["schemas"]["JobCompany"];
             /** @description Physical office locations associated with the job. */
             officeLocations: components["schemas"]["JobOfficeLocation"][];
-            /** @description Resolved job categories (slug + board display name): same shape as the card; names joined server-side. */
+            /** @description Resolved job categories (slug + board display name): same shape as the card; names joined server-side. Guaranteed resolvable: every emitted slug resolves via `GET /v1/boards/:identifier/categories/:slug` — consumers never need to re-verify before linking. */
             categories: {
                 slug: string;
                 name: string;
             }[];
-            /** @description Resolved job skills (slug + board display name). */
+            /** @description Resolved job skills (slug + board display name). Guaranteed resolvable: every emitted slug resolves via `GET /v1/boards/:identifier/skills/:slug` — consumers never need to re-verify before linking. */
             skills: {
                 slug: string;
                 name: string;
@@ -5008,10 +4992,12 @@ export interface components {
                 name: string;
                 logoUrl: string | null;
             } | null;
+            /** @description Job categories (slug + board display name). Guaranteed resolvable: every emitted slug resolves via `GET /v1/boards/:identifier/categories/:slug`. */
             categories: {
                 slug: string;
                 name: string;
             }[];
+            /** @description Job skills (slug + board display name). Guaranteed resolvable: every emitted slug resolves via `GET /v1/boards/:identifier/skills/:slug`. */
             skills: {
                 slug: string;
                 name: string;
@@ -7103,7 +7089,7 @@ export interface operations {
                         offset?: number;
                         /** @description Jobs hidden behind the candidate paywall for the current viewer; absent or 0 for an entitled viewer. */
                         gatedCount?: number;
-                        /** @description Derived category/skill search suggestions (jobs browse only). */
+                        /** @description Derived category/skill search suggestions (jobs browse only). Guaranteed resolvable: every emitted slug resolves via the board taxonomy endpoints — consumers can link chips without re-verifying. */
                         relatedSearches?: {
                             /** @enum {string} */
                             type: "category" | "skill";
@@ -8380,7 +8366,7 @@ export interface operations {
                         offset?: number;
                         /** @description Jobs hidden behind the candidate paywall for the current viewer; absent or 0 for an entitled viewer. */
                         gatedCount?: number;
-                        /** @description Derived category/skill search suggestions (jobs browse only). */
+                        /** @description Derived category/skill search suggestions (jobs browse only). Guaranteed resolvable: every emitted slug resolves via the board taxonomy endpoints — consumers can link chips without re-verifying. */
                         relatedSearches?: {
                             /** @enum {string} */
                             type: "category" | "skill";

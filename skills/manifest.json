@@ -1,171 +1,157 @@
 {
-  "version": "2.0.5",
+  "version": "2.1.0",
   "skills": [
     {
       "name": "cavuno-board-account",
-      "description": "Candidate account self-service with the @cavuno/board SDK — me.retrieve/delete, the candidate profile (merge-patch update, handle availability), experience/education CRUD, skills/languages full-replace, avatar upload, resume upload with async parse polling, and notification preferences plus the anonymous token unsubscribe. Use when building account, profile-edit, onboarding, or notification-settings pages for a signed-in board user.",
+      "description": "Candidate self-service boundary with @cavuno/board. Use for account, profile, resume onboarding, avatar, experience, education, skills, languages, or notification preferences.",
       "path": "skills/cavuno-board-account/SKILL.md",
       "framework": null,
       "category": "core"
     },
     {
+      "name": "cavuno-board-api-client",
+      "description": "Configure the @cavuno/board API client. Use when creating the shared client, adding global hooks or headers, passing framework fetch options, or calling an endpoint through the typed escape hatch.",
+      "path": "skills/cavuno-board-api-client/SKILL.md",
+      "framework": null,
+      "category": "core"
+    },
+    {
       "name": "cavuno-board-applications",
-      "description": "The native apply flow with the @cavuno/board SDK — jobs.apply (signed-in or guest), attaching a resume via jobs.uploadApplicationResume, the jobs.myApplication \"have I applied?\" check, managing submitted applications (me.applications list/retrieve/updateFacts/withdraw), and saved jobs (me.savedJobs). Use when building an apply form, an application-tracker page, or a save-job button.",
+      "description": "Candidate application handoff with @cavuno/board. Use for native or guest apply, application tracking, resume attachment, withdrawal, and saved jobs.",
       "path": "skills/cavuno-board-applications/SKILL.md",
       "framework": null,
       "category": "core"
     },
     {
       "name": "cavuno-board-auth",
-      "description": "Authenticate board users with the @cavuno/board SDK — register, login, refresh, logout, email verification and password reset. Covers bearer-JWT storage modes, the deliberate no-auto-refresh-on-401 rule (and single-flight handling), and the server-side httpOnly-cookie pattern that keeps tokens out of the browser.",
+      "description": "Authenticate Cavuno board users. Use for registration, login, logout, token refresh, email verification, password recovery, magic links, OAuth, or authenticated board-user calls.",
       "path": "skills/cavuno-board-auth/SKILL.md",
       "framework": null,
       "category": "core"
     },
     {
       "name": "cavuno-board-blog",
-      "description": "Build the blog with the @cavuno/board SDK — post archives (blog.posts.list with tagSlug/authorSlug/featured), the post page (blog.posts.retrieve + adjacent + similar), blog.tags and blog.authors, and free-text blog.search. Covers the summary-vs-detail split (html on the single read only), cursor pagination, slug-change redirects (redirected/newSlug), and the SEO fields the API actually returns.",
+      "description": "Public blog reads with @cavuno/board. Use for post archives, post detail, adjacent or similar posts, tag and author pages, or blog search.",
       "path": "skills/cavuno-board-blog/SKILL.md",
       "framework": null,
       "category": "core"
     },
     {
-      "name": "cavuno-board-client",
-      "description": "Create and configure the @cavuno/board client — the pk_ board identifier, optional API-origin override, global headers, hooks, per-call FetchOptions, and the rule that keeps one shared instance safe under SSR.",
-      "path": "skills/cavuno-board-client/SKILL.md",
-      "framework": null,
-      "category": "core"
-    },
-    {
       "name": "cavuno-board-companies",
-      "description": "Build company surfaces with the @cavuno/board SDK — the companies index (companies.list / companies.search with the market filter), the company profile (companies.retrieve, listJobs, similar), the markets sub-surface (companies.markets + markets.resolve with its 308 redirectTo), and company salary pages (companies.salaries + salaries.category). Covers PublicCompany vs PublicCompanyDetail and envelope pagination.",
+      "description": "Company catalog reads with @cavuno/board. Use for company indexes, market archives, profiles, company job rails, similar companies, or company salary pages.",
       "path": "skills/cavuno-board-companies/SKILL.md",
       "framework": null,
       "category": "core"
     },
     {
       "name": "cavuno-board-errors",
-      "description": "Handle errors and access gating with the @cavuno/board SDK — the BoardApiError shape, the typed guards (isNotFound, isUnauthorized, isValidationError, isRateLimited, isForbidden, isConflict), and the board-password flow (isBoardPasswordRequired → password.verify → X-Board-Access grant).",
+      "description": "Classify Board API failures and board-password challenges. Use when mapping SDK errors to UI states, retries, support diagnostics, or password-gated access.",
       "path": "skills/cavuno-board-errors/SKILL.md",
       "framework": null,
       "category": "core"
     },
     {
       "name": "cavuno-board-filters",
-      "description": "The canonical listing-filter vocabulary and URL search-param parsing with @cavuno/board/filters — remote/employment/seniority/company/sort sets, localized seniority labels, and parseListingFilters for jobs-listing routes. Use when building listing pages, filter sidebars, sort dropdowns, or validating listing URL params.",
+      "description": "Listing-filter contracts with @cavuno/board. Use for job filter controls, sort controls, listing URL validation, or taxonomy-backed filter options.",
       "path": "skills/cavuno-board-filters/SKILL.md",
       "framework": null,
       "category": "core"
     },
     {
       "name": "cavuno-board-format",
-      "description": "Display formatting for board frontends with @cavuno/board/format — salary ranges, seniority/employment/remote labels, location labels, dates, and the board-language salary lexicon. Use when rendering job cards, detail pages, or salary figures, and whenever a value like salaryMin/salaryTimeframe/seniority needs to become display text.",
+      "description": "Board-language display formatting with @cavuno/board/format. Use for salary ranges, dates, job labels, location labels, card conversion, or salary metadata copy.",
       "path": "skills/cavuno-board-format/SKILL.md",
       "framework": null,
       "category": "core"
     },
     {
       "name": "cavuno-board-i18n",
-      "description": "Multi-language chrome for a board frontend — the single-language board model, the uiCopy catalog ⊕ operator labels ⊕ generated copy layering, the one copy seam, and how to add path-prefixed locales (/de/, /fr/) with Paraglide JS on TanStack Start. Use when localizing a starter's chrome, adding a language, or wiring locale routing. Do NOT use to translate job content — that stays the board's language.",
+      "description": "One-seam board localization with @cavuno/board. Use when localizing UI chrome, adding locale routing, merging operator labels, or preserving board-language content.",
       "path": "skills/cavuno-board-i18n/SKILL.md",
       "framework": null,
       "category": "core"
     },
     {
       "name": "cavuno-board-job-alerts",
-      "description": "Build job-alert flows with the @cavuno/board SDK — the anonymous double-opt-in surface (jobAlerts.subscribe/confirm/resendConfirmation + HMAC-token manage/unsubscribe/resubscribe/updatePreference/deletePreference) and the authenticated board.me.alerts CRUD. Covers which surface to use when, how the manage token rides, which filters actually scope delivery, and the full-replace update trap.",
+      "description": "Job-alert two-lane model with @cavuno/board. Use for anonymous double opt-in, token-managed preferences, or signed-in alert CRUD.",
       "path": "skills/cavuno-board-job-alerts/SKILL.md",
       "framework": null,
       "category": "core"
     },
     {
-      "name": "cavuno-board-job-posting",
-      "description": "Build the anonymous \"Post a job\" funnel with the @cavuno/board SDK — jobPosting.plans, create and its status-discriminated JobPostingResult (checkout / published / pending_approval / invoice_sent), logo upload + fetchLogoByDomain, and the email-verified billing helpers (sendBillingVerification, getBillingOptions).",
-      "path": "skills/cavuno-board-job-posting/SKILL.md",
-      "framework": null,
-      "category": "core"
-    },
-    {
       "name": "cavuno-board-jobs",
-      "description": "Browse, search, and render jobs with the @cavuno/board SDK — jobs.list, jobs.search, jobs.retrieve, jobs.similar. Covers the slim card vs full job shapes, catalog pagination (count/limit/offset + opaque cursor), filters, and the candidate-paywall gatedCount.",
+      "description": "Job catalog reads with @cavuno/board. Use for job browse or search, job detail, similar jobs, candidate gating, or full-catalog iteration.",
       "path": "skills/cavuno-board-jobs/SKILL.md",
       "framework": null,
       "category": "core"
     },
     {
       "name": "cavuno-board-messaging",
-      "description": "Build the board-user messaging inbox with the @cavuno/board SDK — me.conversations (list, unreadCount, retrieve, listMessages, start, reply, markRead, archive), me.messages (edit, unsend, report), me.blocks. Covers the polled-REST contract (no realtime transport in v1), visibility-aware polling, the unread badge, and read receipts.",
+      "description": "Polled messaging contract with @cavuno/board. Use for inboxes, unread badges, threads, read receipts, message moderation, or user blocks.",
       "path": "skills/cavuno-board-messaging/SKILL.md",
       "framework": null,
       "category": "core"
     },
     {
       "name": "cavuno-board-paywall",
-      "description": "Build the candidate job-access paywall with the @cavuno/board SDK — anonymous offer reads (paywall.offers), the gated browse experience (gatedCount on job lists), the embedded Stripe checkout mount kit (me.access.checkout → retrieveCheckout → grant), and the billing portal (me.access.portal for recurring grants).",
+      "description": "Grant-is-truth candidate paywall with @cavuno/board. Use for offers, gated job counts, embedded checkout handoff, access confirmation, or subscription portal links.",
       "path": "skills/cavuno-board-paywall/SKILL.md",
       "framework": null,
       "category": "core"
     },
     {
+      "name": "cavuno-board-post-a-job",
+      "description": "Post a job publicly with @cavuno/board. Use for plan selection, logos, checkout handoff, or verified existing credit.",
+      "path": "skills/cavuno-board-post-a-job/SKILL.md",
+      "framework": null,
+      "category": "core"
+    },
+    {
       "name": "cavuno-board-salaries",
-      "description": "Build salary pages with the @cavuno/board SDK — salaries.titles/skills/locations (list + retrieve + cross-axis .locations/.location/.titles/.skills), salaries.companies.list. Covers the sourceSlug/canonicalSlug 308 contract, the { locale } overlay, aggregate field shapes (avg/median/percentile bands + jobCount), and why salary math must never be recomputed client-side.",
+      "description": "Salary read models with @cavuno/board. Use for title, skill, or location salary indexes and detail, cross-axis pages, or the salary companies hub.",
       "path": "skills/cavuno-board-salaries/SKILL.md",
       "framework": null,
       "category": "core"
     },
     {
+      "name": "cavuno-board-search-suggestions",
+      "description": "Build server-ranked search suggestions with @cavuno/board. Use for company-and-term typeahead, autocomplete dropdowns, or suggestion-controller wiring.",
+      "path": "skills/cavuno-board-search-suggestions/SKILL.md",
+      "framework": null,
+      "category": "core"
+    },
+    {
       "name": "cavuno-board-seo",
-      "description": "Structured data + head builders for board frontends with @cavuno/board/seo — Google for Jobs JobPosting JSON-LD, breadcrumbs, blog Article/ProfilePage, salary-page Occupation/FAQ structured data, and listing <head> descriptors. Use when building a job-detail, listing, blog, or salary page and it needs JSON-LD or SEO meta tags, or whenever \"structured data\", \"rich results\", or \"Google for Jobs\" comes up.",
+      "description": "SEO builders with @cavuno/board/seo. Use for JobPosting or breadcrumb JSON-LD, blog schema, salary rich results, or job-listing head metadata.",
       "path": "skills/cavuno-board-seo/SKILL.md",
       "framework": null,
       "category": "core"
     },
     {
-      "name": "cavuno-board-server",
-      "description": "SSR session plumbing with @cavuno/board/server — the __Host- httpOnly session-cookie codec (BoardSession serialize/parse/clear + the 5-minute isExpiringSoon window), the board-password grant-cookie codec with the open-redirect guards (safeRedirectPath, currentPathFromReferer), and createSessionRefresher, the single-flight rotation helper for the single-use refresh token. Use when wiring board-user auth or the board-password gate into any server-rendered frontend (TanStack Start, Next.js, Remix, Workers).",
-      "path": "skills/cavuno-board-server/SKILL.md",
+      "name": "cavuno-board-server-sessions",
+      "description": "Wire Cavuno server sessions and board-password access. Use when a server-rendered app needs httpOnly cookies, per-request bearer headers, single-flight refresh, grant cookies, or safe redirect-back handling.",
+      "path": "skills/cavuno-board-server-sessions/SKILL.md",
       "framework": null,
       "category": "core"
     },
     {
       "name": "cavuno-board-setup",
-      "description": "End-to-end orchestrator for building a headless Cavuno job board with the @cavuno/board SDK. Start here after `npx @cavuno/board setup` copies the skills — detect the framework, wire the client, render board context, jobs browsing and detail, board-user auth and saved jobs, handle errors and access gating, then verify.",
+      "description": "Orchestrate a headless Cavuno board integration. Use when starting a frontend with @cavuno/board or adding Cavuno board surfaces to an existing app.",
       "path": "skills/cavuno-board-setup/SKILL.md",
       "framework": null,
       "category": "core"
     },
     {
       "name": "cavuno-board-sitemap",
-      "description": "Build the board's sitemap with @cavuno/board/sitemap — the hosted 8-bucket model (marketing, jobs taxonomies, job details, companies, salaries, blog), 45k chunking, XML rendering, and the buildBucketUrls walker that enumerates a board's content through the BoardSdk with the hosted SEO rules built in (feature gating, ≥5-job thin-content floor, pagination backstops). Use when adding /sitemap.xml and /sitemap/:file routes to a custom board frontend.",
+      "description": "Board sitemap generation with @cavuno/board/sitemap. Use for sitemap indexes, bucket routes, XML rendering, catalog walking, chunking, or robots.txt discovery.",
       "path": "skills/cavuno-board-sitemap/SKILL.md",
       "framework": null,
       "category": "core"
     },
     {
       "name": "cavuno-board-smoke-test",
-      "description": "Runtime verification for a wired Cavuno board frontend — literal curl probes against the Board API plus per-surface behavioral checks and a mandatory production-build pass. Run after cavuno-board-setup finishes, after upgrading @cavuno/board, or whenever board wiring is suspect. Type checks are not enough for board wiring.",
+      "description": "Prove a Cavuno board integration at runtime. Use after initial setup, an @cavuno/board upgrade, a board-key rotation, or when rendered board data is unexpectedly missing.",
       "path": "skills/cavuno-board-smoke-test/SKILL.md",
-      "framework": null,
-      "category": "core"
-    },
-    {
-      "name": "cavuno-board-suggest",
-      "description": "Federated keyword search suggestions with the @cavuno/board SDK — board.search.suggest for companies + taxonomy terms in one server-ranked list, and the headless createSuggestController under @cavuno/board/suggest (debounce, abort, stale-drop). Use when building a search dropdown, typeahead, or autocomplete that mirrors the hosted board.",
-      "path": "skills/cavuno-board-suggest/SKILL.md",
-      "framework": null,
-      "category": "core"
-    },
-    {
-      "name": "cavuno-board-tanstack-start",
-      "description": "TanStack-Start-on-Cloudflare-Workers reference wiring for a headless Cavuno board — SSR loaders calling @cavuno/board server-side, the session held in an __Host- httpOnly cookie owned by the app, a single-flight refresh helper, and FetchOptions cache passthrough on Workers.",
-      "path": "skills/flavors/tanstack-start/SKILL.md",
-      "framework": "tanstack-start",
-      "category": "flavor"
-    },
-    {
-      "name": "cavuno-board-theme",
-      "description": "Optional hosted-board theme compatibility with @cavuno/board/theme. Use only when a custom frontend deliberately mirrors or migrates an existing Cavuno hosted theme; the consuming application normally owns tokens, fonts, and color mode.",
-      "path": "skills/cavuno-board-theme/SKILL.md",
       "framework": null,
       "category": "core"
     }

@@ -1,12 +1,11 @@
 // Generated from the v1 OpenAPI spec (`components.schemas`) — see
 // scripts/gen-types.ts. `PublicBoard` aliases the generated board-context
-// component; the nested feature/analytics/theme shapes are derived from it.
+// component; the nested feature and analytics shapes are derived from it.
 import type { Schemas } from './_spec';
 
 export type PublicBoard = Schemas['PublicBoardContext'];
 export type PublicBoardFeatures = PublicBoard['features'];
 export type PublicBoardAnalytics = PublicBoard['analytics'];
-export type PublicBoardTheme = NonNullable<PublicBoard['theme']>;
 /**
  * The operator label-override bag — open on the wire; consumers
  * hand it to `uiCopy(language, labels)` / the registry blocks' `labels`

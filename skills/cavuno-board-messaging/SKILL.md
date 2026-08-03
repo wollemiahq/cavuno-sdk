@@ -1,86 +1,77 @@
 ---
 name: cavuno-board-messaging
-description: Build the board-user messaging inbox with the @cavuno/board SDK — me.conversations (list, unreadCount, retrieve, listMessages, start, reply, markRead, archive), me.messages (edit, unsend, report), me.blocks. Covers the polled-REST contract (no realtime transport in v1), visibility-aware polling, the unread badge, and read receipts.
+description: Polled messaging contract with @cavuno/board. Use for inboxes, unread badges, threads, read receipts, message moderation, or user blocks.
 ---
 
-# Messaging: the polled inbox
+# Polled messaging contract
 
-Employer↔candidate direct messaging for signed-in board users. The v1 transport is **polled REST by design** — there is no realtime primitive; near-live UX comes from re-fetching on an interval (3–5s is the reference cadence).
+Messaging is authenticated employer-to-candidate REST. Near-live behavior comes from polling at a 3–5 second cadence while the page is visible. `list`, `listMessages`, and `unreadCount` are the transport; the SDK exposes no realtime subscription.
 
-Out of scope — do not invent exports: no websockets, no SSE, no `subscribe`/`onMessage` — polling `list` / `listMessages` / `unreadCount` IS the contract.
+## Keep the poll visible
 
-## When to use
-
-- The inbox page, unread badge, thread view, and composer.
-- Edit/unsend, report-a-message, and block flows.
-
-## When not to use
-
-- Anonymous visitors — every method here requires a signed-in board user (see `cavuno-board-auth`).
-- Job applications themselves — messaging an applicant *starts from* an application, but the application surface is `board.me.applications.*`.
-
-## Poll while visible
-
-Poll only while the tab is visible — stop on hide, resume (with an immediate refresh) on show:
+Refresh immediately on start or return to the tab, and maintain at most one timer.
 
 ```ts snippet
-const POLL_MS = 4000; // 3–5s reference cadence
+const pollMs = 4000;
 
-async function refresh() {
+async function refreshInbox() {
   const [{ count }, inbox] = await Promise.all([
-    board.me.conversations.unreadCount(), // distinct unread threads → badge
+    board.me.conversations.unreadCount(),
     board.me.conversations.list({ limit: 20 }),
   ]);
-  render(count, inbox.data);
+  renderInbox(count, inbox.data);
 }
 
 let timer: ReturnType<typeof setInterval> | undefined;
-function start() {
-  void refresh();
-  timer ??= setInterval(refresh, POLL_MS);
+function startPolling() {
+  void refreshInbox();
+  timer ??= setInterval(refreshInbox, pollMs);
 }
-function stop() {
-  clearInterval(timer);
+function stopPolling() {
+  if (timer) clearInterval(timer);
   timer = undefined;
 }
+
 document.addEventListener('visibilitychange', () => {
-  document.visibilityState === 'visible' ? start() : stop();
+  if (document.visibilityState === 'visible') startPolling();
+  else stopPolling();
 });
-start();
+startPolling();
 ```
 
-Each inbox row is a `Conversation`: `lastMessageAt`, `lastMessageSnippet`, `hasUnread`, and a live-resolved `counterparty` (`displayName`, `avatarUrl`, `companyName`, `handle`). `list({ archived: true })` is the archived view; `archive`/`unarchive` move a thread per-side and are idempotent.
+Inbox rows include `lastMessageAt`, `lastMessageSnippet`, `hasUnread`, and the live-resolved `counterparty` with `displayName`, `avatarUrl`, `companyName`, and `handle`. `list({ archived: true })` reads the archived view; `archive` and `unarchive` are idempotent and per-side.
 
-## The thread: header, messages, read receipts
+## Render a thread faithfully
 
-The header and the messages are separate calls. Messages come oldest-first; unsent messages are tombstones (empty `body`, `deletedAt` set) — render a placeholder, don't filter them out.
+Header and messages are separate reads. Messages arrive oldest-first. An unsent message is a tombstone with empty `body` and non-null `deletedAt`; preserve its position with a placeholder.
 
 ```ts snippet
-const convo = await board.me.conversations.retrieve(conversationId);
-convo.viewerRole;              // 'employer' | 'candidate'
-convo.viewerLastReadMessageId; // my last-read pointer (null = never)
-
+const conversation = await board.me.conversations.retrieve(conversationId);
 const { data: messages } = await board.me.conversations.listMessages(
   conversationId,
   { limit: 50 });
-for (const m of messages) {
-  m.body;     // '' when unsent (tombstone)
-  m.readAt;   // read receipt — when the recipient read it, or null
-  m.editedAt; // non-null after an edit
+
+conversation.viewerRole;
+conversation.viewerLastReadMessageId;
+
+for (const message of messages) {
+  message.body;
+  message.deletedAt;
+  message.readAt;
+  message.editedAt;
 }
 
-await board.me.conversations.markRead(conversationId); // idempotent
+await board.me.conversations.markRead(conversationId);
 ```
 
-Call `markRead` when the viewer opens the thread — it clears `hasUnread` and drives the counterparty's `readAt` receipts.
+Call `markRead` when the viewer opens the thread. It clears their unread state and advances read receipts for the counterparty.
 
-## Sending
+## Send
 
-`start` cold-initiates a candidate (employer-only) and converges on the existing thread; `startAboutApplication` messages an applicant in application context; `reply` continues a thread. Each returns the created `Message`.
+`findExisting` routes to an existing thread. Employer-only `start` cold-initiates a candidate; `startAboutApplication` begins in application context; `reply` continues a thread. Each send returns a `Message`.
 
 ```ts snippet
-// Route to an existing thread instead of opening a composer:
-const { conversationId } = await board.me.conversations.findExisting({
+const existing = await board.me.conversations.findExisting({
   candidateBoardUserId,
 });
 
@@ -93,28 +84,31 @@ await board.me.conversations.reply(first.conversationId, {
 });
 ```
 
-Sends are gated server-side (messaging enabled, cold-message rule, per-pair daily limits, blocks) — failures arrive as `messaging_*` `BoardApiError` codes; branch with the guards from `cavuno-board-errors`.
+The server enforces messaging enablement, cold-message rules, pair limits, and blocks. Handle `messaging_*` `BoardApiError` codes with `cavuno-board-errors`.
 
-## Edit, unsend, report, block
+## Edit, moderate, and block
 
-Your own messages can be edited or unsent within a 15-minute window. Reporting a message addressed to you auto-blocks its author.
+Own-message edits and unsends have a 15-minute window. Unsend is idempotent and creates a tombstone. Reporting a message addressed to the viewer automatically blocks its author.
 
 ```ts snippet
-await board.me.messages.edit(messageId, { body: 'fixed typo' });
-await board.me.messages.unsend(messageId); // tombstones; idempotent
+await board.me.messages.edit(messageId, { body: 'Fixed typo' });
+await board.me.messages.unsend(messageId);
 
-const { blocked } = await board.me.messages.report(messageId, {
-  reason: 'spam', // 'spam' | 'harassment' | 'misrepresentation' | 'other'
+const report = await board.me.messages.report(messageId, {
+  reason: 'spam',
 });
 
-await board.me.blocks.create({ boardUserId }); // silent; idempotent
+await board.me.blocks.create({ boardUserId });
+const blocked = await board.me.blocks.status(boardUserId);
+await board.me.blocks.remove(boardUserId);
 ```
 
-`board.me.blocks.list()` / `.remove(boardUserId)` / `.status(boardUserId)` round out blocking.
+Report reasons are `'spam' | 'harassment' | 'misrepresentation' | 'other'`. `board.me.blocks.list()` enumerates blocks.
 
-## Verify
+## Completion gate
 
-- [ ] Kill the network tab timer: polling stops when the tab is hidden, resumes on focus with a fresh read.
-- [ ] Send from a second account: the badge (`unreadCount().count`) and `hasUnread` flip within one poll interval.
-- [ ] Open the thread: `markRead` fires once and the sender sees `readAt` populate on their next poll.
-- [ ] Unsend a message: it renders as a tombstone (empty `body`), not a gap.
+- Hiding the tab stops the timer; returning starts one timer and refreshes immediately.
+- A second account's message updates `unreadCount().count` and `hasUnread` within one interval.
+- Opening a thread calls `markRead`; the sender later sees `readAt`.
+- Unsend renders a tombstone in place.
+- Messaging policy errors produce deliberate UI states rather than a generic success path.

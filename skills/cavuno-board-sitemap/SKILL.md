@@ -1,42 +1,30 @@
 ---
 name: cavuno-board-sitemap
-description: Build the board's sitemap with @cavuno/board/sitemap — the hosted 8-bucket model (marketing, jobs taxonomies, job details, companies, salaries, blog), 45k chunking, XML rendering, and the buildBucketUrls walker that enumerates a board's content through the BoardSdk with the hosted SEO rules built in (feature gating, ≥5-job thin-content floor, pagination backstops). Use when adding /sitemap.xml and /sitemap/:file routes to a custom board frontend.
+description: Board sitemap generation with @cavuno/board/sitemap. Use for sitemap indexes, bucket routes, XML rendering, catalog walking, chunking, or robots.txt discovery.
 ---
 
-# Sitemap: the 8-bucket model
+# Sitemap generation
 
-`@cavuno/board/sitemap` ships the hosted board's sitemap architecture: a
-sitemap INDEX at `/sitemap.xml` pointing at one file per content bucket,
-each an ordinary `<urlset>`. The XML byte layout and the bucket rules are
-tested against the hosted implementation, so a custom frontend's
-sitemap corpus lines up bucket-for-bucket with what cavuno.com would emit.
+`@cavuno/board/sitemap` implements the hosted eight-bucket sitemap: an index at
+`/sitemap.xml` points to ordinary `<urlset>` files for `marketing`,
+`jobs-categories`, `jobs-skills`, `jobs-locations`, `jobs-details`,
+`companies`, `salaries`, and optionally `blog`.
 
-Two tiers, use both:
+Structured data and head tags use `cavuno-board-seo`. The host app owns feeds.
 
-- **XML primitives** (pure, no I/O): `SITEMAP_BUCKETS`,
-  `SITEMAP_CHUNK_SIZE` (45,000), `chunk`, `bucketFilename` /
-  `parseBucketFilename`, `renderUrlset`, `renderSitemapIndex`.
-- **The walker** (opinionated, injected I/O): `listedBuckets(board)` and
-  `buildBucketUrls(board, origin, bucket)` take your `BoardSdk` instance
-  and return plain URL strings with the hosted rules applied — you never
-  re-derive the SEO policy.
+## Use both tiers
 
-## When to use
+The pure XML tier exports `SITEMAP_BUCKETS`, `SITEMAP_CHUNK_SIZE` (45,000),
+`chunk`, `bucketFilename`, `parseBucketFilename`, `renderUrlset`, and
+`renderSitemapIndex`. The catalog tier exports `listedBuckets(board)` and
+`buildBucketUrls(board, origin, bucket)`; it walks the SDK and applies the
+hosted indexing policy.
 
-- Adding `/sitemap.xml` + `/sitemap/:file` routes to a board frontend.
-- Deciding which listing pages deserve indexing (the walker already does).
+## Serve the index
 
-## When not to use
-
-- Structured data / meta tags — `cavuno-board-seo`.
-- Feeds (RSS/Atom) — app-owned.
-
-## The two routes
-
-The index lists one entry per bucket; each bucket route parses its filename
-back to a bucket + chunk and renders a urlset. Empty buckets render a valid
-empty urlset — only `blog` is dropped from the index when the feature is
-off (`listedBuckets` handles that).
+List every non-empty chunk filename for every listed bucket. Keep one filename
+for an empty bucket so its route returns a valid empty urlset. `listedBuckets`
+removes blog when the feature is off.
 
 ```ts snippet
 import {
@@ -45,15 +33,13 @@ import {
   bucketFilename,
   chunk,
   listedBuckets,
-  parseBucketFilename,
   renderSitemapIndex,
-  renderUrlset,
 } from '@cavuno/board/sitemap';
 
-// GET /sitemap.xml — one <sitemap> per listed bucket (plus -2, -3… chunks).
 const origin = 'https://jobs.example.com';
 const buckets = await listedBuckets(board);
 const locs: string[] = [];
+
 for (const bucket of buckets) {
   const urls = await buildBucketUrls(board, origin, bucket);
   const chunks = chunk(urls, SITEMAP_CHUNK_SIZE);
@@ -61,87 +47,84 @@ for (const bucket of buckets) {
     locs.push(`${origin}/sitemap/${bucketFilename(bucket, i)}`);
   }
 }
+
 return xmlResponse(renderSitemapIndex(locs));
 ```
 
+## Serve a bucket file
+
+Parse the filename, rebuild that bucket, select its zero-based chunk, and
+render it. A filename outside the bucket grammar resolves to 404.
+
 ```ts snippet
-// GET /sitemap/:file — parse, enumerate, slice, render. Unknown file → 404.
+import {
+  SITEMAP_CHUNK_SIZE,
+  buildBucketUrls,
+  chunk,
+  parseBucketFilename,
+  renderUrlset,
+} from '@cavuno/board/sitemap';
+
 const parsed = parseBucketFilename(params.file);
 if (!parsed) return notFound();
+
 const urls = await buildBucketUrls(board, origin, parsed.bucket);
 const page = chunk(urls, SITEMAP_CHUNK_SIZE)[parsed.chunkIndex] ?? [];
 return xmlResponse(renderUrlset(page));
 ```
 
-`renderUrlset` also accepts `{ url, lastModified?, images? }` entries when
-you have per-URL dates (a `Date` serializes to ISO 8601). `changefreq` and
-`priority` are deliberately unsupported — the hosted board never emits them.
+`renderUrlset` also accepts `{ url, lastModified?, images? }`; `Date` values
+serialize to ISO 8601. `renderSitemapIndex` accepts strings or
+`{ url, lastModified? }`. The hosted format omits `changefreq` and `priority`.
 
-## robots.txt
+## Keep the walker policy intact
 
-Point crawlers at the index — one line, at the site root:
+`buildBucketUrls` is the policy boundary:
+
+- Taxonomy and location pages enter the sitemap at five distinct jobs,
+  `MIN_JOBS_PER_INDEXED_PAGE`.
+- Marketing URLs follow context feature flags for impressum, talent directory,
+  and employers. Blog is listed only when `features.blog` is enabled.
+- Salary index reads use `context().language`, producing board-language
+  canonical salary slugs. Job, company, market, and blog slugs arrive
+  canonical on the wire.
+- Collections with `count` enumerate offsets in parallel up to the API's
+  10,000-offset window. Cursor walks stop after 200 pages. Both paths warn when
+  their backstop truncates output.
+- XML escaping and hosted byte layout come from `renderUrlset` and
+  `renderSitemapIndex`.
+
+Cursor and offset order may move while a large board changes. That is safe for
+this deduplicated sitemap heuristic. Use an explicit sort or search with
+`board.jobs.list` for a stable ordered export.
+
+## Preserve the named v1 exclusions
+
+The walker omits families that v1 can discover only through per-slug N+1
+reads: cross-axis salary pages (title×location, skill×location,
+company×category, and per-entity salary indexes) and job
+place×category/place×skill combinations. Internal links keep them reachable
+until a bulk-pairs endpoint lets the walker add them.
+
+## Publish discovery
+
+At the site root, point robots.txt at the index:
 
 ```txt
 Sitemap: https://jobs.example.com/sitemap.xml
 ```
 
-## The rules the walker enforces (don't re-implement)
+## Completion gate
 
-- **Thin-content floor**: a category/skill/location listing page is emitted
-  only with ≥5 distinct jobs (`MIN_JOBS_PER_INDEXED_PAGE`) — below that,
-  the page is thin content that wastes crawl budget.
-- **Feature gating**: `/impressum`, `/talent`, `/employers` appear in the
-  marketing bucket only when `context().features` enables them; the blog
-  bucket exists only when `features.blog` is on.
-- **Board language**: salary-index reads pass `context().language`, so a
-  non-English board emits board-language canonical salary slugs (jobs,
-  companies, and blog slugs arrive canonical on the wire already). No
-  locale parameter to thread.
-- **Pagination backstops**: offset enumeration runs in parallel when the
-  envelope carries `count` (capped at the API's 10,000-offset window);
-  cursor walks cap at 200 pages. Both warn on truncation instead of
-  hanging a build.
+Finish only after every applicable check passes:
 
-## Stable order caveat (cursor walks)
-
-Cursor and offset enumeration order can shift between requests on a large,
-churning board — two chunk requests may see slightly different orderings.
-That is harmless for a sitemap (URLs dedupe and the ≥5 counts are a
-heuristic), but do NOT reuse the walker as a general "export all jobs in
-order" tool; for stable ordering, pass an explicit sort/query to
-`board.jobs.list` yourself.
-
-## Named exclusions (v1 API gap — not bugs)
-
-Two URL families the HOSTED sitemap emits are deliberately absent, because
-v1 exposes them only per-slug and a bulk-pairs endpoint doesn't exist yet
-(per-slug N+1 is ~1k+ calls per build):
-
-- Cross-axis salary pages (title×location, skill×location,
-  company×category, and the per-entity `/locations` · `/titles` ·
-  `/skills` salary index pages).
-- Jobs place×category / place×skill combination listings.
-
-Both stay reachable through internal links. When the bulk endpoint lands,
-the walker picks them up additively — don't hand-enumerate them.
-
-## Anti-patterns
-
-```ts snippet
-// NEVER emit every taxonomy page unconditionally — the ≥5-job floor exists
-// to keep thin pages out of the index:
-for (const c of allCategories) urls.push(`${origin}/jobs/${c.slug}`); // wrong
-// NEVER hand-build the XML with a template string per route — use
-// renderUrlset/renderSitemapIndex (escaping + byte-parity with hosted).
-// NEVER fetch every salary detail page to discover cross-axis pairs (N+1).
-```
-
-## Verify
-
-- [ ] `/sitemap.xml` lists one file per bucket (no `blog` entry when the
-      feature is off) and every listed file returns valid XML.
-- [ ] A category with 4 jobs is absent from `jobs-categories.xml`; one with
-      5 is present.
-- [ ] `jobs-details-2.xml` style chunk names round-trip through
-      `parseBucketFilename` and unknown filenames 404.
-- [ ] robots.txt points at `/sitemap.xml`.
+- `/sitemap.xml` lists all enabled buckets, omits blog when disabled, and every
+  listed file returns valid XML, including empty buckets.
+- A taxonomy page with four distinct jobs is absent and one with five is
+  present.
+- `jobs-details-2.xml` round-trips through `parseBucketFilename`; an unknown
+  filename returns 404.
+- More than 45,000 URLs produce numbered `-2`, `-3`, and later files without
+  dropping or duplicating a URL.
+- robots.txt points to the absolute `/sitemap.xml` URL.
+- No excluded N+1 URL family is enumerated outside the walker.

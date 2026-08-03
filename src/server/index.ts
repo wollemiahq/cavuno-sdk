@@ -4,9 +4,8 @@
  * Pure, zero-dep, platform-neutral: every helper speaks cookie STRINGS
  * (`Set-Cookie` values in, `Cookie` headers out) — never framework request/
  * response objects — so the same code wires into TanStack Start, Next.js,
- * Remix, or a bare Worker. The middleware objects themselves stay
- * framework-owned (see the `cavuno-board-tanstack-start` flavor skill for
- * the reference wiring).
+ * Remix, or a bare Worker. Framework middleware remains framework-owned;
+ * Cavuno's canonical SSR contract lives in `cavuno-board-server-sessions`.
  *
  * Three pieces:
  * - the session cookie codec (`__Host-cavuno_board_session` — the SDK bearer
