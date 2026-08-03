@@ -1,99 +1,117 @@
 ---
 name: cavuno-board-companies
-description: Build company surfaces with the @cavuno/board SDK — the companies index (companies.list / companies.search with the market filter), the company profile (companies.retrieve, listJobs, similar), the markets sub-surface (companies.markets + markets.resolve with its 308 redirectTo), and company salary pages (companies.salaries + salaries.category). Covers PublicCompany vs PublicCompanyDetail and envelope pagination.
+description: Company catalog reads with @cavuno/board. Use for company indexes, market archives, profiles, company job rails, similar companies, or company salary pages.
 ---
 
-# Companies: index, profile, markets, salaries
+# Companies
 
-Lists and search return `PublicCompany`; only `retrieve` returns `PublicCompanyDetail` (which adds `markets`). Company salary pages are their own sub-surface under `companies.salaries`.
+Use `PublicCompany` for list and search rows. Use `PublicCompanyDetail` from
+`companies.retrieve` for a profile; it alone adds `markets`.
 
-## When to use
+Board-wide jobs use `jobs.*`, board-wide salary hubs use `salaries.*`, and
+employer self-service uses authenticated `board.me.companies.*`. The host app
+owns admin writes, sitemaps, and OG-image routes.
 
-- The companies index page and its market (sector) filter.
-- The company profile page: detail, open-jobs list, similar-companies rail.
-- Per-company salary pages (`/companies/:slug/salaries[/:category]`).
+## List and search
 
-## When not to use
-
-- Board-wide job browse/search — `jobs.*` (see cavuno-board-jobs).
-- Board-wide salary hubs (titles/skills/locations) — `board.salaries.*`.
-- Employer self-service (claiming/managing a company) — the authed `board.me.companies.*` surface.
-
-Out of scope — do not invent exports: no company create/update/logo upload (that is the admin API, not this SDK), and no sitemap or OG-image generation — the host app owns those routes.
-
-## List, search, market filter
-
-`companies.list` returns a `CompanyListEnvelope`: `ListEnvelope<PublicCompany>` plus optional `relatedSearches` (market suggestions). `CompaniesListQuery` supports `limit` (1–100), `cursor`, `offset` (takes precedence over `cursor`; pair with the response `count` to page in parallel), and `marketSlug` — unknown market slugs 404.
+`companies.list` returns `CompanyListEnvelope`: `ListEnvelope<PublicCompany>`
+plus optional market `relatedSearches`. Its query accepts `limit` (1–100),
+`cursor`, `offset`, and `marketSlug`. `offset` takes precedence over `cursor`;
+use it with `count` for numbered or parallel paging. An unknown `marketSlug`
+returns 404.
 
 ```ts snippet
-const page = await board.companies.list({ limit: 20, marketSlug: 'cybersecurity' });
-page.hasMore;
-page.nextCursor; // null when hasMore is false
+const page = await board.companies.list({
+  limit: 20,
+  marketSlug: 'cybersecurity',
+});
 for (const company of page.data) {
   company.name;
   company.publishedJobCount;
-  company.links.public; // canonical URL, or null when the company lacks a slug
+  company.links.public; // null when the company has no slug
 }
 ```
 
-`companies.search` posts a `CompaniesSearchBody` (`query` free text matched against the company name, up to 200 chars; optional `marketSlug`, `cursor`, `limit` 1–100) and returns a `SearchEnvelope<PublicCompany>`:
+`companies.search` posts a `CompaniesSearchBody`: `query` matched against the
+company name (up to 200 characters), optional `marketSlug`, `cursor`, and
+`limit` (1–100). It returns `SearchEnvelope<PublicCompany>`.
 
 ```ts snippet
 const results = await board.companies.search({ query: 'acme', limit: 20 });
 ```
 
-## Markets (sectors)
+## Resolve markets
 
-`companies.markets` is callable AND carries `.resolve`. The call lists the board's markets ranked by company count (`CompanyMarket`: `slug`, `name`, `companyCount`; `limit` 1–200, default 100 — a top-N preview; optional `search`). `.resolve(slug)` returns a `TaxonomyResolution` — `sourceSlug`, `canonicalSlug`, `displayName`, and `redirectTo` (the canonical slug to 308 to when the inbound slug differs; `null` otherwise).
+`companies.markets` is callable and carries `.resolve`. The call returns
+`CompanyMarket` rows (`slug`, `name`, `companyCount`) ranked by company count;
+it accepts `limit` (1–200, default 100) and optional `search`.
+
+Resolve an inbound slug before loading an archive. `TaxonomyResolution`
+returns `sourceSlug`, `canonicalSlug`, `displayName`, and `redirectTo`. Issue a
+308 to `redirectTo` when present, then use the resolved slug as `marketSlug`.
 
 ```ts snippet
 const { data: markets } = await board.companies.markets({ search: 'robotics' });
 const market = await board.companies.markets.resolve('cybersecurity');
 if (market.redirectTo) {
-  // 308 the market-scoped browse to the canonical slug
+  // Return a 308 to the same archive at market.redirectTo.
 }
 ```
 
-Resolve first, then pass the resolved slug as `marketSlug` — don't guess slugs (unknown ones 404).
+## Render a profile
 
-## Profile: retrieve, jobs, similar
-
-`PublicCompany` (lists/search) carries: `id`, `name`, `slug`, `website`, `logoUrl`, `description`, `jobCount`, `publishedJobCount`, `links.public`. `PublicCompanyDetail` (retrieve only) adds `markets: CompanyMarketRef[]` (`name` + source `slug`; empty when none).
+`PublicCompany` carries `id`, `name`, `slug`, `website`, `logoUrl`,
+`description`, `jobCount`, `publishedJobCount`, and `links.public`.
+`PublicCompanyDetail` adds `markets: CompanyMarketRef[]`, whose rows contain
+`name` and source `slug`.
 
 ```ts snippet
-const company = await board.companies.retrieve('acme'); // PublicCompanyDetail
-company.markets;                                        // detail-only
+const company = await board.companies.retrieve('acme');
+company.markets;
 
 const jobs = await board.companies.listJobs('acme', { limit: 10 });
-// JobCardListEnvelope — same PublicJobCard shape as jobs.list; cursor + limit only
-
-const rail = await board.companies.similar('acme', { limit: 6 }); // 1–20, default 6
+const rail = await board.companies.similar('acme', { limit: 6 });
 ```
 
-`similar` uses the hosted ranking (most open roles first) and excludes the company itself.
+`listJobs` returns the same `JobCardListEnvelope` as `jobs.list` and accepts
+only cursor plus limit. `similar` accepts `limit` 1–20 (default 6), excludes
+the current company, and ranks by open roles. Fetch `retrieve` before reading
+`markets`; list and search rows have no `markets` field.
 
-Anti-pattern: don't render `markets` from a list row — it only exists on the detail. Fetch `retrieve` for the profile page.
+## Render company salaries
 
-## Company salaries
-
-`companies.salaries` is callable AND carries `.category`. The call is the company salary overview (`CompanySalary`): `overallSalary` (nullable), `bySeniority` rows vs the board baseline (`diffPercent`), `competitors`, `topLocations`, `byCategory`, board-wide baselines, and `currency`. `.category(companySlug, categorySlug, { locale })` is one job category at the company (`CompanyCategorySalary`).
+`companies.salaries` is callable and carries `.category`. The overview returns
+`CompanySalary`: nullable `overallSalary`, `bySeniority` rows with board
+comparison `diffPercent`, `competitors`, `topLocations`, `byCategory`,
+board-wide baselines, and `currency`.
 
 ```ts snippet
 const overview = await board.companies.salaries('acme');
-overview.bySeniority[0]?.diffPercent; // vs the board baseline, or null
+overview.bySeniority[0]?.diffPercent;
 
-const cat = await board.companies.salaries.category('acme', 'software-engineer', {
-  locale: 'de',
-});
-cat.categorySourceSlug;    // immutable English slug
-cat.categoryCanonicalSlug; // board-language slug — 308 to it when the inbound differs
+const category = await board.companies.salaries.category(
+  'acme',
+  'software-engineer',
+  { locale: 'de' });
+category.categorySourceSlug;
+category.categoryCanonicalSlug;
 ```
 
-Pass `{ locale }` for board-language category names; the company slug/name are never localized. The response returns BOTH `categorySourceSlug` and `categoryCanonicalSlug` — the consumer issues the 308 itself.
+Pass `{ locale }` for board-language category names. Company identity remains
+untranslated. The API returns both the immutable English
+`categorySourceSlug` and the board-language `categoryCanonicalSlug`; the host
+route issues a 308 when the inbound category slug differs from the canonical
+one.
 
-## Verify
+## Completion gate
 
-- `companies.retrieve('<known-slug>')` returns `object: 'public_company'` with a `markets` array; the same company in `companies.list` has no `markets` key.
-- A slug from `companies.markets()` works as `marketSlug`; a made-up slug returns 404 (`isNotFound`).
-- Paginating with `nextCursor` terminates: `nextCursor` is `null` on the last page.
-- `companies.salaries.category(...)` with a non-canonical category slug returns a differing `categoryCanonicalSlug`, and your route 308s to it.
+Finish only after every applicable check passes:
+
+- A known company is a `public_company`; only its retrieve response has a
+  `markets` array.
+- A listed market slug works as `marketSlug`, while an invented one produces a
+  handled 404.
+- Cursor pagination reaches `nextCursor: null` without repeating a page.
+- A non-canonical market or salary-category route returns a 308 to the slug
+  supplied by the API.
+- Salary figures and comparisons come directly from `CompanySalary` fields.

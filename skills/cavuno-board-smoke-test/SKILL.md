@@ -1,104 +1,69 @@
 ---
 name: cavuno-board-smoke-test
-description: Runtime verification for a wired Cavuno board frontend — literal curl probes against the Board API plus per-surface behavioral checks and a mandatory production-build pass. Run after cavuno-board-setup finishes, after upgrading @cavuno/board, or whenever board wiring is suspect. Type checks are not enough for board wiring.
+description: Prove a Cavuno board integration at runtime. Use after initial setup, an @cavuno/board upgrade, a board-key rotation, or when rendered board data is unexpectedly missing.
 ---
 
-# Smoke-testing a Cavuno board frontend
+# Smoke-test a Cavuno board
 
-Type checks prove the code compiles against the SDK; they do not prove the
-app reaches the right board with the right credentials, or that gating,
-auth, and SEO surfaces behave. Verify at runtime, in this order.
+Follow the layers in order. Each passing layer narrows the next failure to app wiring rather than credentials or the public API.
 
-## When to use
-
-- Right after `cavuno-board-setup` completes.
-- After upgrading `@cavuno/board` or rotating the `pk_…` key.
-- When any surface renders empty and you don't know which layer is wrong.
-
-## 0 — Run `doctor` first (deterministic pass)
+## 1. Run doctor
 
 ```bash
 PUBLIC_CAVUNO_BOARD=pk_... \
   npx @cavuno/board doctor --frontend http://localhost:3000
 ```
 
-Doctor codifies the static checks (env shape, API reachability) and the
-read probes (home/jobs render, JobPosting JSON-LD, sitemap, robots) as
-pass/fail/skip with a non-zero exit on failure — anything it SKIPS is
-named in its summary and still needs the manual checks below. Use the
-rest of this skill for the behavioral checks doctor does not automate
-(auth flows, gating semantics, production build).
+Doctor checks environment shape, API reachability, installed skills, and—when `--frontend` is present—rendered pages, sitemap, robots rules, and JobPosting structured data. It is read-only and reports every skipped check.
 
-Doctor is non-destructive. It validates configuration, the public Board API,
-installed skills, and—when `--frontend` is provided—rendered pages, sitemaps,
-robots rules, and JobPosting structured data. It never creates users,
-applications, or alerts and needs no Cavuno operator credentials.
+**Complete when:** doctor exits zero and every skip that applies to an implemented surface is recorded for manual verification below.
 
-## 1 — Probe the API directly (before blaming app code)
+## 2. Probe the public API
 
-Use the real `PUBLIC_CAVUNO_BOARD` value the app reads. The SDK and doctor use `https://api.cavuno.com` by default; set `PUBLIC_CAVUNO_API_URL` only for a Cavuno-supplied non-production override. Expected outputs are exact.
+Use the exact board value and API origin read by the app:
 
 ```bash
 CAVUNO_API_URL="${PUBLIC_CAVUNO_API_URL:-https://api.cavuno.com}"
 
-# Board context: MUST return JSON with "object": "public_board" and your
-# board's name — not an HTML error page, not {"error":{"code":"boards_not_found"}}.
 curl -s "$CAVUNO_API_URL/v1/boards/$PUBLIC_CAVUNO_BOARD" | head -c 300
-
-# Jobs list: MUST return {"object":"list", ... "data":[...]}. An empty data
-# array on a board you know has jobs means the wrong board identifier.
 curl -s "$CAVUNO_API_URL/v1/boards/$PUBLIC_CAVUNO_BOARD/jobs?limit=2" | head -c 300
-
-# Error envelope: a bogus job slug MUST return the v1 error shape with
-# "code":"jobs_not_found" — anything else means a proxy is rewriting responses.
 curl -s "$CAVUNO_API_URL/v1/boards/$PUBLIC_CAVUNO_BOARD/jobs/definitely-not-a-job"
 ```
 
-On a password-protected board, every content read above returns 401 with
-`"code":"board_password_required"` — that is correct behavior, not a
-failure; verify the grant flow in step 3 instead.
+The context response has `"object":"public_board"` and the expected name. The jobs response has `"object":"list"` and a `data` array. The fabricated slug has the v1 error code `jobs_not_found`. A protected board instead returns `board_password_required` for content reads; that is the expected pre-grant state.
 
-## 2 — Verify the app serves board data
+Pause here when the API is unreachable, resolves a different board, or returns a non-v1 envelope. Report this layer as the blocker and preserve app code.
 
-Start the app (dev is fine for this step) and probe its own routes:
+**Complete when:** identity, list shape, and error-envelope probes match the expected board, or the protected-board challenge is confirmed.
 
-- The home/shell renders the board name and logo from `board.context()`.
-- A listing page shows real job cards; a card links to
-  `/companies/:companySlug/jobs/:jobSlug` (never `/jobs/:slug`).
-- A fabricated job URL renders the app's not-found state — a handled
-  `isNotFound` branch, not a crash or blank page.
+## 3. Probe the development app
 
-## 3 — Per-surface behavioral checks (only for surfaces you built)
+Start the app and verify:
 
-- **Auth**: register → the verification gate appears; login → an authed
-  read (`me.retrieve`) succeeds; after `auth.logout()` the same read fails
-  with a 401 that the app handles by signing out, not looping.
-- **Password gate**: with protection enabled, an anonymous content read
-  redirects to the password page; `password.verify()` + retry renders
-  content; a wrong password shows `board_password_invalid` messaging.
-- **Saved jobs / apply**: save → reload → still saved (server state, not
-  local); a second apply to the same job returns the same application
-  (idempotent), not a duplicate.
-- **Paywall** (gated boards): anonymous list shows the `gatedCount` upsell;
-  an entitled login makes the same URL return the ungated view.
-- **Alerts**: subscribe → `status: "submitted"`; repeat → same uniform `"submitted"` (never reveals already-subscribed).
+- The shell renders the name and logo from `board.context()`.
+- A listing renders real jobs and links to `/companies/:companySlug/jobs/:jobSlug`.
+- A fabricated job route renders the app's not-found state.
 
-## 4 — Production build (mandatory)
+**Complete when:** all three behaviors are visible through the app rather than inferred from types or source code.
 
-Dev servers mask wiring bugs (looser env loading, dev-only middleware, no
-tree-shake). Run the app's real build, boot the production output, and
-repeat step 2 against it. `import 'server-only'`-style boundaries and env
-prefixes (`VITE_`, `NEXT_PUBLIC_`) frequently pass dev and fail prod.
+## 4. Exercise each implemented stateful surface
 
-## Out of scope — do not invent checks
+Run only the branches the app exposes:
 
-No load testing, no Lighthouse/SEO scoring, no visual regression — those
-are app-owned. This skill verifies board wiring only.
+- **Auth:** register, observe verification state, log in, prove `me.retrieve`, log out, then prove the app handles the next authenticated read as signed out.
+- **Password gate:** confirm the anonymous challenge, verify the password, retry successfully, then confirm a wrong password renders `board_password_invalid`.
+- **Saved jobs and applications:** save and reload to prove server persistence; submit the same application twice and confirm one application identity.
+- **Paywall:** compare the anonymous `gatedCount` state with the entitled view at the same URL.
+- **Alerts:** submit twice and confirm both responses preserve the uniform `submitted` state.
 
-## Stop conditions
+Pause a branch when its board password or test account is unavailable and report the exact credential needed.
 
-Stop and report to the human when: step 1 fails (the problem is
-credentials/network, not code — do not "fix" app code to compensate); the
-API returns codes the app has no branch for; or a check needs a credential
-you don't have (board password, test account). Never commit real
-credentials while fixing findings.
+**Complete when:** every implemented branch passes or has an explicit credential blocker; logout and refresh paths terminate without loops.
+
+## 5. Prove the production artifact
+
+Run the app's production build, boot that output, and repeat the three app probes from step 3 against it. Use the app's real production command and environment-loading path.
+
+**Complete when:** the build succeeds and the running production artifact passes the shell, listing/detail-link, and not-found probes.
+
+The smoke test covers Cavuno board wiring. Performance, visual regression, and broader SEO scoring belong to their dedicated project checks.

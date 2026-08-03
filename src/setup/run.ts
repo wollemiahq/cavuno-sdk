@@ -1,6 +1,6 @@
 import { loadSkillManifest, resolveFromPackageRoot } from '../skills';
 
-import { cpSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
 export interface SetupResult {
@@ -10,6 +10,15 @@ export interface SetupResult {
   targetDirs: string[];
   copied: string[];
 }
+
+const RETIRED_SKILL_NAMES = [
+  'cavuno-board-theme',
+  'cavuno-board-tanstack-start',
+  'cavuno-board-client',
+  'cavuno-board-server',
+  'cavuno-board-suggest',
+  'cavuno-board-job-posting',
+] as const;
 
 /** Detect the consumer framework from its package.json dependencies. */
 export function detectFramework(cwd: string): string | null {
@@ -29,8 +38,8 @@ export function detectFramework(cwd: string): string | null {
  * `.agents/skills/` (the cross-agent convention), `.claude/skills/` (Claude
  * Code), `.codex/skills/` (Codex), and/or `.cursor/skills/` (Cursor) — every
  * root that exists, or `.agents/skills/` when none does. Copies the
- * framework-agnostic core skills plus the flavor matching the detected
- * framework. Idempotent:
+ * framework-agnostic Cavuno skills; framework APIs come from the framework's
+ * own installed skills. Framework detection remains informational. Idempotent:
  * re-running overwrites the
  * `cavuno-board-*` skills (they are version-matched artifacts) and never
  * touches other skills.
@@ -38,9 +47,7 @@ export function detectFramework(cwd: string): string | null {
 export function runSetup(cwd: string = process.cwd()): SetupResult {
   const manifest = loadSkillManifest();
   const framework = detectFramework(cwd);
-  const chosen = manifest.skills.filter(
-    (skill) => skill.category === 'core' || skill.framework === framework,
-  );
+  const chosen = manifest.skills.filter((skill) => skill.category === 'core');
   const roots = [
     resolve(cwd, '.agents', 'skills'),
     resolve(cwd, '.claude', 'skills'),
@@ -52,6 +59,9 @@ export function runSetup(cwd: string = process.cwd()): SetupResult {
   const copied: string[] = [];
   for (const targetDir of targetDirs) {
     mkdirSync(targetDir, { recursive: true });
+    for (const name of RETIRED_SKILL_NAMES) {
+      rmSync(resolve(targetDir, name), { recursive: true, force: true });
+    }
     for (const skill of chosen) {
       const sourceDir = dirname(resolveFromPackageRoot(skill.path));
       const destDir = resolve(targetDir, skill.name);

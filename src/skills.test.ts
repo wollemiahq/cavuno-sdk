@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { loadSkillCorpus, loadSkillManifest } from './skills';
+import {
+  bundleSkillMarkdown,
+  loadSkillCorpus,
+  loadSkillManifest,
+} from './skills';
 
 import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -24,6 +28,7 @@ function writeCorpus(): string {
     join(skillsDir, 'SKILL.md'),
     '---\nname: cavuno-board-demo\ndescription: Demo skill.\n---\n\nBody text.\n',
   );
+  writeFileSync(join(skillsDir, 'DETAILS.md'), '# Disclosed details\n');
   writeFileSync(
     join(root, 'skills', 'manifest.json'),
     JSON.stringify({
@@ -55,6 +60,15 @@ describe('skills loader baseDir', () => {
     const root = writeCorpus();
     const corpus = loadSkillCorpus(root);
     expect(corpus.skills[0]!.content).toContain('Body text.');
+    expect(corpus.skills[0]!.references).toEqual([
+      {
+        path: 'DETAILS.md',
+        content: '# Disclosed details\n',
+      },
+    ]);
+    expect(bundleSkillMarkdown(corpus.skills[0]!)).toContain(
+      'Disclosed reference: DETAILS.md',
+    );
   });
 
   it('default (no baseDir) still reads the real shipped corpus', () => {

@@ -1,100 +1,89 @@
 ---
 name: cavuno-board-filters
-description: The canonical listing-filter vocabulary and URL search-param parsing with @cavuno/board/filters — remote/employment/seniority/company/sort sets, localized seniority labels, and parseListingFilters for jobs-listing routes. Use when building listing pages, filter sidebars, sort dropdowns, or validating listing URL params.
+description: Listing-filter contracts with @cavuno/board. Use for job filter controls, sort controls, listing URL validation, or taxonomy-backed filter options.
 ---
 
-# Filters: vocabulary + URL parsing
+# Listing filters
 
-`@cavuno/board/filters` is the one filter vocabulary every tenant frontend
-shares — the seniority set is tested against the platform source, and
-URL parsing follows the hosted semantics (hand-typed URLs are messy; parsing
-never throws).
+`@cavuno/board/filters` is the shared vocabulary and parser for every job
+listing route, including category, skill, and location pages. Display labels
+live in `@cavuno/board/format`; search POST bodies use `jobs.search`; typeahead
+UI behavior lives in `cavuno-board-search-suggestions`.
 
-## When to use
+## Parse public URL input
 
-- The jobs index and every programmatic listing page (category / skill /
-  location) — they all layer the same cross-cutting filters on any seed.
-- `validateSearch`-style route param validation (server-safe, SSR-ready).
-
-## When not to use
-
-- Turning values into card display text — `cavuno-board-format`.
-- Search QUERIES (`jobs.search` bodies) — this module is about the listing
-  URL contract, not the search POST body.
-- Search-dropdown typeahead — `cavuno-board-suggest`.
-
-## Parse listing URLs
+Run every listing URL through `parseListingFilters`. Public input is
+permissive: unknown values are dropped and parsing does not throw. Seniority
+and company accept repeated parameters or comma-separated strings, then trim,
+lowercase, deduplicate, and preserve order. Company is an open set of public
+slugs capped at the first 10 values.
 
 ```ts snippet
-import { parseListingFilters, DEFAULT_SORT } from '@cavuno/board/filters';
+import {
+  DEFAULT_SORT,
+  parseListingFilters,
+} from '@cavuno/board/filters';
 
 const filters = parseListingFilters(rawSearchParams);
-// { q?, remoteOption?, employmentType?, seniority?: Seniority[], company?: string[], sort? }
+const selectedSort = filters.sort ?? DEFAULT_SORT;
 
 const page = await board.jobs.list({
   limit: 20,
   seniority: filters.seniority,
   companySlug: filters.company,
   remoteOption: filters.remoteOption ? [filters.remoteOption] : undefined,
-  employmentType: filters.employmentType ? [filters.employmentType] : undefined,
+  employmentType: filters.employmentType
+    ? [filters.employmentType]
+    : undefined,
 });
 ```
 
-Unknown values are dropped silently (public URLs, never throw). Seniority
-and `company` accept repeated params or a comma-string and normalize with
-the hosted rules: trim, lowercase, dedupe, keep order. `company` is an open
-value set (public slugs) capped at 10 (wire max; first 10 kept).
+Company slugs are the URL identity. Map `filters.company` directly to
+`companySlug` in `jobs.list` queries or `jobs.search` filters.
 
-**Slugs are the URL identity.** Map `filters.company` to the wire as
-`companySlug` (`jobs.list` query / `jobs.search` filters). The API accepts
-slugs directly — never resolve slug→id client-side.
-
-## Render the filter UI from the vocabulary
+## Render controls from the vocabulary
 
 ```ts snippet
 import {
-  REMOTE_OPTIONS,
   EMPLOYMENT_TYPES,
-  SENIORITIES,
   JOB_SORTS,
+  REMOTE_OPTIONS,
+  SENIORITIES,
   seniorityLabels,
   sortLabels,
 } from '@cavuno/board/filters';
 
 const { language } = await board.context();
-const labels = seniorityLabels(language); // de: executive → "Führungskraft"
-const sorts = sortLabels(language);       // English defaults on every locale
+const seniorityCopy = seniorityLabels(language);
+const sortCopy = sortLabels(language);
 ```
 
-Seniority renders as a MULTI-select (hosted parity). `EMPLOYMENT_TYPES`
-deliberately offers 5 of the 7 wire values (`volunteer`/`other` exist on
-jobs but are not filter options). `JOB_SORTS` deliberately excludes
-`oldest`; `relevance` is the featured-ranked default.
+Render seniority as a multi-select with all eight `SENIORITIES`.
+`EMPLOYMENT_TYPES` contains five listing options; `volunteer` and `other`
+remain valid job wire values but are absent from the filter control.
+`JOB_SORTS` contains exactly `relevance`, `newest`, and `salary_high`;
+`relevance` is the featured-ranked default. Sort labels follow the board copy
+catalog and operator overrides supplied to `sortLabels`.
 
-## Load category, skill, and keyword options
+## Load taxonomy options
 
-Use the Board API taxonomy collections for filter/autocomplete options. Items
-are backed by published jobs on this board and already carry the board-language
-display name and canonical URL slug. Keep `sourceSlug` for job filtering and
-`canonicalSlug` for links.
+Category and skill collections contain terms backed by published jobs. Each
+term already carries a board-language `displayName`, immutable English
+`sourceSlug` for filtering, and board-language `canonicalSlug` for links.
 
 ```ts snippet
 const categories = await board.taxonomy.categories.list({ limit: 50 });
 const skills = await board.taxonomy.skills.list({ limit: 50 });
-const suggestions = await board.taxonomy.suggestions.list({
-  q: searchText,
-  limit: 10,
-});
 
 const categoryOptions = categories.data.map((term) => ({
-    label: term.displayName,
-    filterValue: term.sourceSlug,
-    href: `/jobs/${term.canonicalSlug}`,
+  label: term.displayName,
+  filterValue: term.sourceSlug,
+  href: `/jobs/${term.canonicalSlug}`,
 }));
 ```
 
-Category and skill lists accept `q`, `limit` (1–100), and the opaque
-`cursor` request field. Pass the previous response's `nextCursor` into it:
+Category and skill lists accept `q`, `limit` (1–100), and opaque `cursor`.
+Pass `nextCursor` unchanged to the next request.
 
 ```ts snippet
 const first = await board.taxonomy.categories.list({ limit: 50 });
@@ -106,31 +95,31 @@ const second = first.nextCursor
   : null;
 ```
 
-Suggestions accept `q` and `limit`;
-a present query under two characters returns no suggestions. Suggestions contain
-categories and skills only. A category and skill may legitimately share a slug,
-so use `type + canonicalSlug` as the option identity.
+Keyword suggestions accept `q` and `limit`. A present query shorter than two
+characters returns no results. Suggestions contain categories and skills only;
+because both types may share a slug, key each option by
+`type + canonicalSlug`.
 
-## Anti-patterns
-
-```ts no-check
-// NEVER hand-roll the vocab per page — one page offering 'oldest' or a
-// 6th employment type diverges from every other board frontend:
-const sorts = ['relevance', 'newest', 'oldest'];
-// NEVER trust raw search params into the SDK query:
-board.jobs.list({ seniority: rawSearch.seniority });
+```ts snippet
+const suggestions = await board.taxonomy.suggestions.list({
+  q: searchText,
+  limit: 10,
+});
 ```
 
-## Out of scope — do not invent exports
+The host router owns URL serialization and saved-filter persistence.
+Locations come from `board.taxonomy.places` rather than a static filter export.
 
-No URL BUILDER (routes are app-owned — serialize with your router), no location
-taxonomy vocabulary (locations come from `board.taxonomy.places`), no
-saved-filter persistence.
+## Completion gate
 
-## Verify
+Finish only after every applicable check passes:
 
-- [ ] `/jobs?seniority=Senior,%20lead&sort=oldest` renders the senior+lead
-      selection and the default sort — no crash, no leaked invalid value.
-- [ ] The seniority multi-select shows all 8 levels, labeled in the board
-      language.
-- [ ] The sort dropdown offers exactly relevance / newest / salary_high.
+- `/jobs?seniority=Senior,%20lead&sort=oldest` selects senior and lead, falls
+  back to `DEFAULT_SORT`, and passes no invalid value to the SDK.
+- The seniority control has all eight localized levels and supports multiple
+  selections.
+- The employment control has five options; the sort control has exactly
+  relevance, newest, and salary high.
+- Category and skill filtering sends `sourceSlug`, while links use
+  `canonicalSlug`.
+- Every paged taxonomy request forwards the previous opaque `nextCursor`.

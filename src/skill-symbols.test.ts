@@ -9,7 +9,6 @@ import * as serverModule from './server';
 import * as sitemapModule from './sitemap';
 import { loadSkillCorpus } from './skills';
 import * as suggestModule from './suggest';
-import * as themeModule from './theme';
 
 // Drift guard (fail-loud, parity-culture): every `@cavuno/board` symbol a skill
 // teaches must exist. If a future SDK change renames or removes an export or a
@@ -29,12 +28,18 @@ const SUBPATH_EXPORTS: Record<string, Set<string>> = {
   '/format': new Set(Object.keys(formatModule)),
   '/filters': new Set(Object.keys(filtersModule)),
   '/suggest': new Set(Object.keys(suggestModule)),
-  '/theme': new Set(Object.keys(themeModule)),
   '/seo': new Set(Object.keys(seoModule)),
   '/sitemap': new Set(Object.keys(sitemapModule)),
   '/server': new Set(Object.keys(serverModule)),
 };
 const corpus = loadSkillCorpus();
+
+function skillDocuments(skill: (typeof corpus.skills)[number]): string[] {
+  return [
+    skill.content,
+    ...skill.references.map((reference) => reference.content),
+  ];
+}
 
 /** Code blocks tagged ```ts / ```ts snippet, excluding ```ts no-check. */
 function checkableBlocks(md: string): string[] {
@@ -95,15 +100,17 @@ describe('skill code examples reference real SDK symbols', () => {
   it('imports only exports that exist on @cavuno/board (root or subpath)', () => {
     const missing: string[] = [];
     for (const skill of corpus.skills) {
-      for (const block of checkableBlocks(skill.content)) {
-        for (const [subpath, name] of importedValueNames(block)) {
-          const names = SUBPATH_EXPORTS[subpath];
-          if (!names) {
-            missing.push(
-              `${skill.name}: unknown subpath @cavuno/board${subpath}`,
-            );
-          } else if (!names.has(name)) {
-            missing.push(`${skill.name}: ${subpath || 'root'} ${name}`);
+      for (const document of skillDocuments(skill)) {
+        for (const block of checkableBlocks(document)) {
+          for (const [subpath, name] of importedValueNames(block)) {
+            const names = SUBPATH_EXPORTS[subpath];
+            if (!names) {
+              missing.push(
+                `${skill.name}: unknown subpath @cavuno/board${subpath}`,
+              );
+            } else if (!names.has(name)) {
+              missing.push(`${skill.name}: ${subpath || 'root'} ${name}`);
+            }
           }
         }
       }
@@ -114,10 +121,12 @@ describe('skill code examples reference real SDK symbols', () => {
   it('calls only board namespace methods that exist', () => {
     const broken: string[] = [];
     for (const skill of corpus.skills) {
-      for (const block of checkableBlocks(skill.content)) {
-        for (const chain of boardChains(block)) {
-          if (typeof resolveChain(board, chain) !== 'function') {
-            broken.push(`${skill.name}: board.${chain.join('.')}`);
+      for (const document of skillDocuments(skill)) {
+        for (const block of checkableBlocks(document)) {
+          for (const chain of boardChains(block)) {
+            if (typeof resolveChain(board, chain) !== 'function') {
+              broken.push(`${skill.name}: board.${chain.join('.')}`);
+            }
           }
         }
       }

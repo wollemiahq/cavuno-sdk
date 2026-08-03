@@ -12,7 +12,6 @@ import {
 import { checkCookieCodecConformance } from './cookie-conformance';
 import { probe } from './probe';
 import { runReadProbes, skipReadProbes } from './read';
-import { checkThemeFreshness } from './theme';
 
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -194,7 +193,6 @@ export async function runDoctor(options: RunDoctorOptions): Promise<DoctorRun> {
     results.push(STATIC_BOARD('skip', 'env checks failed — fix them first'));
   }
   results.push(checkSkillsFreshness(options.projectRoot ?? process.cwd()));
-  results.push(...checkThemeFreshness(options.projectRoot ?? process.cwd()));
   // starter code sets cookies only
   // through the SDK server cookie codec (accountability, not a boundary).
   results.push(
