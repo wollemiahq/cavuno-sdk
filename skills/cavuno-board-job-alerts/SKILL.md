@@ -1,83 +1,97 @@
 ---
 name: cavuno-board-job-alerts
-description: Build job-alert flows with the @cavuno/board SDK — the anonymous double-opt-in surface (jobAlerts.subscribe/confirm/resendConfirmation + HMAC-token manage/unsubscribe/resubscribe/updatePreference/deletePreference) and the authenticated board.me.alerts CRUD. Covers which surface to use when, how the manage token rides, which filters actually scope delivery, and the full-replace update trap.
+description: Job-alert two-lane model with @cavuno/board. Use for anonymous double opt-in, token-managed preferences, or signed-in alert CRUD.
 ---
 
-# Job alerts: two surfaces
+# Job-alert two-lane model
 
-Two distinct surfaces. **Anonymous** (`board.jobAlerts.*`): email capture with double opt-in; later edits authenticate with an HMAC manage token from the digest email. **Authenticated** (`board.me.alerts.*`): CRUD for a signed-in board user (bearer token), active immediately — the authenticated action is the consent. Both are gated on `board.context()` → `features.jobAlerts`.
+Choose exactly one lane:
 
-## When to use
+- Anonymous visitors use `board.jobAlerts.*`: double opt-in, then an HMAC manage token from email.
+- Signed-in users use `board.me.alerts.*`: bearer-authenticated CRUD, active immediately, with up to 10 alerts per user.
 
-- Anonymous: the "email me new jobs" capture form for visitors, the confirm landing page, and the manage/unsubscribe page linked from digest emails.
-- Authenticated: an alerts section in the signed-in account area (up to 10 alerts per user).
+Both lanes are available only when `board.context()` reports `features.jobAlerts`.
 
-## When not to use
+## Anonymous lane: subscribe and confirm
 
-- Board-user sign-in itself — see `cavuno-board-auth`.
-
-## Out of scope — do not invent exports
-
-Only the methods and fields shown here exist. There is no pause/suspend: deactivation is `unsubscribe` (anonymous) or `remove` (authenticated).
-
-## Anonymous: subscribe → confirm
-
-`subscribe` requires `consent: true` (server-enforced) and sends a confirmation email. `confirm` always returns HTTP 200 — branch on `status`.
+`subscribe` requires consent and deliberately returns the same submitted response for new and existing addresses. `confirm` always resolves; its status owns the landing-page branch.
 
 ```ts snippet
-const sub = await board.jobAlerts.subscribe({
+const submitted = await board.jobAlerts.subscribe({
   email: 'ada@example.com',
   consent: true,
-  frequency: 'weekly', // the only supported cadence
-  filters: { jobFunctions: ['engineering'], remoteOptions: ['remote'], placeSlugs: ['berlin'] },
+  frequency: 'weekly',
+  filters: {
+    jobFunctions: ['engineering'],
+    remoteOptions: ['remote'],
+    placeSlugs: ['berlin'],
+  },
 });
-sub.status;               // always 'submitted' — uniform, never reveals new vs. already-subscribed
 
-// Confirm page — token from the email link:
-const res = await board.jobAlerts.confirm({ token });
-res.status; // 'confirmed' | 'already_confirmed' | 'expired' | 'not_found'
-if (res.status === 'expired') {
-  await board.jobAlerts.resendConfirmation({ email }); // status: always 'submitted'
+const result = await board.jobAlerts.confirm({ token });
+switch (result.status) {
+  case 'confirmed':
+  case 'already_confirmed':
+  case 'not_found':
+    break;
+  case 'expired':
+    await board.jobAlerts.resendConfirmation({ email });
+    break;
 }
 ```
 
-Filter caveat: only `jobFunctions`, `placeSlugs`, and `remoteOptions` scope the digest server-side; `seniorityLevels`/`salaryMin`/`salaryMax`/`salaryCurrency` are stored but do not filter delivery.
+Only `jobFunctions`, `placeSlugs`, and `remoteOptions` filter digest delivery. Seniority and salary fields are stored but do not scope delivery. The supported cadence is `weekly`.
 
-## Anonymous: the HMAC manage token
+## Anonymous lane: manage-token transport
 
-Digest emails carry a per-subscription HMAC token. **`manage` is a GET — the token rides as query params `{ subscription, token }`. All writes are POST/DELETE — the token rides in the JSON body as `{ subscriptionId, token }`** (note the different key: `subscription` on the query, `subscriptionId` in bodies). Each preference in the manage state also carries its own `manageToken`.
+The read and write transports intentionally use different keys:
+
+- `manage` is GET with query `{ subscription, token }`.
+- Writes carry `{ subscriptionId, token }` in their body.
 
 ```ts snippet
-// Manage page, from the email link's query string:
-const state = await board.jobAlerts.manage({ subscription: subscriptionId, token });
-state.email; state.confirmed; state.unsubscribed;
-state.preferences; // [{ id, label, frequency, isActive, filters, manageToken }]
+const state = await board.jobAlerts.manage({
+  subscription: subscriptionId,
+  token,
+});
+state.email;
+state.confirmed;
+state.unsubscribed;
+state.preferences;
 
 await board.jobAlerts.unsubscribe({ subscriptionId, token });
 await board.jobAlerts.resubscribe({ subscriptionId, token });
-await board.jobAlerts.deletePreference({ subscriptionId, preferenceId, token });
-```
-
-`unsubscribe`/`resubscribe` also accept an optional `preferenceId` to scope to one preference. `updatePreference` is a **full replace** — `frequency` is required every time; restate the filters you aren't editing or they reset:
-
-```ts snippet
-const pref = state.preferences[0];
-await board.jobAlerts.updatePreference({
+await board.jobAlerts.deletePreference({
   subscriptionId,
-  preferenceId: pref.id,
+  preferenceId,
   token,
-  frequency: 'weekly',   // required — restate even if unchanged
-  filters: pref.filters, // round-trip stored filters you aren't editing
 });
 ```
 
-## Authenticated: board.me.alerts
+`unsubscribe` and `resubscribe` accept an optional `preferenceId`. Each managed preference also includes its own `manageToken`.
 
-Bearer-authenticated CRUD. Alerts are active on create (no opt-in email). The `AlertBody` uses `placeIds` (not `placeSlugs`), and `frequency` is required.
+`updatePreference` is a full replacement. Round-trip every retained value and always send `frequency`.
+
+```ts snippet
+const preference = state.preferences[0]!;
+await board.jobAlerts.updatePreference({
+  subscriptionId,
+  preferenceId: preference.id,
+  token,
+  frequency: 'weekly',
+  filters: preference.filters,
+});
+```
+
+## Signed-in lane
+
+Authenticated alerts use `placeIds`, while anonymous alerts use `placeSlugs`. Create and update accept the same `AlertBody`; update is a full replacement.
 
 ```ts snippet
 const { data: alerts } = await board.me.alerts.list();
-alerts[0].isActive; alerts[0].lastSentAt; alerts[0].filters;
+alerts[0]?.isActive;
+alerts[0]?.lastSentAt;
+alerts[0]?.filters;
 
 const alert = await board.me.alerts.create({
   frequency: 'weekly',
@@ -85,14 +99,8 @@ const alert = await board.me.alerts.create({
   remoteOptions: ['remote'],
 });
 
-await board.me.alerts.remove(alert.id); // 204 → void; the only way to stop an alert
-```
-
-`update` is a PUT with **full-replace semantics** — the body is the same `AlertBody` as create, so round-trip every field you aren't changing:
-
-```ts snippet
-const current = await board.me.alerts.retrieve(alertId);
-await board.me.alerts.update(alertId, {
+const current = await board.me.alerts.retrieve(alert.id);
+await board.me.alerts.update(alert.id, {
   frequency: 'weekly',
   jobFunctions: current.filters.jobFunctions,
   seniorityLevels: current.filters.seniorityLevels,
@@ -102,14 +110,17 @@ await board.me.alerts.update(alertId, {
   salaryMax: current.filters.salaryMax,
   salaryCurrency: current.filters.salaryCurrency,
 });
+
+await board.me.alerts.remove(alert.id);
 ```
 
-## Verify
+Removal is the signed-in lane's stop action; there is no pause state.
 
-- [ ] Subscribe form sends `consent: true` and shows a uniform "check your email" message on `status: 'submitted'` (never reveals already-subscribed).
-- [ ] Confirm page branches on all four statuses (including `expired` → resend).
-- [ ] Manage page reads `subscription` + `token` from the email link's query string; writes send `subscriptionId` in the body.
-- [ ] Editing one preference field leaves the others intact (full-replace round-trip, both surfaces).
-- [ ] Alert UI only promises filtering on job function / place / remote option.
-- [ ] Alert UI offers weekly cadence only and never sends a legacy daily value.
-- [ ] Alert surfaces are hidden when `features.jobAlerts` is false.
+## Completion gate
+
+- The feature flag hides both lanes when disabled.
+- Anonymous subscribe sends `consent: true` and reveals no subscription existence.
+- The confirm UI handles all four statuses, including resend after expiry.
+- Manage reads use `subscription`; manage writes use `subscriptionId`.
+- Editing one field preserves every other field in both full-replace APIs.
+- UI promises only weekly delivery filtered by job function, place, and remote option.

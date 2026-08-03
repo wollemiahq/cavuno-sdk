@@ -75,7 +75,6 @@ describe('board.context()', () => {
         linkedInPartnerId: null,
         cookieConsentRequired: false,
       },
-      theme: null,
       // Custom-field definitions pass through untouched so the
       // consumer can resolve a job's `customFieldValues` keys → labels.
       customFields: [

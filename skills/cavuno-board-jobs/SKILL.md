@@ -1,58 +1,55 @@
 ---
 name: cavuno-board-jobs
-description: Browse, search, and render jobs with the @cavuno/board SDK — jobs.list, jobs.search, jobs.retrieve, jobs.similar. Covers the slim card vs full job shapes, catalog pagination (count/limit/offset + opaque cursor), filters, and the candidate-paywall gatedCount.
+description: Job catalog reads with @cavuno/board. Use for job browse or search, job detail, similar jobs, candidate gating, or full-catalog iteration.
 ---
 
-# Jobs: browse, search, detail
+# Jobs
 
-The highest-traffic surface. Listing and search return slim `PublicJobCard`s; the detail endpoint returns the full `PublicJob`.
+Use cards for collections and the full job for detail: `jobs.list`,
+`jobs.search`, and `jobs.similar` return `PublicJobCard`; only
+`jobs.retrieve` returns `PublicJob`.
 
-## When to use
+Company-scoped collections use `companies.listJobs`. The ungated embeddable
+widget uses `embed.jobs`.
 
-- Listing/search/keyword/location pages.
-- The job-detail page and its "similar jobs" rail.
+## Browse and paginate
 
-## When not to use
+`jobs.list(query)` returns `JobCardListEnvelope`: `data`, `count`, `limit`,
+`offset`, `hasMore`, `nextCursor`, optional `relatedSearches`, and optional
+`gatedCount`.
 
-- Company-scoped listings — use `companies.listJobs` (same card shape).
-- The ungated embeddable widget — use `embed.jobs`.
-
-## List and render cards
-
-`jobs.list` returns a `JobCardListEnvelope`: catalog pagination fields plus `data: PublicJobCard[]` and optional `relatedSearches`.
+`JobsListQuery` accepts `limit` (1–100), `cursor`, `offset`, `companyId`,
+`companySlug`, `remoteOption`, `employmentType`, `seniority`, `location` with
+`radius` in kilometres, `category`, and `skill`. Repeated `seniority` values
+are OR-matched. `offset` takes precedence over `cursor`, so choose one paging
+mode per request.
 
 ```ts snippet
-const page = await board.jobs.list({ limit: 20, seniority: ['senior', 'lead'] });
-page.count;        // total matches ("X jobs")
-page.hasMore;      // more pages exist
-page.nextCursor;   // opaque forward token, or null
-for (const card of page.data) {
+const first = await board.jobs.list({
+  limit: 20,
+  seniority: ['senior', 'lead'],
+});
+const second = first.nextCursor
+  ? await board.jobs.list({ limit: 20, cursor: first.nextCursor })
+  : null;
+const page3 = await board.jobs.list({ limit: 20, offset: 40 });
+
+for (const card of first.data) {
   card.title;
   card.company?.name;
-  card.links.public; // canonical /companies/:companySlug/jobs/:jobSlug
+  card.links.public;
 }
 ```
 
-### Filters and pagination
+Render `links.public` as the canonical
+`/companies/:companySlug/jobs/:jobSlug` URL.
 
-`JobsListQuery` supports `limit` (1–100), `offset` (takes precedence over `cursor`), `cursor`, and filters: `companyId`, `companySlug`, `remoteOption`, `employmentType`, `seniority` (single or repeated → OR-matched), `location` + `radius` (km), `category`, `skill`. Paginate by passing back `nextCursor`, or use numbered pages with `offset`:
+### Filter companies by public slug
 
-```ts snippet
-const p1 = await board.jobs.list({ limit: 20 });
-const p2 = p1.nextCursor
-  ? await board.jobs.list({ limit: 20, cursor: p1.nextCursor })
-  : null;
-// or numbered pages:
-const page3 = await board.jobs.list({ limit: 20, offset: 40 });
-```
-
-### Company filter via public slug
-
-`companySlug` is the public URL identity (what listing URLs carry). Prefer it
-over `companyId` in frontends — the API resolves slugs server-side. Unknown
-slugs are **ignored** (they contribute no matches, not an error); an entirely
-unknown set yields an empty result list with `count: 0`. Combined with
-`companyId` as a union when both are set. Cap is 10 values.
+Frontend URLs carry `companySlug`; pass it directly to the API. Unknown slugs
+contribute no matches, and a wholly unknown set returns `count: 0` with empty
+`data`. When `companyId` and `companySlug` are both present, their matches form
+a union. Each accepts at most 10 values.
 
 ```ts snippet
 const page = await board.jobs.list({
@@ -63,7 +60,9 @@ const page = await board.jobs.list({
 
 ## Search
 
-`jobs.search` posts a `JobsSearchBody` (free-text `query` + structured `filters`) and returns a `JobCardSearchEnvelope`. The same `companySlug` rule applies under `filters`:
+`jobs.search` posts `JobsSearchBody`: free-text `query`, structured `filters`,
+and pagination. It returns `JobCardSearchEnvelope`; `companySlug` has the same
+semantics inside `filters`.
 
 ```ts snippet
 const results = await board.jobs.search({
@@ -78,32 +77,35 @@ const results = await board.jobs.search({
 });
 ```
 
-## Detail and similar
+## Render detail and similar jobs
 
 ```ts snippet
-const job = await board.jobs.retrieve('senior-chef'); // full PublicJob
-job.description;       // HTML
+const job = await board.jobs.retrieve('senior-chef');
+job.description; // HTML
 job.officeLocations;
 job.company?.slug;
+
 const rail = await board.jobs.similar('senior-chef', { limit: 5 });
 ```
 
-## The candidate paywall: gatedCount
+## Surface candidate gating
 
-On gated boards, some results are hidden from anonymous/unentitled viewers. `gatedCount` is how many were withheld for the current viewer (absent/0 when entitled). Surface it as an upsell rather than pretending the list is complete:
+On a gated board, `gatedCount` reports results withheld from the current
+viewer. Render it as an upsell. The same optional-auth endpoint returns the
+entitled view when called with that board user's bearer token.
 
 ```ts snippet
 const page = await board.jobs.list({ limit: 20 });
-if (page.gatedCount && page.gatedCount > 0) {
-  // e.g. "Sign in to see N more roles"
+if ((page.gatedCount ?? 0) > 0) {
+  // Render “Sign in to see N more roles”.
 }
 ```
 
-A board-user bearer token on the same call returns the entitled (ungated) view — the endpoint is optional-auth, one URL for both anonymous and personalized reads.
+## Walk the full catalog
 
-## Full-catalog walks: paginate()
-
-For sitemaps, feeds, or exports, never hand-roll the cursor loop — `paginate()` iterates items (or raw pages via `.pages()`) until `hasMore` is false, and drops `offset` after the first page (offset would win over the cursor and re-serve the same page forever):
+Use `paginate()` for sitemaps, feeds, and exports. It advances the opaque
+cursor until `hasMore` is false and removes `offset` after the first request;
+retaining the offset would make it win over the cursor and repeat a page.
 
 ```ts snippet
 import { paginate } from '@cavuno/board';
@@ -114,11 +116,17 @@ for await (const card of paginate(board.jobs.list, { limit: 100 })) {
 const first500 = await paginate(board.jobs.list).toArray({ limit: 500 });
 ```
 
-Iteration order is stable only under an explicit sort/search — a churning board reorders default browse results between pages.
+Default browse order can move while a board changes. Supply an explicit sort
+or search whenever iteration order must stay stable.
 
-## Checklist
+## Completion gate
 
-- [ ] Listing/search use `PublicJobCard`; detail uses `PublicJob`.
-- [ ] Job links use `links.public` (canonical `/companies/:companySlug/jobs/:jobSlug`).
-- [ ] Pagination via `nextCursor` or `offset`, not client-side slicing.
-- [ ] `gatedCount` surfaced as an upsell, not hidden.
+Finish only after every applicable check passes:
+
+- Collections render `PublicJobCard`; detail renders `PublicJob`.
+- Every job link comes from `links.public`.
+- Pagination returns the final page once and ends with `nextCursor: null`.
+- A gated anonymous response renders its `gatedCount` upsell, while an
+  entitled request renders the ungated view.
+- Full-catalog code uses `paginate()` and any order-sensitive walk has an
+  explicit sort or search.

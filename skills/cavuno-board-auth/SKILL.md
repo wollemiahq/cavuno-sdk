@@ -1,24 +1,25 @@
 ---
 name: cavuno-board-auth
-description: Authenticate board users with the @cavuno/board SDK — register, login, refresh, logout, email verification and password reset. Covers bearer-JWT storage modes, the deliberate no-auto-refresh-on-401 rule (and single-flight handling), and the server-side httpOnly-cookie pattern that keeps tokens out of the browser.
+description: Authenticate Cavuno board users. Use for registration, login, logout, token refresh, email verification, password recovery, magic links, OAuth, or authenticated board-user calls.
 ---
 
-# Board-user authentication
+# Authenticate board users
 
-Board users (candidates, employers) authenticate with a short-lived bearer access token plus a refresh token. The SDK manages the pair via pluggable async storage. There is exactly one auth mode — bearer JWT (no cookie/session mode).
+Board users authenticate with a short-lived bearer access token and a single-use refresh token. The SDK persists returned token pairs through its configured async storage and leaves navigation to the app.
 
-## When to use
+## 1. Choose the storage boundary
 
-- Sign-up / sign-in / sign-out for board users.
-- Email verification and password reset flows.
-- Wiring authenticated calls (`me`, saved jobs, applications).
+`auth.storage` accepts `'memory'`, `'local'`, `'session'`, `'nostore'`, or a `CustomStorage` with async `getItem`, `setItem`, and `removeItem` methods.
 
-## When not to use
+- Browsers default to `'memory'`; choose `'local'` for persistence across tabs and reloads or `'session'` for tab-scoped persistence.
+- Servers default to `'nostore'`. Keep tokens in the app's httpOnly cookie and follow `cavuno-board-server-sessions` for every SSR session and refresh rule.
+- A custom store is appropriate when the app already owns a user-scoped persistence boundary.
 
-- Anonymous reads (jobs/companies/blog) — no auth needed.
-- Board-password gating — that's a separate grant; see `cavuno-board-errors`.
+`'local'` and `'session'` are browser runtimes; constructing them off-browser fails immediately.
 
-## Register and login
+**Complete when:** the selected store matches the runtime and a shared server client remains `nostore`.
+
+## 2. Establish the session
 
 ```ts snippet
 await board.auth.register({
@@ -33,81 +34,55 @@ const session = await board.auth.login({
   email: 'ada@example.com',
   password: 'a-strong-password',
 });
-session.boardUser.email; // the signed-in user
-session.accessToken;     // bearer; never expose to the browser bundle on SSR
 ```
 
-`register`/`login`/`refresh` persist the returned token pair to storage; `logout` clears it. The SDK never navigates — your app owns redirects and verification UX.
+`register`, `login`, `consumeMagicLink`, `exchangeOAuth`, and `refresh` persist the returned session. Use the returned `boardUser` for identity and verification state.
 
-## Storage modes
+For alternate entry points, use `requestMagicLink` / `consumeMagicLink` or the OAuth authorization and exchange methods exposed under `board.auth`.
 
-`auth.storage` is `'memory'` | `'nostore'` | `'local'` | `'session'` | a `CustomStorage`. Defaults: **`memory` in the browser, `nostore` on the server**. Browser login works out of the box; shared SSR instances stay stateless.
+**Complete when:** the chosen entry flow returns a session and `board.me.retrieve()` resolves as that board user.
 
-```ts
-import { createBoardClient } from '@cavuno/board';
+## 3. Handle expiry explicitly
 
-// Browser/SPA: 'local' persists the pair across tabs + reloads via
-// localStorage; 'session' scopes it to the tab; 'memory' drops it on reload.
-const board = createBoardClient({
-  board: 'pk_a8f3...',
-  auth: { storage: 'local' },
-});
-```
-
-`'local'`/`'session'` are **browser-only** — off-browser they throw loudly at client creation (`storage mode 'local' is browser-only — use 'nostore' + per-call headers on the server`). A `CustomStorage` implements async `getItem`/`setItem`/`removeItem` — back it with IndexedDB, Redis, or your own store.
-
-## No auto-refresh on 401 — handle it explicitly
-
-An expired access token surfaces as a `BoardApiError` you detect with `isUnauthorized`. The SDK does **not** silently refresh — refresh tokens are single-use with atomic rotation, so safe refresh under concurrency needs a single-flight guard you own.
+The SDK surfaces an expired access token as `BoardApiError`; it does not refresh and replay a failed request automatically. In a browser app, classify the failure with `isUnauthorized`, serialize refresh through one in-flight promise, then retry the original operation once with the rotated session.
 
 ```ts snippet
 import { isUnauthorized } from '@cavuno/board';
 
 try {
   return await board.me.retrieve();
-} catch (err) {
-  if (isUnauthorized(err)) {
-    await board.auth.refresh(); // reads the stored refresh token, rotates the pair
-    return await board.me.retrieve();
-  }
-  throw err;
+} catch (error) {
+  if (!isUnauthorized(error)) throw error;
+  await refreshOnce();
+  return board.me.retrieve();
 }
 ```
 
-Under concurrency, wrap `auth.refresh()` in a single-flight promise so parallel 401s trigger exactly one rotation (the reference flavor encodes this once — see `cavuno-board-tanstack-start`).
+On SSR, use the module-scoped `createSessionRefresher` pattern in `cavuno-board-server-sessions`; it is the single source of truth for concurrency, cookies, retry limits, and per-call authorization headers.
 
-## refresh / logout token sourcing
+**Complete when:** concurrent expiry paths share one rotation and the original operation is attempted at most once after a successful refresh.
 
-Both accept an optional body `{ refreshToken }`. When omitted, the SDK reads the token from storage and throws if neither exists — so `nostore` (server) callers must pass it explicitly:
+## 4. Refresh and logout from the right source
 
-```ts snippet
-await board.auth.refresh({ refreshToken });   // server: explicit
-await board.auth.logout({ refreshToken });    // revokes server-side, clears storage
-```
-
-## Server-side pattern (keep tokens out of the browser)
-
-On SSR, do not hold the session on a shared instance. Keep the token pair in an httpOnly cookie owned by your app and pass it per call. `@cavuno/board/server` ships the cookie codec + the single-flight refresh helper for exactly this (see `cavuno-board-server`):
+`refresh()` and `logout()` read the refresh token from configured storage when their body is omitted. A `nostore` caller passes it explicitly:
 
 ```ts snippet
-// `accessToken` comes from your httpOnly cookie, read in server code.
-// Per-call options are the 2nd argument; the 1st is `query` (pass undefined).
-const me = await board.me.retrieve(undefined, {
-  headers: { authorization: `Bearer ${accessToken}` },
-});
+await board.auth.refresh({ refreshToken });
+await board.auth.logout({ refreshToken });
 ```
 
-## Email verification & password reset
+Successful logout revokes the refresh token and clears SDK storage. A failed logout request retains stored tokens so the app can retry revocation or deliberately choose a local-only sign-out.
+
+**Complete when:** logout revokes the server session, clears the app-owned cookie or browser store, and an authenticated read is handled as signed out.
+
+## Verification and recovery
 
 ```ts snippet
-await board.auth.verifyEmail({ token });             // token from the email link
-await board.auth.forgotPassword({ email });          // sends the reset email
-await board.auth.resetPassword({ token, password }); // token from the email link
+await board.auth.verifyEmail({ token });
+await board.auth.forgotPassword({ email: 'ada@example.com' });
+await board.auth.resetPassword({ token, password: 'a-new-password' });
 ```
 
-## Checklist
+The signed-in OTP verification, resend, magic-link, and OAuth branches use their corresponding `board.auth` methods. Password-reset requests preserve account privacy; a successful single-use reset invalidates existing sessions.
 
-- [ ] Bearer tokens never reach the browser bundle on SSR (httpOnly cookie + per-call header).
-- [ ] 401s handled explicitly with `isUnauthorized` + `auth.refresh()`.
-- [ ] Concurrent refresh guarded by single-flight.
-- [ ] `nostore` callers pass `{ refreshToken }` to `refresh`/`logout`.
+**Complete when:** each implemented auth route exercises its success state and typed failure state, with bearer tokens absent from server-rendered browser payloads.

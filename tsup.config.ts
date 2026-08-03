@@ -10,7 +10,6 @@ export default defineConfig([
       format: 'src/format/index.ts',
       filters: 'src/filters/index.ts',
       suggest: 'src/suggest/index.ts',
-      theme: 'src/theme/index.ts',
       seo: 'src/seo/index.ts',
       sitemap: 'src/sitemap/index.ts',
       paths: 'src/paths/index.ts',

@@ -1,76 +1,80 @@
 ---
 name: cavuno-board-blog
-description: Build the blog with the @cavuno/board SDK — post archives (blog.posts.list with tagSlug/authorSlug/featured), the post page (blog.posts.retrieve + adjacent + similar), blog.tags and blog.authors, and free-text blog.search. Covers the summary-vs-detail split (html on the single read only), cursor pagination, slug-change redirects (redirected/newSlug), and the SEO fields the API actually returns.
+description: Public blog reads with @cavuno/board. Use for post archives, post detail, adjacent or similar posts, tag and author pages, or blog search.
 ---
 
-# Blog: posts, tags, authors, search
+# Blog
 
-Every list and search returns `PublicBlogPostSummary`; only `posts.retrieve` returns the full `PublicBlogPost` with the `html` body.
+Collections return `PublicBlogPostSummary`; only `blog.posts.retrieve`
+returns `PublicBlogPost` with the rendered `html` body. Read
+`board.context().features.blog` when deciding whether the board exposes a blog.
+The host app owns authoring, feeds, sitemaps, and OG-image routes.
 
-## When to use
+## Build archives
 
-- The blog index, tag archives, author archives, and featured rails.
-- The post page: body, prev/next nav, related-posts rail.
-- Blog search boxes.
-
-## When not to use
-
-- Writing posts/tags/authors — that is the admin API; this SDK is the public read surface.
-- Deciding whether the board has a blog at all — read `features.blog` from the board context.
-
-Out of scope — do not invent exports: no RSS feed, sitemap, or OG-image generation — the host app builds those routes from the data here (`publishedAt`, `canonicalUrl`, `ogImageUrl` are all returned).
-
-## List posts and archives
-
-`blog.posts.list` returns a `ListEnvelope<PublicBlogPostSummary>`. `BlogPostsListQuery` supports `limit` (1–100), `cursor`, `tagSlug`, `authorSlug`, and `featured: 'true'` (opt-in only — the string literal, not a boolean). Blog lists page by cursor only; there is no `offset` and no total `count`.
+`blog.posts.list` returns `ListEnvelope<PublicBlogPostSummary>`. Its query
+accepts `limit` (1–100), `cursor`, `tagSlug`, `authorSlug`, and
+`featured: 'true'`. `featured` is the string literal. Blog lists use cursor
+pagination and expose neither `offset` nor total `count`.
 
 ```ts snippet
 const page = await board.blog.posts.list({ tagSlug: 'news', limit: 12 });
 for (const post of page.data) {
   post.title;
-  post.customExcerpt;   // null unless the author wrote one
-  post.coverUrl;        // null when no cover image
+  post.customExcerpt;
+  post.coverUrl;
   post.readingTimeMin;
-  post.authors;         // embedded: id, name, slug, bio, avatarUrl, social URLs
-  post.tags;            // embedded: id, name, slug, description
+  post.authors;
+  post.tags;
 }
 const next = page.nextCursor
-  ? await board.blog.posts.list({ tagSlug: 'news', limit: 12, cursor: page.nextCursor })
-  : null; // nextCursor is null when hasMore is false
+  ? await board.blog.posts.list({
+      tagSlug: 'news',
+      limit: 12,
+      cursor: page.nextCursor,
+    })
+  : null;
 ```
 
-## Render a post
+Embedded author rows carry `id`, `name`, `slug`, `bio`, `avatarUrl`, and
+social URLs. Embedded tag rows carry `id`, `name`, `slug`, and `description`.
 
-`posts.retrieve` adds the detail-only fields: `html` (the rendered rich-text body, nullable), `ogImageUrl`, `featureImageCaption`, `seoTitle`, `seoDescription`, `redirected`, `newSlug`.
+## Render a post and canonicalize its slug
+
+`posts.retrieve` adds `html`, `ogImageUrl`, `featureImageCaption`, `seoTitle`,
+`seoDescription`, `redirected`, and `newSlug`. Old slugs still resolve: when
+`redirected` and `newSlug` are set, redirect to `newSlug` before rendering.
 
 ```ts snippet
 const post = await board.blog.posts.retrieve('hello-world');
 if (post.redirected && post.newSlug) {
-  // the slug changed — redirect to the post at newSlug instead of rendering here
+  // Redirect to the post route at post.newSlug.
 }
-post.html;                          // inject as the article body
-post.seoTitle ?? post.title;        // <title>
-post.seoDescription ?? post.customExcerpt; // meta description
-post.canonicalUrl;                  // author-set canonical override, or null
-post.ogImageUrl ?? post.coverUrl;   // social card image
+post.html;
+post.seoTitle ?? post.title;
+post.seoDescription ?? post.customExcerpt;
+post.canonicalUrl;
+post.ogImageUrl ?? post.coverUrl;
 ```
 
-Anti-pattern: don't render a post at a stale URL. When `redirected` is true, issue a redirect to `newSlug` — old slugs keep resolving, but the canonical location moved.
+Fetch detail for the post page; summaries have no `html` field.
 
-Anti-pattern: don't look for `html` on list items. Summaries never carry it; fetch `retrieve` for the post page only.
-
-## Prev/next and related
+## Add post navigation
 
 ```ts snippet
 const { previous, next } = await board.blog.posts.adjacent('hello-world');
-// previous = older post, next = newer; each a summary or null
+// previous is older; next is newer; either can be null.
 
-const rail = await board.blog.posts.similar('hello-world', { limit: 6 }); // 1–20, default 6
+const rail = await board.blog.posts.similar('hello-world', { limit: 6 });
 ```
 
-## Tags and authors
+`similar` accepts `limit` 1–20 and defaults to 6.
 
-Both are list + retrieve-by-slug. `PublicBlogTag`: `id`, `name`, `slug`, `description`. `PublicBlogAuthor`: `id`, `name`, `slug`, `bio`, `avatarUrl`, `websiteUrl`, `twitterUrl`, `linkedinUrl`, `githubUrl`.
+## Build tag and author pages
+
+Tags and authors each provide list plus retrieve-by-slug. Combine a retrieved
+entity with `posts.list({ tagSlug })` or `posts.list({ authorSlug })` for its
+archive.
 
 ```ts snippet
 const { data: tags } = await board.blog.tags.list();
@@ -79,21 +83,28 @@ const { data: authors } = await board.blog.authors.list();
 const author = await board.blog.authors.retrieve('jane');
 ```
 
-Archive pages combine the two: `tags.retrieve` for the header, `posts.list({ tagSlug })` for the posts.
+`PublicBlogTag` carries `id`, `name`, `slug`, and `description`.
+`PublicBlogAuthor` carries `id`, `name`, `slug`, `bio`, `avatarUrl`,
+`websiteUrl`, `twitterUrl`, `linkedinUrl`, and `githubUrl`.
 
-## Search
+## Search posts
 
-`blog.search` posts a `BlogSearchBody` (`query` up to 200 chars, optional `cursor`, `limit` 1–50 — note the lower cap than lists) and returns a `SearchEnvelope<PublicBlogPostSummary>`:
+`blog.search` posts `BlogSearchBody`: `query` up to 200 characters, optional
+`cursor`, and `limit` 1–50. It returns
+`SearchEnvelope<PublicBlogPostSummary>`.
 
 ```ts snippet
 const results = await board.blog.search({ query: 'launch', limit: 10 });
 results.data[0]?.slug;
 ```
 
-## Verify
+## Completion gate
 
-- A list item has no `html` key; `posts.retrieve` of the same slug returns it (string or null).
-- Retrieving a post by an old slug returns `redirected: true` with `newSlug` set, and your route redirects there.
-- `posts.list({ featured: 'true' })` returns only posts with `featured: true`.
-- Cursor paging terminates: `nextCursor` is `null` on the last page.
-- `adjacent` on the newest post returns `next: null`; on the oldest, `previous: null`.
+Finish only after every applicable check passes:
+
+- Archive and search rows render summaries; the post page fetches detail for
+  `html`.
+- A retrieved old slug redirects to `newSlug` before rendering.
+- Featured archives send the exact string `featured: 'true'`.
+- Cursor paging reaches `nextCursor: null` without relying on count or offset.
+- Newest and oldest posts handle the null side of `adjacent`.

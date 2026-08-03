@@ -14,9 +14,9 @@ import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 
 // Why these tests: `setup` is how an external coding agent receives the
-// version-matched skills, so it must (a) land the core skills where Codex,
-// Claude Code, and Cursor read them, (b) include a framework flavor ONLY when
-// that framework is present, and (c) never clobber developer-authored skills.
+// version-matched skills, so it must (a) land the Cavuno skills where Codex,
+// Claude Code, and Cursor read them, (b) leave framework guidance to the
+// framework's own installed skills, and (c) preserve developer-authored skills.
 
 const tmpDirs: string[] = [];
 
@@ -37,33 +37,28 @@ afterEach(() => {
 });
 
 describe('runSetup', () => {
-  it('copies core skills into the cross-agent root and omits unmatched flavors', () => {
+  it('copies Cavuno skills into the cross-agent root', () => {
     const dir = scratchProject();
     const result = runSetup(dir);
 
     expect(result.framework).toBeNull();
     expect(result.copied).toContain('cavuno-board-setup');
     expect(result.copied).toContain('cavuno-board-jobs');
-    // No framework detected → the TanStack flavor must not be copied.
     expect(result.copied).not.toContain('cavuno-board-tanstack-start');
     expect(
       existsSync(resolve(dir, '.agents/skills/cavuno-board-setup/SKILL.md')),
     ).toBe(true);
   });
 
-  it('includes the matching flavor when the framework is detected', () => {
+  it('reports TanStack Start without copying framework guidance', () => {
     const dir = scratchProject({
       dependencies: { '@tanstack/react-start': '^1.0.0' },
     });
     const result = runSetup(dir);
 
     expect(result.framework).toBe('tanstack-start');
-    expect(result.copied).toContain('cavuno-board-tanstack-start');
-    expect(
-      existsSync(
-        resolve(dir, '.agents/skills/cavuno-board-tanstack-start/SKILL.md'),
-      ),
-    ).toBe(true);
+    expect(result.copied).not.toContain('cavuno-board-tanstack-start');
+    expect(result.copied).toContain('cavuno-board-server-sessions');
   });
 
   it('is idempotent and never touches a developer-authored skill', () => {
@@ -77,8 +72,34 @@ describe('runSetup', () => {
 
     expect(readFileSync(resolve(foreign, 'SKILL.md'), 'utf8')).toBe('mine');
     expect(
-      existsSync(resolve(dir, '.agents/skills/cavuno-board-client/SKILL.md')),
+      existsSync(
+        resolve(dir, '.agents/skills/cavuno-board-api-client/SKILL.md'),
+      ),
     ).toBe(true);
+  });
+
+  it('removes retired and renamed skills from existing installations', () => {
+    const dir = scratchProject();
+    const retiredNames = [
+      'cavuno-board-theme',
+      'cavuno-board-tanstack-start',
+      'cavuno-board-client',
+      'cavuno-board-server',
+      'cavuno-board-suggest',
+      'cavuno-board-job-posting',
+    ];
+    for (const name of retiredNames) {
+      const retired = resolve(dir, '.agents/skills', name);
+      mkdirSync(retired, { recursive: true });
+      writeFileSync(resolve(retired, 'SKILL.md'), 'stale', 'utf8');
+    }
+
+    const result = runSetup(dir);
+
+    for (const name of retiredNames) {
+      expect(result.copied).not.toContain(name);
+      expect(existsSync(resolve(dir, '.agents/skills', name))).toBe(false);
+    }
   });
 });
 

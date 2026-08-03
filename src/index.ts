@@ -77,10 +77,10 @@ export function createBoardClient(options: CreateBoardClientOptions) {
     client,
 
     /**
-     * Board context — identity, features, analytics, theme.
+     * Board context — identity, language, features, and analytics.
      *
      * @example
-     * const { name, theme } = await board.context();
+     * const { name, language } = await board.context();
      */
     context(options?: FetchOptions) {
       return client.fetch<PublicBoard>('', options);
@@ -176,7 +176,6 @@ export type {
   PublicBoard,
   PublicBoardAnalytics,
   PublicBoardFeatures,
-  PublicBoardTheme,
 } from './types/board';
 export type { BoardSeo } from './types/seo';
 export type { EmbedJobsQuery } from './types/embed';

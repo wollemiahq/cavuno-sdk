@@ -38,7 +38,7 @@ const board = createBoardClient({
   board: process.env.PUBLIC_CAVUNO_BOARD!, // pk_… publishable key
 });
 
-const { name, theme, features } = await board.context();
+const { name, language, features } = await board.context();
 const page = await board.jobs.list({ limit: 20 });
 const job = await board.jobs.retrieve('senior-chef');
 

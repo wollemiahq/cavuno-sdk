@@ -55,7 +55,6 @@ const BOARD = {
     linkedInPartnerId: null,
     cookieConsentRequired: false,
   },
-  theme: null,
   customFields: [],
   labels: {},
   footer: {
