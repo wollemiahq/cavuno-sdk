@@ -1,6 +1,6 @@
 {
   "name": "@cavuno/board",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "description": "Build custom job boards and careers pages with Cavuno’s TypeScript SDK.",
   "keywords": [
     "api-client",
@@ -201,9 +201,11 @@
   "scripts": {
     "build": "rm -rf dist && tsup",
     "clean": "git clean -xdf .turbo dist node_modules src/generated",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.node.json",
+    "typecheck": "tsgo --noEmit && tsgo --noEmit -p tsconfig.node.json",
     "test": "vitest run",
     "check:publish": "publint --strict && attw --pack . --profile node16",
+    "check:surface": "node ../../scripts/check-public-surface.mjs",
+    "gen:surface": "node ../../scripts/check-public-surface.mjs --write",
     "gen:skills-manifest": "tsx scripts/generate-skills-manifest.ts",
     "assert-publish-target": "node -e \"const p=require('./package.json'); if(p.name!=='@cavuno/board'){throw new Error('Refusing to publish: package.json name is '+p.name+', expected @cavuno/board')}; if(p.private){throw new Error('Refusing to publish: package.json has private:true')}\"",
     "prepublishOnly": "pnpm run assert-publish-target && pnpm run gen:skills-manifest && pnpm run build"

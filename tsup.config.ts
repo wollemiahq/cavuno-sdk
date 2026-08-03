@@ -1,24 +1,46 @@
 import { defineConfig } from 'tsup';
 
+const isomorphicEntries = {
+  index: 'src/index.ts',
+  format: 'src/format/index.ts',
+  filters: 'src/filters/index.ts',
+  suggest: 'src/suggest/index.ts',
+  seo: 'src/seo/index.ts',
+  sitemap: 'src/sitemap/index.ts',
+  paths: 'src/paths/index.ts',
+  go: 'src/go/index.ts',
+  'route-contract': 'src/route-contract/index.ts',
+  'well-known': 'src/well-known/index.ts',
+  server: 'src/server/index.ts',
+} as const;
+
 export default defineConfig([
   // Isomorphic core + helper subpaths — platform-neutral, dual
   // ESM+CJS, zero deps. Each helper is its own entry so consumers (and
   // bundlers) pull only the domain they import.
+  //
+  // ESM and CJS are separate tsup configs so splitting applies to ESM only.
+  // tsup v8 still emits CJS chunks when `splitting: true` is set on a dual
+  // format build; CJS consumers must keep the previous single-file shape.
   {
-    entry: {
-      index: 'src/index.ts',
-      format: 'src/format/index.ts',
-      filters: 'src/filters/index.ts',
-      suggest: 'src/suggest/index.ts',
-      seo: 'src/seo/index.ts',
-      sitemap: 'src/sitemap/index.ts',
-      paths: 'src/paths/index.ts',
-      go: 'src/go/index.ts',
-      'route-contract': 'src/route-contract/index.ts',
-      'well-known': 'src/well-known/index.ts',
-      server: 'src/server/index.ts',
-    },
-    format: ['esm', 'cjs'],
+    entry: isomorphicEntries,
+    format: ['esm'],
+    dts: true,
+    platform: 'neutral',
+    outDir: 'dist',
+    clean: false,
+    // Shared modules (e.g. salary formatters re-exported from both `format`
+    // and `seo`) become separate chunks so a selective import of
+    // `formatSalaryStatRange` does not pull the job-posting country catalog.
+    splitting: true,
+    sourcemap: false,
+    minify: false,
+  },
+  {
+    entry: isomorphicEntries,
+    format: ['cjs'],
+    // Emit `.d.ts` for the require condition in package exports; the ESM
+    // config above emits `.d.mts`. Both are required by the dual export map.
     dts: true,
     platform: 'neutral',
     outDir: 'dist',
