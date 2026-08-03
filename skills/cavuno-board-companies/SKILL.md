@@ -115,3 +115,7 @@ Finish only after every applicable check passes:
 - A non-canonical market or salary-category route returns a 308 to the slug
   supplied by the API.
 - Salary figures and comparisons come directly from `CompanySalary` fields.
+
+## Cavuno SDK reference
+
+For setup and API details beyond this workflow, use the [Cavuno Board SDK documentation](https://cavuno.com/docs/sdk).

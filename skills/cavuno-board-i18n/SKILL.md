@@ -50,3 +50,7 @@ A compile-time i18n system can replace the seam's backing source. Keep the seam 
 - Server HTML uses the active locale in `<html lang>` with no hydration mismatch.
 - Canonical, `hreflang`, and sitemap URLs agree for every locale route.
 - Missing translation keys fail generation or tests rather than appearing as raw keys.
+
+## Cavuno SDK reference
+
+For setup and API details beyond this workflow, use the [Cavuno Board SDK documentation](https://cavuno.com/docs/sdk).

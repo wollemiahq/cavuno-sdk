@@ -128,3 +128,7 @@ Finish only after every applicable check passes:
   dropping or duplicating a URL.
 - robots.txt points to the absolute `/sitemap.xml` URL.
 - No excluded N+1 URL family is enumerated outside the walker.
+
+## Cavuno SDK reference
+
+For setup and API details beyond this workflow, use the [Cavuno Board SDK documentation](https://cavuno.com/docs/sdk).

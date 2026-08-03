@@ -97,3 +97,7 @@ Finish only after every applicable check passes:
 - Cards use `cardLocationLabel`; full jobs use `locationLabel`; saved full jobs
   are converted with `fullJobToCard` before card rendering.
 - Formatting changes neither salary amounts nor currency.
+
+## Cavuno SDK reference
+
+For setup and API details beyond this workflow, use the [Cavuno Board SDK documentation](https://cavuno.com/docs/sdk).

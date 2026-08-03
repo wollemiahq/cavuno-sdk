@@ -116,3 +116,7 @@ Bare-email billing lookup is intentionally absent because it would expose whethe
 - Free unmoderated submission returns a resolving `jobSlug`.
 - Missing domain logos leave submission usable without `logoUrl`.
 - Existing credit is selectable only after token verification.
+
+## Cavuno SDK reference
+
+For setup and API details beyond this workflow, use the [Cavuno Board SDK documentation](https://cavuno.com/docs/sdk).

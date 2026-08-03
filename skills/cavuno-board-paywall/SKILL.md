@@ -100,3 +100,7 @@ A lifetime grant produces `paywall_no_recurring_subscription` for `portal`.
 - Test checkout reaches `complete`, then bounded grant polling reaches `hasAccess: true` after webhook delivery.
 - UI access decisions read `grant().hasAccess`.
 - Recurring grants open the portal; lifetime grants show a deliberate non-portal state.
+
+## Cavuno SDK reference
+
+For setup and API details beyond this workflow, use the [Cavuno Board SDK documentation](https://cavuno.com/docs/sdk).

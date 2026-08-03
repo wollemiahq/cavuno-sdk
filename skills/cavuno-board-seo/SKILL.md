@@ -45,3 +45,7 @@ Finish only after every applicable branch check passes:
   requires it, and rendered figures match the returned salary read model.
 - Listing head output supplies title, description, Open Graph descriptors,
   and canonical link for the requested absolute origin and path.
+
+## Cavuno SDK reference
+
+For setup and API details beyond this workflow, use the [Cavuno Board SDK documentation](https://cavuno.com/docs/sdk).

@@ -141,3 +141,7 @@ const restored = parseSessionCookie(cookieHeader, scope);
 ```
 
 Single-board origins omit the scope.
+
+## Cavuno SDK reference
+
+For setup and API details beyond this workflow, use the [Cavuno Board SDK documentation](https://cavuno.com/docs/sdk).

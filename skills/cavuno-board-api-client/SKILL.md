@@ -72,3 +72,7 @@ const data = await board.client.fetch<{
 ```
 
 **Complete when:** the call uses a board-relative path, supplies an honest response type, and no parallel raw-fetch client was introduced.
+
+## Cavuno SDK reference
+
+For setup and API details beyond this workflow, use the [Cavuno Board SDK documentation](https://cavuno.com/docs/sdk).
