@@ -67,3 +67,7 @@ Run the app's production build, boot that output, and repeat the three app probe
 **Complete when:** the build succeeds and the running production artifact passes the shell, listing/detail-link, and not-found probes.
 
 The smoke test covers Cavuno board wiring. Performance, visual regression, and broader SEO scoring belong to their dedicated project checks.
+
+## Cavuno SDK reference
+
+For setup and API details beyond this workflow, use the [Cavuno Board SDK documentation](https://cavuno.com/docs/sdk).

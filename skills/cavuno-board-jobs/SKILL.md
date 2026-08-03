@@ -130,3 +130,7 @@ Finish only after every applicable check passes:
   entitled request renders the ungated view.
 - Full-catalog code uses `paginate()` and any order-sensitive walk has an
   explicit sort or search.
+
+## Cavuno SDK reference
+
+For setup and API details beyond this workflow, use the [Cavuno Board SDK documentation](https://cavuno.com/docs/sdk).

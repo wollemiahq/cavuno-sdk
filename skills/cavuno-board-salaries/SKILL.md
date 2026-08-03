@@ -108,3 +108,7 @@ Finish only after every applicable check passes:
 - `overallSalary: null` renders an empty state rather than `0` or `NaN`.
 - Every salary, comparison, and sample size maps directly to a response field
   and uses the response currency.
+
+## Cavuno SDK reference
+
+For setup and API details beyond this workflow, use the [Cavuno Board SDK documentation](https://cavuno.com/docs/sdk).
