@@ -882,6 +882,40 @@ describe('listingHead', () => {
       }).meta[0],
     ).toEqual({ title: '0 Jobs | Acme Jobs' });
   });
+
+  it('groups the count for the board language when one is supplied', () => {
+    const head = listingHead({
+      boardName: 'Acme Jobs',
+      origin: 'https://acme.example.com',
+      path: '/jobs',
+      heading: 'Jobs',
+      count: 1225,
+      language: 'en',
+    });
+    expect(head.meta[0]).toEqual({ title: '1,225 Jobs | Acme Jobs' });
+    expect(head.meta[1]).toEqual({
+      name: 'description',
+      content: 'Browse 1,225 jobs on Acme Jobs.',
+    });
+  });
+
+  it('groups per locale, and leaves the digits ungrouped without a language', () => {
+    const base = {
+      boardName: 'Acme Jobs',
+      origin: 'https://acme.example.com',
+      path: '/jobs',
+      heading: 'Jobs',
+      count: 1225,
+    };
+    expect(listingHead({ ...base, language: 'de' }).meta[0]).toEqual({
+      title: '1.225 Jobs | Acme Jobs',
+    });
+    // No language: the ungrouped hosted-structure default is preserved, so
+    // existing callers keep byte-identical head output.
+    expect(listingHead(base).meta[0]).toEqual({
+      title: '1225 Jobs | Acme Jobs',
+    });
+  });
 });
 
 describe('listingJsonLd', () => {

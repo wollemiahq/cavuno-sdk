@@ -3,6 +3,21 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 3.2.0 — 2026-08-03
+
+- Added `formatSalaryStatUsd`, `formatSalaryStatRange`, `normalizeWebsiteUrl`,
+  and `buildJobBreadcrumbs` to `@cavuno/board/format`. These presentation
+  helpers previously required importing `@cavuno/board/seo`, which pulled the
+  structured-data builders into client bundles; frontends can now keep the SEO
+  entry server-only. The `@cavuno/board/seo` exports are unchanged.
+- Split the ESM builds of the isomorphic entries into shared chunks, so a
+  selective import no longer carries unrelated builders. CommonJS output is
+  unchanged.
+- `listingHead` accepts an optional `language` and groups the result count for
+  that locale in the title and meta description (`1,225 Jobs` / `1.225 Jobs`),
+  matching how listing bodies render the same number. Callers that omit
+  `language` keep byte-identical output.
+
 ## 3.1.0 — 2026-08-03
 
 - Added direct skills.sh installation guidance and repository grouping for all

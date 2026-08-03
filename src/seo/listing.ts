@@ -17,6 +17,13 @@ export interface ListingHeadOptions {
   heading: string;
   /** Result count — prefixed into the title (`N heading`). */
   count?: number;
+  /**
+   * Board language (BCP-47). When supplied, `count` is grouped for that
+   * locale in the title and description — `1,225 Jobs` / `1.225 Jobs` —
+   * matching how listing bodies render the same number. Omit to keep the
+   * ungrouped digits the hosted structure has always emitted.
+   */
+  language?: string;
 }
 
 /**
@@ -26,7 +33,13 @@ export interface ListingHeadOptions {
  */
 export function listingHead(options: ListingHeadOptions) {
   const countPrefix =
-    typeof options.count === 'number' ? `${options.count} ` : '';
+    typeof options.count === 'number'
+      ? `${
+          options.language
+            ? new Intl.NumberFormat(options.language).format(options.count)
+            : options.count
+        } `
+      : '';
   const title = `${countPrefix}${options.heading} | ${options.boardName}`;
   const description = `Browse ${countPrefix}${options.heading.toLowerCase()} on ${options.boardName}.`;
   const url = `${options.origin}${options.path}`;
