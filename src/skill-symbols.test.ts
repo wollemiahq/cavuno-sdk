@@ -137,6 +137,11 @@ describe('skill code examples reference real SDK symbols', () => {
   it('bites: a fabricated drift is detected', () => {
     expect(exported.has('definitelyNotExported')).toBe(false);
     expect(SUBPATH_EXPORTS['/format']!.has('formatSalaryRange')).toBe(true);
+    // Presentation helpers re-exported on `/format` so client mappers avoid `/seo`.
+    expect(SUBPATH_EXPORTS['/format']!.has('formatSalaryStatUsd')).toBe(true);
+    expect(SUBPATH_EXPORTS['/format']!.has('formatSalaryStatRange')).toBe(true);
+    expect(SUBPATH_EXPORTS['/format']!.has('normalizeWebsiteUrl')).toBe(true);
+    expect(SUBPATH_EXPORTS['/format']!.has('buildJobBreadcrumbs')).toBe(true);
     expect(SUBPATH_EXPORTS['/format']!.has('definitelyNotExported')).toBe(
       false,
     );
