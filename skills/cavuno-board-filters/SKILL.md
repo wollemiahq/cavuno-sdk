@@ -123,3 +123,7 @@ Finish only after every applicable check passes:
 - Category and skill filtering sends `sourceSlug`, while links use
   `canonicalSlug`.
 - Every paged taxonomy request forwards the previous opaque `nextCursor`.
+
+## Cavuno SDK reference
+
+For setup and API details beyond this workflow, use the [Cavuno Board SDK documentation](https://cavuno.com/docs/sdk).

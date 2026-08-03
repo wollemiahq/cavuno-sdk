@@ -94,3 +94,7 @@ await board.me.savedJobs.unsave(job.id);
 - `myApplication` plus `isNotFound` drives the apply-button state.
 - Re-fetching after withdrawal removes the application.
 - Repeating `unsave` leaves the saved list consistent.
+
+## Cavuno SDK reference
+
+For setup and API details beyond this workflow, use the [Cavuno Board SDK documentation](https://cavuno.com/docs/sdk).

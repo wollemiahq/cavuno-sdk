@@ -133,3 +133,7 @@ await board.me.notificationPreferences.unsubscribeWithToken({
 - Uploaded `avatarUrl` renders.
 - Resume parsing reaches `parsed`, reports `parseFailureReason`, or reaches the explicit delayed state without blocking editing.
 - Anonymous unsubscribe works in a logged-out browser.
+
+## Cavuno SDK reference
+
+For setup and API details beyond this workflow, use the [Cavuno Board SDK documentation](https://cavuno.com/docs/sdk).

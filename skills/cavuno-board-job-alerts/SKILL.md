@@ -124,3 +124,7 @@ Removal is the signed-in lane's stop action; there is no pause state.
 - Manage reads use `subscription`; manage writes use `subscriptionId`.
 - Editing one field preserves every other field in both full-replace APIs.
 - UI promises only weekly delivery filtered by job function, place, and remote option.
+
+## Cavuno SDK reference
+
+For setup and API details beyond this workflow, use the [Cavuno Board SDK documentation](https://cavuno.com/docs/sdk).

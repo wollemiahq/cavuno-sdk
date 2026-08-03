@@ -3,6 +3,12 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 3.1.0 — 2026-08-03
+
+- Added direct skills.sh installation guidance and repository grouping for all
+  22 Cavuno Board SDK skills.
+- Linked every independently installable skill to the Cavuno SDK documentation.
+
 ## 3.0.0 — 2026-08-03
 
 - Removed runtime theme data from `board.context()` and removed the

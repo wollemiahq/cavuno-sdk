@@ -80,3 +80,7 @@ Unknown slugs are dropped server-side. If none resolve, the listing has `count: 
 - Excluded companies disappear without changing the relative order of other items.
 - Selecting a company writes its slug to the URL and sends `companySlug` directly.
 - Teardown unsubscribes listeners and calls `dispose`.
+
+## Cavuno SDK reference
+
+For setup and API details beyond this workflow, use the [Cavuno Board SDK documentation](https://cavuno.com/docs/sdk).

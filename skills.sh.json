@@ -1,0 +1,52 @@
+{
+  "$schema": "https://skills.sh/schemas/skills.sh.schema.json",
+  "notGrouped": "bottom",
+  "groupings": [
+    {
+      "title": "Getting started",
+      "description": "Configure, verify, and operate a Cavuno Board SDK integration.",
+      "skills": [
+        "cavuno-board-setup",
+        "cavuno-board-api-client",
+        "cavuno-board-server-sessions",
+        "cavuno-board-errors",
+        "cavuno-board-smoke-test"
+      ]
+    },
+    {
+      "title": "Job discovery and content",
+      "description": "Build public catalog, search, localization, and content surfaces.",
+      "skills": [
+        "cavuno-board-jobs",
+        "cavuno-board-filters",
+        "cavuno-board-search-suggestions",
+        "cavuno-board-format",
+        "cavuno-board-i18n",
+        "cavuno-board-companies",
+        "cavuno-board-blog",
+        "cavuno-board-salaries"
+      ]
+    },
+    {
+      "title": "Candidate and engagement",
+      "description": "Implement candidate identity, applications, alerts, messaging, and access.",
+      "skills": [
+        "cavuno-board-auth",
+        "cavuno-board-account",
+        "cavuno-board-applications",
+        "cavuno-board-job-alerts",
+        "cavuno-board-messaging",
+        "cavuno-board-paywall"
+      ]
+    },
+    {
+      "title": "Publishing and discovery",
+      "description": "Publish jobs and expose board content to search engines.",
+      "skills": [
+        "cavuno-board-post-a-job",
+        "cavuno-board-seo",
+        "cavuno-board-sitemap"
+      ]
+    }
+  ]
+}

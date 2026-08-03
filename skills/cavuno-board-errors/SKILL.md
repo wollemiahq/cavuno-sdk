@@ -67,3 +67,7 @@ try {
 The grant is board access, not a user session. Server-rendered apps keep it in the app-owned grant cookie and pass it per request; `cavuno-board-server-sessions` defines that cookie and redirect contract. A fresh `board_password_required` response means the grant expired or the password rotated, so return to the challenge flow.
 
 **Complete when:** a valid password unlocks one retry, an invalid password renders its typed error, and a stale server grant is cleared before rechallenge.
+
+## Cavuno SDK reference
+
+For setup and API details beyond this workflow, use the [Cavuno Board SDK documentation](https://cavuno.com/docs/sdk).

@@ -19,6 +19,17 @@ other compatible coding agents. It teaches them how to wire a board correctly â€
 auth and session ownership, pagination, gating, error handling, and a
 runtime smoke test:
 
+Install the latest skills directly from the public SDK repository:
+
+```bash
+npx skills add wollemiahq/cavuno-sdk --skill cavuno-board-setup
+# Or install the complete Cavuno skill set:
+npx skills add wollemiahq/cavuno-sdk --skill '*'
+```
+
+For skills matched exactly to an installed SDK version, copy them from the
+package instead:
+
 ```bash
 npm install @cavuno/board     # or: pnpm add / yarn add / bun add
 npx @cavuno/board setup       # copies version-matched Agent Skills

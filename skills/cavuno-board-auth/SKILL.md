@@ -86,3 +86,7 @@ await board.auth.resetPassword({ token, password: 'a-new-password' });
 The signed-in OTP verification, resend, magic-link, and OAuth branches use their corresponding `board.auth` methods. Password-reset requests preserve account privacy; a successful single-use reset invalidates existing sessions.
 
 **Complete when:** each implemented auth route exercises its success state and typed failure state, with bearer tokens absent from server-rendered browser payloads.
+
+## Cavuno SDK reference
+
+For setup and API details beyond this workflow, use the [Cavuno Board SDK documentation](https://cavuno.com/docs/sdk).

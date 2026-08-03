@@ -112,3 +112,7 @@ Report reasons are `'spam' | 'harassment' | 'misrepresentation' | 'other'`. `boa
 - Opening a thread calls `markRead`; the sender later sees `readAt`.
 - Unsend renders a tombstone in place.
 - Messaging policy errors produce deliberate UI states rather than a generic success path.
+
+## Cavuno SDK reference
+
+For setup and API details beyond this workflow, use the [Cavuno Board SDK documentation](https://cavuno.com/docs/sdk).

@@ -80,3 +80,7 @@ Run `cavuno-board-smoke-test` with the real `pk_…` value. Its runtime probes a
 Pause with a concrete blocker when the board identifier or a required test credential is unavailable, or the public API probe fails before it reaches app code.
 
 **Complete when:** doctor, direct API probes, implemented-surface checks, and the production-build probe all pass or each skipped credentialed check is reported.
+
+## Cavuno SDK reference
+
+For setup and API details beyond this workflow, use the [Cavuno Board SDK documentation](https://cavuno.com/docs/sdk).
