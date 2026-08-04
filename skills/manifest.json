@@ -59,14 +59,14 @@
     },
     {
       "name": "cavuno-board-format",
-      "description": "Board-language display formatting with @cavuno/board/format. Use for salary ranges, dates, job labels, location labels, card conversion, or salary metadata copy.",
+      "description": "Board-language display formatting with @cavuno/board/format. Use for salary ranges, dates, custom-field display, or salary-stat numbers.",
       "path": "skills/cavuno-board-format/SKILL.md",
       "framework": null,
       "category": "core"
     },
     {
       "name": "cavuno-board-i18n",
-      "description": "One-seam board localization with @cavuno/board. Use when localizing UI chrome, adding locale routing, merging operator labels, or preserving board-language content.",
+      "description": "One-seam board localization with @cavuno/board. Use when localizing UI chrome, adding locale routing, or preserving board-language content.",
       "path": "skills/cavuno-board-i18n/SKILL.md",
       "framework": null,
       "category": "core"

@@ -5,7 +5,6 @@
  * One greppable convention across every tenant frontend: the vocabulary
  * arrays mirror the hosted board; seniority URL parsing follows the hosted
  * semantics exactly (trim, lowercase, dedupe — hand-typed URLs are messy).
- * Label helpers take the board language as a required leading parameter.
  *
  * Map parsed filters onto the wire like:
  * ```
@@ -15,12 +14,11 @@
  * ```
  * Company slugs are the URL identity; the API accepts them directly via
  * `companySlug` — never resolve slug→id client-side.
+ *
+ * Display labels for seniority / sort / remote options are application-owned
+ * chrome words — this entry only ships the wire vocabulary and
+ * parsers.
  */
-import { fieldLabel } from '../format/labels';
-import { getSalaryLexicon } from '../format/salary-lexicon';
-import { uiCopy } from '../format/ui-copy';
-
-import type { BoardLabelOverrides } from '../format/ui-copy';
 import type {
   EmploymentType,
   JobSort,
@@ -69,46 +67,6 @@ export const JOB_SORTS: readonly JobSort[] = [
 
 export const DEFAULT_SORT: JobSort = 'relevance';
 
-/**
- * Seniority display labels in the board language (lexicon-backed, en+de),
- * ⊕ stored operator overrides (`jobCardLabels.seniority*`) when the
- * `labels` bag is passed.
- *
- * @example
- * seniorityLabels('de').executive; // "Führungskraft"
- */
-export function seniorityLabels(
-  locale: string,
-  labels?: BoardLabelOverrides,
-): Record<Seniority, string> {
-  // Fast path for the common case — no bag, or a bag with no jobCardLabels
-  // (seniority overrides live only there).
-  if (!labels?.jobCardLabels) return getSalaryLexicon(locale).seniority;
-  const out = {} as Record<Seniority, string>;
-  for (const seniority of SENIORITIES) {
-    out[seniority] = fieldLabel(locale, seniority, labels) ?? seniority;
-  }
-  return out;
-}
-
-/**
- * Sort-dropdown labels in the board language, resolved from the copy
- * catalog (`uiCopy(locale).jobCard`) ⊕ stored operator overrides
- * (`jobCardLabels.aiRankedLabel` / `sortNewestLabel` / `sortSalaryHighLabel`)
- * when the `labels` bag is passed.
- */
-export function sortLabels(
-  locale: string,
-  labels?: BoardLabelOverrides,
-): Record<JobSort, string> {
-  const copy = uiCopy(locale, labels).jobCard;
-  return {
-    relevance: copy.aiRankedLabel,
-    newest: copy.sortNewestLabel,
-    salary_high: copy.sortSalaryHighLabel,
-  };
-}
-
 /** Wire max for `companySlug` / company multi-select. Keep the FIRST N. */
 const COMPANY_SLUG_MAX = 10;
 
@@ -146,7 +104,9 @@ export function parseSeniority(raw: unknown): Seniority[] | undefined {
   const seen = new Set<string>();
   for (const value of values) {
     if (typeof value !== 'string') continue;
-    const normalized = value.trim().toLowerCase();
+    // NFC so café (NFC) and café (NFD) are one Set key. toLowerCase (not
+    // toLocaleLowerCase) is correct — these are identifiers, not display.
+    const normalized = value.trim().toLowerCase().normalize('NFC');
     if (!normalized || seen.has(normalized)) continue;
     if (!SENIORITY_LOOKUP.has(normalized)) continue;
     seen.add(normalized);
@@ -173,7 +133,9 @@ export function parseCompany(raw: unknown): string[] | undefined {
   const seen = new Set<string>();
   for (const value of values) {
     if (typeof value !== 'string') continue;
-    const normalized = value.trim().toLowerCase();
+    // NFC so café (NFC) and café (NFD) are one Set key. toLowerCase (not
+    // toLocaleLowerCase) is correct — these are identifiers, not display.
+    const normalized = value.trim().toLowerCase().normalize('NFC');
     if (!normalized || seen.has(normalized)) continue;
     seen.add(normalized);
     result.push(normalized);

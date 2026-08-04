@@ -4,60 +4,96 @@
  * tested against the hosted behavior.
  *
  * Job cards and the job-detail header render the RELATIVE form
- * (`formatPublishedRelativeDate` — "5d ago"); the absolute medium date
+ * (`formatPublishedRelativeDate` — "5 days ago"); the absolute medium date
  * (`formatDate`) is what hosted uses for blog metadata and detail facts.
+ *
+ * Invalid locales return `null` rather than English unit abbreviations
+ * (`5d` / `5mo`) or a sign-stripped digit string. Past vs future is kept
+ * (negative → past) so RTF can own the word.
  */
 
-const rtfNarrowCache = new Map<string, Intl.RelativeTimeFormat>();
-const dtfCache = new Map<string, Intl.DateTimeFormat>();
+import { normalizeLocale } from './locale';
 
-function getNarrowRelativeTimeFormat(language: string | undefined) {
-  const key = language ?? 'en';
-  let rtf = rtfNarrowCache.get(key);
+const rtfShortCache = new Map<string, Intl.RelativeTimeFormat>();
+/** `numeric: 'auto'` so `format(0, 'second')` yields "now" / "jetzt" / … */
+const rtfNowCache = new Map<string, Intl.RelativeTimeFormat>();
+const dtfCache = new Map<string, Intl.DateTimeFormat>();
+const monthYearCache = new Map<string, Intl.DateTimeFormat>();
+
+/**
+ * CLDR `short` width — not `narrow`. English `narrow` happens to read as
+ * prose (`5d ago`), but `fr`/`ru`/`ro` narrow degrades to a signed number
+ * (`-5 j`), and `he` can emit parenthesised digits. `short` fixes those
+ * without changing en/de/ja/ar readability.
+ */
+function getShortRelativeTimeFormat(language: string) {
+  let rtf = rtfShortCache.get(language);
   if (!rtf) {
-    rtf = new Intl.RelativeTimeFormat(key, {
+    rtf = new Intl.RelativeTimeFormat(language, {
       numeric: 'always',
-      style: 'narrow',
+      style: 'short',
     });
-    rtfNarrowCache.set(key, rtf);
+    rtfShortCache.set(language, rtf);
   }
   return rtf;
 }
 
-function getDateTimeFormat(language: string | undefined) {
-  const key = language ?? 'en';
-  let dtf = dtfCache.get(key);
+function getNowRelativeTimeFormat(language: string) {
+  let rtf = rtfNowCache.get(language);
+  if (!rtf) {
+    rtf = new Intl.RelativeTimeFormat(language, {
+      numeric: 'auto',
+      style: 'short',
+    });
+    rtfNowCache.set(language, rtf);
+  }
+  return rtf;
+}
+
+function getDateTimeFormat(language: string) {
+  let dtf = dtfCache.get(language);
   if (!dtf) {
     // timeZone pinned to UTC — matches hosted, so a date never shifts by a
     // calendar day depending on where the code executes.
-    dtf = new Intl.DateTimeFormat(key, {
+    dtf = new Intl.DateTimeFormat(language, {
       dateStyle: 'medium',
       timeZone: 'UTC',
     });
-    dtfCache.set(key, dtf);
+    dtfCache.set(language, dtf);
   }
   return dtf;
 }
 
-function formatNarrow(
+function getMonthYearFormat(language: string) {
+  let dtf = monthYearCache.get(language);
+  if (!dtf) {
+    // Same UTC pin as formatDate — full ISO timestamps must not render a
+    // different calendar month under America/Los_Angeles vs UTC.
+    dtf = new Intl.DateTimeFormat(language, {
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'UTC',
+    });
+    monthYearCache.set(language, dtf);
+  }
+  return dtf;
+}
+
+/**
+ * Short relative unit via `Intl`. When construction/format throws (invalid
+ * locale), returns `null` rather than English abbreviations (`d`/`mo`/`w`)
+ * or a sign-stripped digit string — callers already treat null as "no label".
+ * `value` keeps its sign (past negative, future positive).
+ */
+function formatShort(
   value: number,
   unit: Intl.RelativeTimeFormatUnit,
-  language: string | undefined,
-): string {
+  language: string,
+): string | null {
   try {
-    return getNarrowRelativeTimeFormat(language).format(value, unit);
+    return getShortRelativeTimeFormat(language).format(value, unit);
   } catch {
-    // Fallback to hardcoded abbreviations
-    const shortMap: Record<string, string> = {
-      year: 'y',
-      month: 'mo',
-      week: 'w',
-      day: 'd',
-      hour: 'h',
-      minute: 'm',
-      second: 's',
-    };
-    return `${Math.abs(value)}${shortMap[unit] ?? unit}`;
+    return null;
   }
 }
 
@@ -74,17 +110,22 @@ export function formatDate(
   if (!value) return null;
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return null;
+  const normalized = normalizeLocale(locale);
+  if (!normalized) return null;
   try {
-    return getDateTimeFormat(locale).format(parsed);
+    return getDateTimeFormat(normalized).format(parsed);
   } catch {
+    // Machine form only — ISO date, not a localized display string.
     return parsed.toISOString().split('T')[0]!;
   }
 }
 
 /**
- * Relative published label — "5d ago" (en) / "vor 5 T." (de) — the form the
- * hosted board renders on job cards and the job-detail header. Under one
- * minute renders "now". `referenceNowMs` exists for deterministic tests.
+ * Relative published label — "5 days ago" (en) / "vor 5 Tagen" (de) — the
+ * form the hosted board renders on job cards and the job-detail header.
+ * Under one minute uses `Intl.RelativeTimeFormat` with `numeric: 'auto'` so
+ * the board language owns "now" / "jetzt" / "maintenant". `referenceNowMs`
+ * exists for deterministic tests.
  */
 export function formatPublishedRelativeDate(
   locale: string,
@@ -94,6 +135,9 @@ export function formatPublishedRelativeDate(
   if (!value) return null;
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return null;
+
+  const normalized = normalizeLocale(locale);
+  if (!normalized) return null;
 
   const diff = referenceNowMs - parsed.getTime();
   const absDiff = Math.abs(diff);
@@ -106,7 +150,11 @@ export function formatPublishedRelativeDate(
   const year = 365 * day;
 
   if (absDiff < minute) {
-    return 'now';
+    try {
+      return getNowRelativeTimeFormat(normalized).format(0, 'second');
+    } catch {
+      return formatShort(0, 'second', normalized);
+    }
   }
 
   const units: Array<{ unit: Intl.RelativeTimeFormatUnit; ms: number }> = [
@@ -121,26 +169,57 @@ export function formatPublishedRelativeDate(
   for (const candidate of units) {
     if (absDiff >= candidate.ms) {
       const valueInUnit = Math.round(absDiff / candidate.ms);
+      // Keep the sign: past → negative, future → positive (RTF owns the word).
       const direction = diff >= 0 ? -valueInUnit : valueInUnit;
-      return formatNarrow(direction, candidate.unit, locale);
+      return formatShort(direction, candidate.unit, normalized);
     }
   }
 
   const seconds = Math.round(absDiff / 1000);
   const direction = diff >= 0 ? -seconds : seconds;
-  return formatNarrow(direction, 'second', locale);
+  return formatShort(direction, 'second', normalized);
 }
 
 /**
  * Month-year label, e.g. "Jun 2023" — transcribed from the hosted board's
- * `formatMonthYear`. The `T00:00:00` suffix
- * prevents timezone-related off-by-one-month issues on date-only strings.
+ * `formatMonthYear`.
+ *
+ * - Date-only inputs (`YYYY-MM`, `YYYY-MM-DD`) get a UTC midnight pin
+ *   (`T00:00:00.000Z`) so the UTC formatter below keeps the same calendar
+ *   month. Local midnight + `timeZone: 'UTC'` would shift western zones
+ *   back a day (e.g. Jun 1 AEST → May 31 UTC).
+ * - Full ISO timestamps are formatted with `timeZone: 'UTC'` (same pin as
+ *   `formatDate`) so a UTC midnight never renders as the previous month
+ *   under America/Los_Angeles.
+ * - Missing or unparseable input returns `null`, matching `formatDate` —
+ *   never the English literal `"Invalid Date"`.
  */
-export function formatMonthYear(locale: string, dateStr: string): string {
-  const date = new Date(dateStr + 'T00:00:00');
+export function formatMonthYear(
+  locale: string,
+  dateStr: string | null | undefined,
+): string | null {
+  if (!dateStr) return null;
 
-  return date.toLocaleDateString(locale, {
-    month: 'short',
-    year: 'numeric',
-  });
+  // Date-only calendar forms — pin UTC midnight so the UTC formatter below
+  // keeps the same calendar month (local midnight + timeZone:'UTC' would
+  // shift western zones back a day, e.g. Jun 1 AEST → May 31 UTC).
+  const isDateOnly = /^\d{4}-\d{2}(-\d{2})?$/.test(dateStr);
+  const parsed = isDateOnly
+    ? new Date(
+        dateStr.length === 7
+          ? `${dateStr}-01T00:00:00.000Z`
+          : `${dateStr}T00:00:00.000Z`,
+      )
+    : new Date(dateStr);
+
+  if (Number.isNaN(parsed.getTime())) return null;
+
+  const normalized = normalizeLocale(locale);
+  if (!normalized) return null;
+
+  try {
+    return getMonthYearFormat(normalized).format(parsed);
+  } catch {
+    return null;
+  }
 }

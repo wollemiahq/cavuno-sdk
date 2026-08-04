@@ -21,10 +21,13 @@ const author = await board.blog.authors.retrieve('jane');
 const { data: authorPosts } = await board.blog.posts.list({
   authorSlug: 'jane',
 });
+// Profile description is application-owned. Prefer author.bio; otherwise
+// compose from the board catalog (shape only — not an English sentence).
 const profile = createAuthorProfileJsonLd({
   author,
   canonical: `https://jobs.example.com/blog/author/${author.slug}`,
-  description: author.bio ?? `Posts by ${author.name}`,
+  description:
+    author.bio ?? messages.authorProfileDescription({ name: author.name }),
   origin: 'https://jobs.example.com',
   posts: authorPosts,
   totalPosts: authorPosts.length,

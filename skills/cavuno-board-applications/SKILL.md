@@ -76,7 +76,10 @@ await board.me.applications.withdraw(applicationId);
 
 ## Save jobs
 
-Saved rows embed the full `PublicJob`. `save` converges on the existing row and `unsave` is idempotent.
+Saved rows embed the same slim `PublicJobCard` as the jobs list — render them
+with the same card view-model, and do not expect full-job fields (description,
+custom field values) on saved rows. `save` converges on the existing row and
+`unsave` is idempotent.
 
 ```ts snippet
 const saved = await board.me.savedJobs.list({ limit: 20 });

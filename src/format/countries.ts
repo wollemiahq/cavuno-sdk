@@ -7,6 +7,9 @@
  * drift. Codes only — display names localize at render via
  * `countryOptions(language)`.
  */
+
+import { normalizeLocale } from './locale';
+
 export const COUNTRY_CODES = [
   'AD', 'AE', 'AF', 'AG', 'AI', 'AL', 'AM', 'AO', 'AQ', 'AR', 'AS', 'AT',
   'AU', 'AW', 'AX', 'AZ', 'BA', 'BB', 'BD', 'BE', 'BF', 'BG', 'BH', 'BI',
@@ -50,6 +53,8 @@ function collator(language: string): Intl.Collator {
   try {
     return new Intl.Collator(language);
   } catch {
+    // Default collator (runtime locale) only for sort stability when the
+    // board language is unusable — names still fall back to ISO codes.
     return new Intl.Collator();
   }
 }
@@ -58,11 +63,19 @@ function collator(language: string): Intl.Collator {
  * The complete country option list, display-named in the BOARD language
  * and sorted by that language's
  * collation — the shape a country picker renders. Falls back to the bare
- * code when the runtime cannot resolve the language or name a region.
+ * code when the runtime cannot name a region. When the board language is
+ * invalid or unsupported (`normalizeLocale` → `null`), returns ISO codes
+ * as names sorted by code — never host-default English names/collation.
  */
 export function countryOptions(language: string): CountryOption[] {
-  const names = regionNames(language);
-  const compare = collator(language).compare;
+  const locale = normalizeLocale(language);
+  if (!locale) {
+    return COUNTRY_CODES.map((code) => ({ code, name: code })).sort((a, b) =>
+      a.code < b.code ? -1 : a.code > b.code ? 1 : 0,
+    );
+  }
+  const names = regionNames(locale);
+  const compare = collator(locale).compare;
 
   return COUNTRY_CODES.map((code) => ({
     code,

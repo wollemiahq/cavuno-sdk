@@ -32,13 +32,16 @@ Labels are trimmed, blank crumbs are dropped, and fewer than two surviving
 crumbs return `null`. The current page omits `href`, which makes the builder
 omit its `item`. Supply absolute hrefs, or pass `origin` for path hrefs.
 
+Breadcrumb labels are application-owned — pull them from the board's message
+catalog. The snippet shows structure only, not English copy.
+
 ```ts snippet
 import { createBreadcrumbJsonLd } from '@cavuno/board/seo';
 
 const trail = createBreadcrumbJsonLd(
   [
-    { label: 'Home', href: '/' },
-    { label: 'Jobs', href: '/jobs' },
+    { label: messages.breadcrumb('home'), href: '/' },
+    { label: messages.breadcrumb('jobs'), href: '/jobs' },
     { label: job.title },
   ],
   { origin: 'https://jobs.example.com' });

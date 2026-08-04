@@ -75,7 +75,8 @@ export function loadSkillCorpus(baseDir?: string): SkillCorpus {
           path: entry.name,
           content: readFileSync(resolve(skillDir, entry.name), 'utf8'),
         }))
-        .sort((a, b) => a.path.localeCompare(b.path));
+        // Fixed ASCII path order — not host-locale collation.
+        .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
 
       return {
         ...skill,

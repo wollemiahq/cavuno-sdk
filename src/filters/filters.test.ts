@@ -9,13 +9,12 @@ import {
   parseCompany,
   parseListingFilters,
   parseSeniority,
-  seniorityLabels,
-  sortLabels,
 } from './index';
 
 // The vocabulary is the CONTRACT tenant frontends filter by — tested
 // against the hosted behavior; here we pin the parsing rules
-// (public-URL input is messy and must never throw) and the label locale rule.
+// (public-URL input is messy and must never throw). Display labels are
+// application-owned and no longer ship from this entry.
 
 describe('vocabulary', () => {
   it('exposes the locked sets', () => {
@@ -64,6 +63,13 @@ describe('parseCompany (hosted semantics)', () => {
     expect(parseCompany(many)).toEqual(many.slice(0, 10));
     expect(parseCompany(many.join(','))).toEqual(many.slice(0, 10));
   });
+
+  it('NFC-normalizes so composed and decomposed accents are one key', () => {
+    const nfc = 'café';
+    const nfd = 'café'.normalize('NFD');
+    expect(nfc).not.toBe(nfd);
+    expect(parseCompany([nfc, nfd])).toEqual([nfc.normalize('NFC')]);
+  });
 });
 
 describe('parseListingFilters', () => {
@@ -104,30 +110,3 @@ describe('parseListingFilters', () => {
   });
 });
 
-describe('labels', () => {
-  it('seniority labels localize via the lexicon per board language', () => {
-    expect(seniorityLabels('en').mid_level).toBe('Mid-level');
-    expect(seniorityLabels('de').executive).toBe('Führungskraft');
-    expect(seniorityLabels('fr').executive).toBe('Executive'); // fallback en
-  });
-
-  it('sort labels localize via the copy catalog', () => {
-    expect(sortLabels('en').relevance).toBe('AI-ranked');
-    expect(sortLabels('de').relevance).toBe('KI-sortiert');
-    expect(sortLabels('de').newest).toBe('Neueste zuerst');
-    // Unseeded languages fall back to the English source.
-    expect(sortLabels('nl')).toEqual(sortLabels('en'));
-  });
-
-  it('sort/seniority labels apply stored operator overrides (jobCardLabels)', () => {
-    expect(
-      sortLabels('de', { jobCardLabels: { sortNewestLabel: 'Frisch rein' } })
-        .newest,
-    ).toBe('Frisch rein');
-    expect(
-      seniorityLabels('de', {
-        jobCardLabels: { seniorityLead: 'Teamleitung' },
-      }).lead,
-    ).toBe('Teamleitung');
-  });
-});

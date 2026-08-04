@@ -50,6 +50,14 @@ describe('runSetup', () => {
     ).toBe(true);
   });
 
+  //chrome copy is application-owned. setup must never seed a
+  // messages/ catalog (or any other word tables) into the consumer project.
+  it('does not seed a chrome-copy catalog (applications own messages/)', () => {
+    const dir = scratchProject();
+    runSetup(dir);
+    expect(existsSync(resolve(dir, 'messages'))).toBe(false);
+  });
+
   it('reports TanStack Start without copying framework guidance', () => {
     const dir = scratchProject({
       dependencies: { '@tanstack/react-start': '^1.0.0' },

@@ -9,16 +9,20 @@ import {
   companyMarketPath,
   companyPath,
   companySalaryPath,
+  encodePathSegment,
   goAlertsConfirmPath,
   goAlertsManagePath,
   goJobPath,
   jobDetailPath,
   jobsCategoryPath,
+  jobsLocationCategoryPath,
   jobsLocationPath,
+  jobsLocationSkillPath,
   jobsSkillPath,
   salaryLocationPath,
   salarySkillPath,
   salaryTitlePath,
+  suggestionPath,
 } from './index';
 
 /**
@@ -38,6 +42,12 @@ describe('canonical board paths', () => {
     expect(jobsCategoryPath('engineering')).toBe('/jobs/engineering');
     expect(jobsSkillPath('react')).toBe('/jobs/skills/react');
     expect(jobsLocationPath('berlin')).toBe('/jobs/locations/berlin');
+    expect(jobsLocationCategoryPath('berlin', 'engineering')).toBe(
+      '/jobs/locations/berlin/engineering',
+    );
+    expect(jobsLocationSkillPath('berlin', 'react')).toBe(
+      '/jobs/locations/berlin/skills/react',
+    );
   });
 
   it('builds company + market paths', () => {
@@ -71,6 +81,22 @@ describe('canonical board paths', () => {
       'https://x.com/companies/a/jobs/b',
     );
   });
+
+  it('percent-encodes non-ASCII path segments (URI, not bare IRI)', () => {
+    const company = '株式会社アクメ';
+    const job = 'ソフトウェアエンジニア';
+    const encodedCompany = encodeURIComponent(company);
+    const encodedJob = encodeURIComponent(job);
+    expect(jobDetailPath(company, job)).toBe(
+      `/companies/${encodedCompany}/jobs/${encodedJob}`,
+    );
+    expect(boardUrl('https://board.example', jobDetailPath(company, job))).toBe(
+      `https://board.example/companies/${encodedCompany}/jobs/${encodedJob}`,
+    );
+    // Separators stay unencoded; already-encoded input is not double-encoded.
+    expect(encodePathSegment(encodedCompany)).toBe(encodedCompany);
+    expect(jobsCategoryPath(company)).toBe(`/jobs/${encodedCompany}`);
+  });
 });
 
 /**
@@ -99,5 +125,72 @@ describe('go path builders', () => {
     expect(boardUrl('https://x.com/', goAlertsManagePath())).toBe(
       'https://x.com/go/alerts-manage',
     );
+  });
+});
+
+/**
+ *  — scope-aware suggestion routing. Pins the starter's
+ * submitHeaderSearch table so consumers inherit it rather than re-derive it.
+ */
+describe('suggestionPath', () => {
+  const skill = {
+    type: 'term' as const,
+    termType: 'skill' as const,
+    canonicalSlug: 'react',
+  };
+  const category = {
+    type: 'term' as const,
+    termType: 'category' as const,
+    canonicalSlug: 'engineering',
+  };
+  const company = { type: 'company' as const, slug: 'acme-co' };
+  const market = { type: 'market' as const, slug: 'fintech' };
+
+  it('routes jobs-scope terms, with and without location', () => {
+    expect(suggestionPath(skill, { scope: 'jobs' })).toBe('/jobs/skills/react');
+    expect(suggestionPath(category, { scope: 'jobs' })).toBe(
+      '/jobs/engineering',
+    );
+    expect(
+      suggestionPath(skill, { scope: 'jobs', location: 'berlin' }),
+    ).toBe('/jobs/locations/berlin/skills/react');
+    expect(
+      suggestionPath(category, { scope: 'jobs', location: 'berlin' }),
+    ).toBe('/jobs/locations/berlin/engineering');
+  });
+
+  it('returns null for jobs-scope company (filter, not navigate)', () => {
+    expect(suggestionPath(company, { scope: 'jobs' })).toBeNull();
+    expect(
+      suggestionPath(company, { scope: 'jobs', location: 'berlin' }),
+    ).toBeNull();
+  });
+
+  it('returns null for jobs-scope market and companies-scope terms', () => {
+    expect(suggestionPath(market, { scope: 'jobs' })).toBeNull();
+    expect(suggestionPath(skill, { scope: 'companies' })).toBeNull();
+    expect(suggestionPath(category, { scope: 'companies' })).toBeNull();
+  });
+
+  it('routes companies-scope company and market', () => {
+    expect(suggestionPath(company, { scope: 'companies' })).toBe(
+      '/companies/acme-co',
+    );
+    expect(suggestionPath(market, { scope: 'companies' })).toBe(
+      '/companies/markets/fintech',
+    );
+  });
+
+  it('routes blog-scope post and tag via blog path helpers', () => {
+    const post = { type: 'post' as const, slug: 'hiring-playbook' };
+    const tag = { type: 'tag' as const, slug: 'remote' };
+    expect(suggestionPath(post, { scope: 'blog' })).toBe(
+      '/blog/hiring-playbook',
+    );
+    expect(suggestionPath(tag, { scope: 'blog' })).toBe('/blog/tag/remote');
+    expect(suggestionPath(company, { scope: 'blog' })).toBeNull();
+    expect(suggestionPath(skill, { scope: 'blog' })).toBeNull();
+    expect(suggestionPath(post, { scope: 'jobs' })).toBeNull();
+    expect(suggestionPath(tag, { scope: 'companies' })).toBeNull();
   });
 });

@@ -12,7 +12,6 @@ import { embedNamespace } from './namespaces/embed';
 import { jobAlertsNamespace } from './namespaces/job-alerts';
 import { jobPostingNamespace } from './namespaces/job-posting';
 import { jobsNamespace } from './namespaces/jobs';
-import { legalNamespace } from './namespaces/legal';
 import { meNamespace } from './namespaces/me';
 import { passwordNamespace } from './namespaces/password';
 import { paywallNamespace } from './namespaces/paywall';
@@ -102,7 +101,6 @@ export function createBoardClient(options: CreateBoardClientOptions) {
     embed: embedNamespace(client),
     companies: companiesNamespace(client),
     blog: blogNamespace(client),
-    legal: legalNamespace(client),
     auth: authNamespace(client),
     me: meNamespace(client),
     password: passwordNamespace(client),
@@ -181,11 +179,6 @@ export type { BoardSeo } from './types/seo';
 export type { EmbedJobsQuery } from './types/embed';
 export type { BoardAccessGrant } from './types/password';
 export type { RedirectResolution } from './types/redirects';
-export type {
-  LegalEntity,
-  LegalPageType,
-  PublicLegalPage,
-} from './types/legal';
 export type {
   BlogAuthorEmbed,
   BlogPostsListQuery,
@@ -382,14 +375,15 @@ export type {
   PublicPlace,
   RemotePermitTaxonomyEntry,
   PublicTaxonomyTerm,
-  SuggestionsListQuery,
   TaxonomyGeo,
   TaxonomyListQuery,
   TaxonomyResolution,
 } from './types/taxonomy';
 export type {
   CompanySuggestion,
+  MarketSuggestion,
   SearchSuggestQuery,
+  SearchSuggestType,
   SuggestResult,
   SuggestionItem,
   TermSuggestion,

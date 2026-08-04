@@ -40,9 +40,8 @@ export function detectFramework(cwd: string): string | null {
  * root that exists, or `.agents/skills/` when none does. Copies the
  * framework-agnostic Cavuno skills; framework APIs come from the framework's
  * own installed skills. Framework detection remains informational. Idempotent:
- * re-running overwrites the
- * `cavuno-board-*` skills (they are version-matched artifacts) and never
- * touches other skills.
+ * re-running overwrites the `cavuno-board-*` skills (they are version-matched
+ * artifacts) and never touches other skills.
  */
 export function runSetup(cwd: string = process.cwd()): SetupResult {
   const manifest = loadSkillManifest();
@@ -70,5 +69,10 @@ export function runSetup(cwd: string = process.cwd()): SetupResult {
       if (!copied.includes(skill.name)) copied.push(skill.name);
     }
   }
-  return { version: manifest.version, framework, targetDirs, copied };
+  return {
+    version: manifest.version,
+    framework,
+    targetDirs,
+    copied,
+  };
 }

@@ -10,9 +10,8 @@ import {
   companySalaryJsonLd,
   crossAxisSalaryJsonLd,
   faqJsonLd,
-  formatRange,
-  formatSeniority,
-  formatUsd,
+  formatSalaryStat,
+  formatSalaryStatRange,
   itemListJsonLd,
   locationSalaryJsonLd,
   SENIORITY_ORDER,
@@ -38,7 +37,7 @@ const BOARD = {
     candidates: true,
     employers: true,
     blog: true,
-    talentDirectory: false,
+    talentDirectory: 'off',
     registrationWall: false,
     passwordProtected: false,
     publicJobSubmission: false,
@@ -47,7 +46,6 @@ const BOARD = {
     nativeApplications: true,
     messaging: true,
   },
-  talentDirectoryVisibility: 'off',
   analytics: {
     ga4MeasurementId: null,
     gtmId: null,
@@ -55,17 +53,13 @@ const BOARD = {
     linkedInPartnerId: null,
     cookieConsentRequired: false,
   },
-  customFields: [],
-  labels: {},
-  footer: {
-    description: null,
-    contactEmail: null,
+  customFields: { job: [] },
+  contact: {
+    email: null,
     websiteUrl: null,
     xUrl: null,
     facebookUrl: null,
     linkedinUrl: null,
-    navigationOrder: [],
-    customLinks: [],
   },
 } satisfies PublicBoard;
 
@@ -556,34 +550,68 @@ describe('createBreadcrumbJsonLd', () => {
 });
 
 describe('salary formatters', () => {
-  it('formats compact USD in the board language (USD-hardcoded, hosted quirk)', () => {
-    expect(formatUsd('en', 90000)).toBe('$90K');
-    expect(formatUsd('en', 1_500_000)).toBe('$1.5M');
-    expect(formatUsd('en', 950)).toBe('$950');
-    // de: locale digits/placement, still USD.
-    expect(formatUsd('de', 90000)).toContain('$');
-    expect(formatUsd('de', 90000)).not.toBe(formatUsd('en', 90000));
-  });
-
-  it('falls back to manual $ suffixes when Intl rejects the locale', () => {
-    expect(formatUsd('not a locale!', 2_500_000)).toBe('$2.5M');
-    expect(formatUsd('not a locale!', 90000)).toBe('$90k');
-    expect(formatUsd('not a locale!', 950)).toBe('$950');
-  });
-
-  it('formatRange joins with the hosted spaced en dash and never collapses', () => {
-    expect(formatRange('en', 90000, 120000)).toBe('$90K – $120K');
-    expect(formatRange('en', 90000, 90000)).toBe('$90K – $90K');
-  });
-
-  it('formatSeniority: override > lexicon (en/de) > title-case fallback', () => {
-    expect(formatSeniority('en', 'entry_level')).toBe('Entry level');
-    expect(formatSeniority('de', 'entry_level')).toBe('Entry-Level');
-    expect(formatSeniority('de', 'executive')).toBe('Führungskraft');
-    expect(formatSeniority('en', 'executive', { executive: 'C-Suite' })).toBe(
-      'C-Suite',
+  it('formats compact amounts in the board language and currency', () => {
+    expect(formatSalaryStat('en', 90000, 'USD')).toBe('$90K');
+    expect(formatSalaryStat('en', 1_500_000, 'USD')).toBe('$1.5M');
+    // |value| < 1000 → standard by magnitude (same rule as formatSalaryRange).
+    expect(formatSalaryStat('en', 950, 'USD')).toBe('$950.00');
+    // de: locale digits/placement for USD.
+    expect(formatSalaryStat('de', 90000, 'USD')).toContain('$');
+    expect(formatSalaryStat('de', 90000, 'USD')).not.toBe(
+      formatSalaryStat('en', 90000, 'USD'),
     );
-    expect(formatSeniority('en', 'staff_engineer')).toBe('Staff Engineer');
+    // EUR on a German board is not dollars.
+    const eurDe = formatSalaryStat('de', 90000, 'EUR');
+    expect(eurDe).toContain('€');
+    expect(eurDe).not.toContain('$');
+  });
+
+  it('accepts notation override (standard full figures; compact short form)', () => {
+    // Register, not locale — hero cards want compact; FAQ prose wants full.
+    expect(formatSalaryStat('en', 90000, 'USD', 'standard')).toBe('$90,000.00');
+    expect(formatSalaryStat('en', 22.5, 'USD', 'standard')).toBe('$22.50');
+    expect(formatSalaryStat('en', 950, 'USD', 'compact')).toBe('$950');
+    expect(formatSalaryStatRange('en', 100000, 150000, 'USD', 'standard')).toBe(
+      '$100,000.00 – $150,000.00',
+    );
+    // Explicit compact still shortens large ranges.
+    expect(formatSalaryStatRange('en', 100000, 150000, 'USD', 'compact')).toBe(
+      '$100–150K',
+    );
+  });
+
+  it('returns null when Intl rejects the locale or currency is empty/null', () => {
+    // Prefer null over English M/k abbreviations or a bare `$`.
+    expect(formatSalaryStat('not a locale!', 2_500_000, 'USD')).toBeNull();
+    expect(formatSalaryStat('not a locale!', 90000, 'EUR')).toBeNull();
+    expect(formatSalaryStat('en', 90000, '')).toBeNull();
+    expect(formatSalaryStat('en', 90000, '   ')).toBeNull();
+    // Runtime null/undefined must not throw (docs + skill promise string | null).
+    expect(formatSalaryStat('en', 90000, null)).toBeNull();
+    expect(formatSalaryStatRange('en', 90000, 120000, null)).toBeNull();
+  });
+
+  it('returns null for non-finite amounts (NaN / Infinity)', () => {
+    expect(formatSalaryStat('en', Number.NaN, 'USD')).toBeNull();
+    expect(formatSalaryStat('en', Number.POSITIVE_INFINITY, 'USD')).toBeNull();
+    expect(
+      formatSalaryStatRange('en', Number.NaN, 120000, 'USD'),
+    ).toBeNull();
+    expect(
+      formatSalaryStatRange('en', 90000, Number.NaN, 'USD'),
+    ).toBeNull();
+  });
+
+  it('formatSalaryStatRange uses Intl.formatRange', () => {
+    expect(formatSalaryStatRange('en', 90000, 120000, 'USD')).toBe('$90–120K');
+    // Identical bounds are a fixed salary, not a range — single amount
+    // (ICU would emit ~$90K via approximatelySign for formatRange(X,X)).
+    expect(formatSalaryStatRange('en', 90000, 90000, 'USD')).toBe('$90K');
+    expect(formatSalaryStatRange('en', 90000, 120000, '')).toBeNull();
+  });
+
+  it('formatSalaryStatRange swaps inverted bounds so the range reads low→high', () => {
+    expect(formatSalaryStatRange('en', 120000, 90000, 'USD')).toBe('$90–120K');
   });
 
   it('sortBySeniority orders by the ladder, unknown keys last, without mutating', () => {
@@ -606,42 +634,105 @@ describe('salary formatters', () => {
 });
 
 describe('buildSalaryFaq', () => {
-  it('templates the two-question FAQ with a board-language range', () => {
-    const faq = buildSalaryFaq('en', 'JavaScript Developer', {
-      avgMin: 70000,
-      avgMax: 90000,
-      jobCount: 42,
-    });
-    expect(faq).toHaveLength(2);
-    expect(faq[0]!.q).toBe(
-      'What is the average salary for JavaScript Developer?',
+  it('returns average + methodology kinds with range and raw figures', () => {
+    const faq = buildSalaryFaq(
+      'en',
+      'JavaScript Developer',
+      {
+        avgMin: 70000,
+        avgMax: 90000,
+        jobCount: 42,
+      },
+      'USD',
     );
-    expect(faq[0]!.a).toBe(
-      'The average salary for JavaScript Developer is $70K – $90K per year, based on 42 job postings on this board that disclose pay.',
-    );
-    expect(faq[1]!.q).toBe(
-      'How is the salary figure for JavaScript Developer calculated?',
-    );
+    expect(faq).toEqual([
+      {
+        kind: 'average',
+        label: 'JavaScript Developer',
+        range: formatSalaryStatRange('en', 70000, 90000, 'USD'),
+        avgMin: 70000,
+        avgMax: 90000,
+        currency: 'USD',
+        jobCount: 42,
+      },
+      {
+        kind: 'methodology',
+        label: 'JavaScript Developer',
+      },
+    ]);
+    // Raw figures stay so the app can reformat (e.g. standard notation for FAQ prose).
+    const avg = faq[0] as Extract<(typeof faq)[number], { kind: 'average' }>;
+    expect(
+      formatSalaryStatRange('en', avg.avgMin, avg.avgMax, avg.currency, 'standard'),
+    ).toBe('$70,000.00 – $90,000.00');
   });
 
-  it('singularizes one posting, localizes only the figures on a de board, and is empty without figures', () => {
-    const one = buildSalaryFaq('en', 'X', {
+  it('formats the range for the board language and is empty without figures', () => {
+    const one = buildSalaryFaq(
+      'en',
+      'X',
+      {
+        avgMin: 1000,
+        avgMax: 2000,
+        jobCount: 1,
+      },
+      'USD',
+    );
+    expect(one[0]).toMatchObject({
+      kind: 'average',
+      jobCount: 1,
+      range: formatSalaryStatRange('en', 1000, 2000, 'USD'),
       avgMin: 1000,
       avgMax: 2000,
-      jobCount: 1,
+      currency: 'USD',
     });
-    expect(one[0]!.a).toContain('1 job posting on');
+    // No prose — jobCount stays a number for the app's plural rules.
+    expect(one[0]).not.toHaveProperty('q');
+    expect(one[0]).not.toHaveProperty('a');
 
-    const de = buildSalaryFaq('de', 'X', {
+    const de = buildSalaryFaq(
+      'de',
+      'X',
+      {
+        avgMin: 70000,
+        avgMax: 90000,
+        jobCount: 2,
+      },
+      'EUR',
+    );
+    expect(de[0]).toEqual({
+      kind: 'average',
+      label: 'X',
+      range: formatSalaryStatRange('de', 70000, 90000, 'EUR'),
       avgMin: 70000,
       avgMax: 90000,
+      currency: 'EUR',
       jobCount: 2,
     });
-    // English sentence frame (templated-interim), de-formatted USD figures.
-    expect(de[0]!.a).toContain('The average salary for X is');
-    expect(de[0]!.a).toContain(formatRange('de', 70000, 90000));
 
-    expect(buildSalaryFaq('en', 'X', null)).toEqual([]);
+    expect(buildSalaryFaq('en', 'X', null, 'USD')).toEqual([]);
+  });
+
+  it('still returns average with raw figures when compact range is null', () => {
+    // Empty currency → formatSalaryStatRange null, but numbers are not discarded.
+    const faq = buildSalaryFaq(
+      'en',
+      'X',
+      { avgMin: 70000, avgMax: 90000, jobCount: 3 },
+      '',
+    );
+    expect(faq).toEqual([
+      {
+        kind: 'average',
+        label: 'X',
+        range: null,
+        avgMin: 70000,
+        avgMax: 90000,
+        currency: '',
+        jobCount: 3,
+      },
+      { kind: 'methodology', label: 'X' },
+    ]);
   });
 });
 
@@ -693,7 +784,21 @@ describe('salary JSON-LD builders', () => {
     ]);
   });
 
-  it('titleSalaryJsonLd builds the Occupation with lexicon seniority names (en + de)', () => {
+  const seniorityWords: Record<string, string> = {
+    entry_level: 'Entry level',
+    executive: 'Executive',
+    senior: 'Senior',
+  };
+  // App composes the finished name — including word order.
+  const seniorityName = ({
+    seniority,
+    entity,
+  }: {
+    seniority: string;
+    entity: string;
+  }) => `${seniorityWords[seniority] ?? seniority} ${entity}`;
+
+  it('titleSalaryJsonLd builds Occupation with data names; seniority via callback', () => {
     const detail = {
       categoryName: 'Robotics Engineering',
       currency: 'USD',
@@ -706,13 +811,18 @@ describe('salary JSON-LD builders', () => {
         p75Max: 150000,
         jobCount: 12,
       },
-      bySeniority: [{ ...BY_SENIORITY[0]!, seniority: 'executive' }],
+      bySeniority: [
+        { ...BY_SENIORITY[0]!, seniority: 'executive' },
+        { ...BY_SENIORITY[0]!, seniority: 'entry_level' },
+      ],
     };
-    const en = titleSalaryJsonLd('en', detail as never)!;
-    const dists = en.estimatedSalary as Array<Record<string, unknown>>;
+    const withLabels = titleSalaryJsonLd(detail as never, {
+      seniorityName,
+    })!;
+    const dists = withLabels.estimatedSalary as Array<Record<string, unknown>>;
     expect(dists[0]).toMatchObject({
       '@type': 'MonetaryAmountDistribution',
-      name: 'Robotics Engineering salary (all levels)',
+      name: 'Robotics Engineering',
       minValue: 90000,
       maxValue: 130000,
       percentile25: 80000,
@@ -720,19 +830,32 @@ describe('salary JSON-LD builders', () => {
       unitText: 'YEAR',
       duration: 'P1Y',
     });
+    // Application-composed finished names — SDK does not join or invent order.
     expect(dists[1]!.name).toBe('Executive Robotics Engineering');
+    expect(dists[2]!.name).toBe('Entry level Robotics Engineering');
 
-    const de = titleSalaryJsonLd('de', detail as never)!;
-    expect(
-      (de.estimatedSalary as Array<Record<string, unknown>>)[1]!.name,
-    ).toBe('Führungskraft Robotics Engineering');
+    // French-style postfix composition is the app's choice, not the SDK's.
+    const fr = titleSalaryJsonLd(detail as never, {
+      seniorityName: ({ seniority, entity }) =>
+        `${entity} ${({ executive: 'sénior', entry_level: 'débutant' } as Record<string, string>)[seniority] ?? seniority}`,
+    })!;
+    const frDists = fr.estimatedSalary as Array<Record<string, unknown>>;
+    expect(frDists[1]!.name).toBe('Robotics Engineering sénior');
+    expect(frDists[2]!.name).toBe('Robotics Engineering débutant');
+
+    // Without seniorityName, per-seniority distributions omit `name`.
+    const bare = titleSalaryJsonLd(detail as never)!;
+    const bareDists = bare.estimatedSalary as Array<Record<string, unknown>>;
+    expect(bareDists[0]!.name).toBe('Robotics Engineering');
+    expect(bareDists[1]!.name).toBeUndefined();
+    expect(bareDists[2]!.name).toBeUndefined();
 
     expect(
-      titleSalaryJsonLd('en', { ...detail, overallSalary: null } as never),
+      titleSalaryJsonLd({ ...detail, overallSalary: null } as never),
     ).toBeNull();
   });
 
-  it('skillSalaryJsonLd carries the rounded median; locationSalaryJsonLd gates on city level', () => {
+  it('skillSalaryJsonLd carries the rounded median; locationSalaryJsonLd is an ItemList', () => {
     const skill = skillSalaryJsonLd({
       skillName: 'ROS',
       currency: 'USD',
@@ -749,6 +872,9 @@ describe('salary JSON-LD builders', () => {
     expect(
       (skill.estimatedSalary as Array<Record<string, unknown>>)[0]!.median,
     ).toBe(97501);
+    expect(
+      (skill.estimatedSalary as Array<Record<string, unknown>>)[0]!.name,
+    ).toBe('ROS');
 
     const location = {
       placeName: 'Berlin',
@@ -764,21 +890,97 @@ describe('salary JSON-LD builders', () => {
         p75Max: 130000,
         jobCount: 20,
       },
+      topCategories: [
+        {
+          categorySlug: 'robotics-engineering',
+          categoryName: 'Robotics Engineering',
+          avgSalaryMin: 90000,
+          avgSalaryMax: 130000,
+          jobCount: 8,
+        },
+        {
+          categorySlug: 'mechatronics',
+          categoryName: 'Mechatronics',
+          avgSalaryMin: 80000,
+          avgSalaryMax: 110000,
+          jobCount: 4,
+        },
+      ],
     };
-    const city = locationSalaryJsonLd(location as never)!;
-    expect(city.name).toBe('Average Salary in Berlin');
-    expect(city.occupationLocation).toEqual({
-      '@type': 'City',
-      name: 'Berlin',
-      address: { '@type': 'PostalAddress', addressCountry: 'DE' },
-    });
+    const city = locationSalaryJsonLd(location as never, {
+      occupationUrl: (row) =>
+        `https://jobs.example.com/salaries/titles/${row.categorySlug}`,
+    })!;
+    // Place/employer pages are not occupations — ItemList of real occupations.
+    expect(city['@type']).toBe('ItemList');
+    expect(city.numberOfItems).toBe(2);
+    expect(city.itemListElement).toEqual([
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Robotics Engineering',
+        url: 'https://jobs.example.com/salaries/titles/robotics-engineering',
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Mechatronics',
+        url: 'https://jobs.example.com/salaries/titles/mechatronics',
+      },
+    ]);
+    expect(city.name).toBeUndefined();
+    expect(city.occupationLocation).toBeUndefined();
+    expect(city.estimatedSalary).toBeUndefined();
     expect(
-      locationSalaryJsonLd({ ...location, adminLevel: 'region' } as never),
+      locationSalaryJsonLd(
+        { ...location, adminLevel: 'region' } as never,
+        {
+          occupationUrl: (row) =>
+            `https://jobs.example.com/salaries/titles/${row.categorySlug}`,
+        },
+      ),
+    ).toBeNull();
+    expect(
+      locationSalaryJsonLd(
+        { ...location, topCategories: [] } as never,
+        {
+          occupationUrl: (row) =>
+            `https://jobs.example.com/salaries/titles/${row.categorySlug}`,
+        },
+      ),
     ).toBeNull();
   });
 
-  it('crossAxisSalaryJsonLd names the place-scoped distributions with lexicon seniority labels', () => {
-    const ld = crossAxisSalaryJsonLd('de', {
+  it('crossAxisSalaryJsonLd uses data labels; seniority via callback', () => {
+    const ld = crossAxisSalaryJsonLd(
+      {
+        name: 'Robotics Engineering',
+        placeName: 'Berlin',
+        countryCode: 'DE',
+        currency: 'USD',
+        overall: { avgMin: 90000, avgMax: 130000, p25Min: null, p75Max: null },
+        bySeniority: [
+          {
+            seniority: 'executive',
+            avgSalaryMin: 140000,
+            avgSalaryMax: 180000,
+          },
+        ],
+      },
+      { seniorityName },
+    )!;
+    const dists = ld.estimatedSalary as Array<Record<string, unknown>>;
+    expect(ld.name).toBe('Robotics Engineering');
+    expect(ld.occupationLocation).toEqual({
+      '@type': 'AdministrativeArea',
+      name: 'Berlin',
+      address: { '@type': 'PostalAddress', addressCountry: 'DE' },
+    });
+    expect(dists[0]!.name).toBe('Robotics Engineering');
+    expect(dists[0]!.percentile25).toBeUndefined();
+    expect(dists[1]!.name).toBe('Executive Robotics Engineering');
+
+    const bare = crossAxisSalaryJsonLd({
       name: 'Robotics Engineering',
       placeName: 'Berlin',
       countryCode: 'DE',
@@ -788,45 +990,78 @@ describe('salary JSON-LD builders', () => {
         { seniority: 'executive', avgSalaryMin: 140000, avgSalaryMax: 180000 },
       ],
     })!;
-    const dists = ld.estimatedSalary as Array<Record<string, unknown>>;
-    expect(ld.name).toBe('Robotics Engineering salary in Berlin');
-    expect(dists[0]!.percentile25).toBeUndefined();
-    expect(dists[1]!.name).toBe('Führungskraft Robotics Engineering in Berlin');
+    expect(
+      (bare.estimatedSalary as Array<Record<string, unknown>>)[1]!.name,
+    ).toBeUndefined();
   });
 
-  it('companySalaryJsonLd + companyCategorySalaryJsonLd mirror the hosted employer shapes', () => {
-    const company = companySalaryJsonLd('en', {
-      companyName: 'Acme Robotics',
-      currency: 'USD',
-      boardMedianMin: 90000,
-      boardMedianMax: 110001,
-      boardP25Min: 80000,
-      boardP75Max: 150000,
-      overallSalary: { avgMin: 90000, avgMax: 130000, jobCount: 15 },
-      bySeniority: BY_SENIORITY,
-    } as never)!;
-    expect(company['@type']).toBe('OccupationAggregationByEmployer');
-    expect(company.sampleSize).toBe(15);
-    const base = (
-      company.estimatedSalary as Array<Record<string, unknown>>
-    )[0]!;
-    expect(base.name).toBe('base');
-    expect(base.median).toBe(100001);
+  it('companySalaryJsonLd is an ItemList; companyCategory keeps Occupation', () => {
+    const company = companySalaryJsonLd(
+      {
+        companyName: 'Acme Robotics',
+        companySlug: 'acme-robotics',
+        currency: 'USD',
+        boardMedianMin: 90000,
+        boardMedianMax: 110001,
+        boardP25Min: 80000,
+        boardP75Max: 150000,
+        overallSalary: { avgMin: 90000, avgMax: 130000, jobCount: 15 },
+        bySeniority: BY_SENIORITY,
+        byCategory: [
+          {
+            categorySlug: 'robotics-engineering',
+            categoryName: 'Robotics Engineering',
+            avgSalaryMin: 90000,
+            avgSalaryMax: 130000,
+            jobCount: 6,
+          },
+        ],
+      } as never,
+      {
+        occupationUrl: (row) =>
+          `https://jobs.example.com/companies/acme-robotics/salaries/${row.categorySlug}`,
+      },
+    )!;
+    expect(company['@type']).toBe('ItemList');
+    expect(company.numberOfItems).toBe(1);
+    expect(company.itemListElement).toEqual([
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Robotics Engineering',
+        url: 'https://jobs.example.com/companies/acme-robotics/salaries/robotics-engineering',
+      },
+    ]);
+    expect(company.name).toBeUndefined();
+    expect(company.estimatedSalary).toBeUndefined();
     expect(
-      (company.estimatedSalary as Array<Record<string, unknown>>)[1]!.name,
-    ).toBe('Senior salary');
+      companySalaryJsonLd(
+        { byCategory: [] } as never,
+        {
+          occupationUrl: (row) =>
+            `https://jobs.example.com/companies/acme/salaries/${row.categorySlug}`,
+        },
+      ),
+    ).toBeNull();
 
-    const category = companyCategorySalaryJsonLd('en', {
-      companyName: 'Acme Robotics',
-      categoryName: 'Robotics Engineering',
-      currency: 'USD',
-      boardCategoryP25Min: 80000,
-      boardCategoryP75Max: 150000,
-      overallSalary: { avgMin: 90000, avgMax: 130000, jobCount: 6 },
-      bySeniority: BY_SENIORITY,
-    } as never)!;
-    expect(category.name).toBe('Robotics Engineering at Acme Robotics');
+    const category = companyCategorySalaryJsonLd(
+      {
+        companyName: 'Acme Robotics',
+        categoryName: 'Robotics Engineering',
+        currency: 'USD',
+        boardCategoryP25Min: 80000,
+        boardCategoryP75Max: 150000,
+        overallSalary: { avgMin: 90000, avgMax: 130000, jobCount: 6 },
+        bySeniority: BY_SENIORITY,
+      } as never,
+      { seniorityName },
+    )!;
+    expect(category['@type']).toBe('Occupation');
+    expect(category.name).toBe('Robotics Engineering');
     expect(category.occupationalCategory).toBe('Robotics Engineering');
+    expect(
+      (category.estimatedSalary as Array<Record<string, unknown>>)[0]!.name,
+    ).toBe('Robotics Engineering');
     expect(
       (category.estimatedSalary as Array<Record<string, unknown>>)[1]!.name,
     ).toBe('Senior Robotics Engineering');
@@ -834,16 +1069,16 @@ describe('salary JSON-LD builders', () => {
 });
 
 describe('listingHead', () => {
-  it('builds the counted title, description, OG set, and canonical', () => {
+  it('passes through caller title + description into meta, OG, and canonical', () => {
+    const title = '42 Robotics jobs in Berlin | Acme Jobs';
+    const description =
+      'Browse 42 Robotics jobs in Berlin on Acme Jobs.';
     const head = listingHead({
-      boardName: 'Acme Jobs',
+      title,
       origin: 'https://acme.example.com',
       path: '/jobs/robotics',
-      heading: 'Robotics jobs in Berlin',
-      count: 42,
+      description,
     });
-    const title = '42 Robotics jobs in Berlin | Acme Jobs';
-    const description = 'Browse 42 robotics jobs in berlin on Acme Jobs.';
     expect(head.meta).toEqual([
       { title },
       { name: 'description', content: description },
@@ -863,68 +1098,53 @@ describe('listingHead', () => {
     ]);
   });
 
-  it('omits the count prefix when no count is given (including 0 stays)', () => {
-    expect(
-      listingHead({
-        boardName: 'Acme Jobs',
-        origin: 'https://acme.example.com',
-        path: '/jobs',
-        heading: 'Jobs',
-      }).meta[0],
-    ).toEqual({ title: 'Jobs | Acme Jobs' });
-    expect(
-      listingHead({
-        boardName: 'Acme Jobs',
-        origin: 'https://acme.example.com',
-        path: '/jobs',
-        heading: 'Jobs',
-        count: 0,
-      }).meta[0],
-    ).toEqual({ title: '0 Jobs | Acme Jobs' });
-  });
-
-  it('groups the count for the board language when one is supplied', () => {
+  it('does not invent, case-fold, or rearrange the title or description', () => {
+    // Application-composed titles keep counters/particles/order (ja 件の, …).
+    const title = '1,225件の求人 | 求人ボード';
+    const description = 'İstanbul iş ilanlarını keşfedin.';
     const head = listingHead({
-      boardName: 'Acme Jobs',
-      origin: 'https://acme.example.com',
+      title,
+      origin: 'https://tr.example.com',
       path: '/jobs',
-      heading: 'Jobs',
-      count: 1225,
-      language: 'en',
+      description,
     });
-    expect(head.meta[0]).toEqual({ title: '1,225 Jobs | Acme Jobs' });
+    expect(head.meta[0]).toEqual({ title });
     expect(head.meta[1]).toEqual({
       name: 'description',
-      content: 'Browse 1,225 jobs on Acme Jobs.',
+      content: description,
     });
+    expect(head.meta[2]).toEqual({ property: 'og:title', content: title });
   });
 
-  it('groups per locale, and leaves the digits ungrouped without a language', () => {
-    const base = {
-      boardName: 'Acme Jobs',
+  it('does not require count/heading/boardName — those were English arrangement', () => {
+    const head = listingHead({
+      title: 'Jobs | Acme Jobs',
       origin: 'https://acme.example.com',
       path: '/jobs',
-      heading: 'Jobs',
-      count: 1225,
-    };
-    expect(listingHead({ ...base, language: 'de' }).meta[0]).toEqual({
-      title: '1.225 Jobs | Acme Jobs',
+      description: 'Browse jobs on Acme Jobs.',
     });
-    // No language: the ungrouped hosted-structure default is preserved, so
-    // existing callers keep byte-identical head output.
-    expect(listingHead(base).meta[0]).toEqual({
-      title: '1225 Jobs | Acme Jobs',
-    });
+    expect(head.meta[0]).toEqual({ title: 'Jobs | Acme Jobs' });
+    // Malformed locale tags used to crash unguarded Intl.NumberFormat on count.
+    // With title ownership outside the SDK there is nothing to format.
+    expect(() =>
+      listingHead({
+        title: '1,225 求人 | 求人ボード',
+        origin: 'https://ja.example.com',
+        path: '/jobs',
+        description: '…',
+      }),
+    ).not.toThrow();
   });
 });
 
 describe('listingJsonLd', () => {
-  it('emits the breadcrumb trail and the job ItemList with company-aware URLs', () => {
+  it('emits the breadcrumb trail and the job ItemList via jobDetailPath', () => {
     const objects = listingJsonLd({
       origin: 'https://acme.example.com',
       breadcrumbs: [{ name: 'Home', path: '/' }, { name: 'Jobs' }],
       jobs: [
         { slug: 'robot-wrangler', company: { slug: 'acme-robotics' } },
+        // Company-less jobs have no detail URL (`/jobs/{slug}` is a listing).
         { slug: 'orphan-job', company: null },
       ],
     });
@@ -951,21 +1171,35 @@ describe('listingJsonLd', () => {
             position: 1,
             url: 'https://acme.example.com/companies/acme-robotics/jobs/robot-wrangler',
           },
-          {
-            '@type': 'ListItem',
-            position: 2,
-            url: 'https://acme.example.com/jobs/orphan-job',
-          },
         ],
       },
     ]);
   });
 
-  it('omits the ItemList without jobs', () => {
+  it('omits BreadcrumbList when the trail has fewer than 2 crumbs', () => {
+    expect(
+      listingJsonLd({
+        origin: 'https://x.example.com',
+        breadcrumbs: [],
+      }),
+    ).toEqual([]);
     expect(
       listingJsonLd({
         origin: 'https://x.example.com',
         breadcrumbs: [{ name: 'Home', path: '/' }],
+      }),
+    ).toEqual([]);
+  });
+
+  it('omits the ItemList without company-bearing jobs', () => {
+    expect(
+      listingJsonLd({
+        origin: 'https://x.example.com',
+        breadcrumbs: [
+          { name: 'Home', path: '/' },
+          { name: 'Jobs', path: '/jobs' },
+        ],
+        jobs: [{ slug: 'orphan', company: null }],
       }),
     ).toHaveLength(1);
   });

@@ -5,7 +5,6 @@ import type {
   PublicPlace,
   PublicTaxonomyTerm,
   RemotePermitTaxonomyEntry,
-  SuggestionsListQuery,
   TaxonomyListQuery,
   TaxonomyResolution,
 } from '../types/taxonomy';
@@ -64,14 +63,6 @@ export function taxonomyNamespace(client: BoardClient) {
           '/remote-permits',
           options,
         );
-      },
-    },
-    suggestions: {
-      list(query?: SuggestionsListQuery, options?: FetchOptions) {
-        return client.fetch<ListEnvelope<PublicTaxonomyTerm>>('/suggestions', {
-          ...options,
-          query,
-        });
       },
     },
     places: {

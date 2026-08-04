@@ -174,7 +174,14 @@ async function marketing(board: BoardSdk, origin: string): Promise<string[]> {
     `${origin}${BOARD_PATHS.cookiePolicy}`,
   ];
   if (features.impressum) urls.push(`${origin}${BOARD_PATHS.impressum}`);
-  if (features.talentDirectory) urls.push(`${origin}${BOARD_PATHS.talent}`);
+  // A sitemap advertises pages to crawlers, so only the PUBLIC directory
+  // belongs in it. `employers_only` gates the page behind an approved
+  // employer session: a crawler following the link gets the gate, not the
+  // directory, which is a thin/soft-404 signal on an otherwise indexable
+  // board. (Note `'off'` is a truthy string — this must be an equality test,
+  // not a truthiness one.)
+  if (features.talentDirectory === 'public')
+    urls.push(`${origin}${BOARD_PATHS.talent}`);
   if (features.employers) urls.push(`${origin}${BOARD_PATHS.employers}`);
   return urls;
 }
