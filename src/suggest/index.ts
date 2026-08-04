@@ -76,6 +76,25 @@ function isAbortError(error: unknown): boolean {
 }
 
 /**
+ * Grapheme length for minChars. UTF-16 `.length` blocks single CJK/Hangul/
+ * Thai/Devanagari terms (1 code unit) while allowing emoji (2). Prefer
+ * `Intl.Segmenter`; fall back to code-point count.
+ */
+function queryCharCount(query: string): number {
+  try {
+    let n = 0;
+    for (const _ of new Intl.Segmenter(undefined, {
+      granularity: 'grapheme',
+    }).segment(query)) {
+      n += 1;
+    }
+    return n;
+  } catch {
+    return [...query].length;
+  }
+}
+
+/**
  * Apply the view-level company-slug exclusion to a server-ranked list.
  * Only `type: 'company'` items are filtered; term items pass through.
  * Order is preserved.
@@ -87,7 +106,11 @@ function applyExclusions(
   if (excluded.size === 0) return items.slice();
   return items.filter(
     (item) =>
-      !(item.type === 'company' && excluded.has(item.slug.toLowerCase())),
+      !(
+        item.type === 'company' &&
+        // NFC + toLowerCase — same keying as setExcludedCompanySlugs.
+        excluded.has(item.slug.toLowerCase().normalize('NFC'))
+      ),
   );
 }
 
@@ -194,7 +217,7 @@ export function createSuggestController(
       const trimmed = query.trim();
       cancelTimer();
 
-      if (trimmed.length < minChars) {
+      if (queryCharCount(trimmed) < minChars) {
         sequence += 1;
         abortInFlight();
         rawItems = [];
@@ -233,7 +256,9 @@ export function createSuggestController(
     setExcludedCompanySlugs(slugs: readonly string[]): void {
       if (disposed) return;
       excluded = new Set(
-        slugs.map((s) => s.trim().toLowerCase()).filter(Boolean),
+        slugs
+          .map((s) => s.trim().toLowerCase().normalize('NFC'))
+          .filter(Boolean),
       );
       // Re-filter CURRENT items synchronously — no new request.
       setState({

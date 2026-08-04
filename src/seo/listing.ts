@@ -1,47 +1,49 @@
 /**
  * Framework-neutral `<head>` + structural JSON-LD builders for jobs-listing
- * pages. Locale-neutral pass-through: the caller supplies the
- * heading/board copy (title/description COPY is board-SEO-config +
- * localized — a named exclusion; these builders replicate the hosted
- * STRUCTURE: title with result count, canonical, Open Graph, breadcrumb +
- * job `ItemList`).
+ * pages. Locale-neutral pass-through: the caller supplies every
+ * human-language string (title, meta description). These builders only
+ * assemble the hosted STRUCTURE: meta/link descriptors, canonical, Open
+ * Graph, breadcrumb + job `ItemList`.
+ *
+ * The SDK never decides what goes next to what. A template with two data
+ * holes and a space (or `|`) between them is an English sentence with the
+ * words removed — including `` `${count} ${heading} | ${boardName}` ``.
+ * Pass a fully composed `title` (and `description`), same ownership.
  */
+import { boardUrl, jobDetailPath } from '../paths';
 import type { JsonLdObject } from './job-posting';
 
 export interface ListingHeadOptions {
-  boardName: string;
+  /**
+   * Fully composed document title — application owns counters, particles,
+   * word order, and separators (e.g. `1,225 Jobs | Acme`, `1.225 Jobs | Acme`,
+   * `1,225件の求人 | 求人ボード`). The SDK does not join count/heading/board.
+   */
+  title: string;
   origin: string;
   /** Absolute path of THIS page, for canonical / og:url, e.g. `/jobs/robotik`. */
   path: string;
-  /** Human heading, e.g. `Robotik jobs in Berlin` or `Jobs`. */
-  heading: string;
-  /** Result count — prefixed into the title (`N heading`). */
-  count?: number;
   /**
-   * Board language (BCP-47). When supplied, `count` is grouped for that
-   * locale in the title and description — `1,225 Jobs` / `1.225 Jobs` —
-   * matching how listing bodies render the same number. Omit to keep the
-   * ungrouped digits the hosted structure has always emitted.
+   * Meta description — fully owned by the application. Pass a sentence from
+   * the board's copy source (page config, message catalog, template). The SDK
+   * does not invent or case-fold this string.
    */
-  language?: string;
+  description: string;
 }
 
 /**
- * Meta/link descriptors for a jobs-listing page — title (with result
- * count), meta description, Open Graph, and `<link rel=canonical>`.
- * Framework-neutral: map `meta`/`links` into your head manager.
+ * Meta/link descriptors for a jobs-listing page — caller-supplied title and
+ * meta description, Open Graph, and `<link rel=canonical>`. Framework-neutral:
+ * map `meta`/`links` into your head manager.
+ *
+ * **Why `title` and `description` are both accepted composed:** a function
+ * that takes a finished description but still composes its own title from
+ * count/heading/boardName is incoherent — both are display sentences whose
+ * arrangement is locale-dependent (Japanese counters, RTL order, …).
  */
 export function listingHead(options: ListingHeadOptions) {
-  const countPrefix =
-    typeof options.count === 'number'
-      ? `${
-          options.language
-            ? new Intl.NumberFormat(options.language).format(options.count)
-            : options.count
-        } `
-      : '';
-  const title = `${countPrefix}${options.heading} | ${options.boardName}`;
-  const description = `Browse ${countPrefix}${options.heading.toLowerCase()} on ${options.boardName}.`;
+  const title = options.title;
+  const description = options.description;
   const url = `${options.origin}${options.path}`;
 
   return {
@@ -67,6 +69,12 @@ interface JobLink {
  * page, mirroring the structural JSON-LD the hosted board emits. The rich
  * category set (`Occupation`/`FAQPage`/`MonetaryAmountDistribution`) lives
  * in `./salary` — feed it the salary detail reads.
+ *
+ * Empty / single-crumb trails omit `BreadcrumbList` (same min-2 rule as
+ * `createBreadcrumbJsonLd` — an empty `itemListElement` is invalid structured
+ * data). Job URLs go through `jobDetailPath` — `/jobs/{slug}` is always a
+ * listing route, never a job detail; company-less jobs are dropped from the
+ * ItemList rather than linked to an invalid path.
  */
 export function listingJsonLd(options: {
   origin: string;
@@ -74,36 +82,43 @@ export function listingJsonLd(options: {
   breadcrumbs: Array<{ name: string; path?: string }>;
   jobs?: JobLink[];
 }): JsonLdObject[] {
-  const jobUrl = (job: JobLink) =>
-    job.company
-      ? `${options.origin}/companies/${job.company.slug}/jobs/${job.slug}`
-      : `${options.origin}/jobs/${job.slug}`;
+  const objects: JsonLdObject[] = [];
 
-  const objects: JsonLdObject[] = [
-    {
+  // Min-2: a trail of 0 or 1 crumbs is not a BreadcrumbList.
+  if (options.breadcrumbs.length >= 2) {
+    objects.push({
       '@context': 'https://schema.org',
-      // Deliberately NOT createBreadcrumbJsonLd (breadcrumbs.ts): listing trails
-      // are code-constructed (never user copy), so the hosted listing page skips
-      // the trim/drop-blank/min-2 gate that module transcribes. Same schema.org
-      // fragment, different (intentional) semantics — do not unify blindly.
       '@type': 'BreadcrumbList',
       itemListElement: options.breadcrumbs.map((crumb, index) => ({
         '@type': 'ListItem',
         position: index + 1,
         name: crumb.name,
-        ...(crumb.path ? { item: `${options.origin}${crumb.path}` } : {}),
+        ...(crumb.path
+          ? { item: boardUrl(options.origin, crumb.path) }
+          : {}),
       })),
-    },
-  ];
+    });
+  }
 
-  if (options.jobs && options.jobs.length > 0) {
+  // Only jobs with a company have a canonical detail URL
+  // (`/companies/{company}/jobs/{job}`). Drop the rest — `/jobs/{slug}` is a
+  // listing filter, not a job (see doctor/checks.ts JOB_DETAIL_LINK_RE).
+  const detailJobs = (options.jobs ?? []).filter(
+    (job): job is JobLink & { company: { slug: string } } =>
+      job.company != null && Boolean(job.company.slug),
+  );
+
+  if (detailJobs.length > 0) {
     objects.push({
       '@context': 'https://schema.org',
       '@type': 'ItemList',
-      itemListElement: options.jobs.map((job, index) => ({
+      itemListElement: detailJobs.map((job, index) => ({
         '@type': 'ListItem',
         position: index + 1,
-        url: jobUrl(job),
+        url: boardUrl(
+          options.origin,
+          jobDetailPath(job.company.slug, job.slug),
+        ),
       })),
     });
   }

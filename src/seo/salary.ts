@@ -1,5 +1,3 @@
-import { getSalaryLexicon } from '../format/salary-lexicon';
-
 import type { CompanyCategorySalary, CompanySalary } from '../types/companies';
 import type {
   LocationSalaryDetail,
@@ -11,94 +9,153 @@ import type {
  * `Occupation`/`MonetaryAmountDistribution`/`ItemList`/`FAQPage` structured
  * data the salary surfaces emit.
  *
- * The formatters (`formatUsd`/`formatRange`/`formatSeniority` +
- * `SENIORITY_ORDER`/`sortBySeniority`) transcribe the hosted
- * the hosted board implementation and are tested against
- * it . Note the hosted quirk, kept deliberately: `formatUsd` is
- * **USD-hardcoded** — the board language only drives number formatting.
- * Per  the board language is the REQUIRED leading parameter
- * (hosted spells it as a trailing `language = 'en'` default).
+ * The formatters (`formatSalaryStat`/`formatSalaryStatRange` +
+ * `SENIORITY_ORDER`/`sortBySeniority`) and the structured-data builders
+ * transcribe the hosted salary surfaces and are tested against them
+ * . Currency is a required parameter — the salary detail types
+ * carry `currency` beside the amounts. Per  the board language is
+ * the REQUIRED leading parameter on formatters.
  *
- * JSON-LD carries RAW salary values (locale-independent). The only
- * localized display strings inside it are the seniority labels
- * (`formatSeniority` → the board-language lexicon); the surrounding
- * English name templates ("… salary (all levels)", "Average Salary in …")
- * mirror the hosted pages, which template them in English on every board.
- *
- * The FAQ ships TEMPLATED (English sentences), documented as interim —
- * board-custom FAQ copy is a not currently available and supersedes the
- * template when available.
+ * Rule: the SDK formats with `Intl` and returns structure; it never picks
+ * words. JSON-LD `name` fields are data labels (entity / category names).
+ * Per-seniority distribution names are application-owned via
+ * `seniorityName({ seniority, entity })` — when omitted, the distribution
+ * ships without a `name`. The app composes the finished string so word
+ * order (and spacing) are locale-correct. FAQ helpers return entry kinds +
+ * values; the application composes questions and answers from its catalog.
  */
+import { normalizeLocale } from '../format/locale';
+import type { NumberNotation } from '../format/salary-range';
 import type { JsonLdObject } from './job-posting';
 
-const compactCurrencyCache = new Map<string, Intl.NumberFormat>();
+export type { NumberNotation };
 
-function getCompactCurrencyFormatter(language: string): Intl.NumberFormat {
-  const cached = compactCurrencyCache.get(language);
-  if (cached) return cached;
+const currencyFormatterCache = new Map<string, Intl.NumberFormat | null>();
 
-  const formatter = new Intl.NumberFormat(language, {
-    style: 'currency',
-    currency: 'USD',
-    notation: 'compact',
-    compactDisplay: 'short',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 1,
-  });
-  compactCurrencyCache.set(language, formatter);
+/**
+ * Compact only where it shortens — same magnitude rule as
+ * `formatSalaryRange`. `$90K` vs `$90,000` is register, not locale; the
+ * caller may force either. ICU's en compact form starts at 1000.
+ */
+function notationForMagnitude(
+  ...values: Array<number | null | undefined>
+): NumberNotation {
+  let anyFinite = false;
+  for (const v of values) {
+    if (v == null || !Number.isFinite(v)) continue;
+    anyFinite = true;
+    if (Math.abs(v) >= 1000) return 'compact';
+  }
+  return anyFinite ? 'standard' : 'compact';
+}
+
+function getCurrencyFormatter(
+  language: string,
+  currencyCode: string,
+  notation: NumberNotation,
+): Intl.NumberFormat | null {
+  const key = `${language}:${currencyCode}:${notation}`;
+  const cached = currencyFormatterCache.get(key);
+  if (cached !== undefined) return cached;
+
+  let formatter: Intl.NumberFormat | null;
+  try {
+    const options: Intl.NumberFormatOptions = {
+      style: 'currency',
+      currency: currencyCode,
+      notation,
+    };
+    if (notation === 'compact') {
+      // Digit cap only while compacting — do not apply these fraction
+      // overrides to standard notation (USD 2, KWD/BHD 3, JPY 0 CLDR).
+      options.compactDisplay = 'short';
+      options.minimumFractionDigits = 0;
+      options.maximumFractionDigits = 1;
+    }
+    formatter = new Intl.NumberFormat(language, options);
+  } catch {
+    formatter = null;
+  }
+  currencyFormatterCache.set(key, formatter);
   return formatter;
 }
 
 /**
- * Compact USD amount in the board language (`$90K`, de: `90.000 $`) — the
- * hosted salary-page money formatter. USD-hardcoded (hosted quirk); the
- * locale drives digits, grouping, and symbol placement only.
+ * Salary amount in the board language and the job's currency
+ * (`$90K`, `$90,000.00`, `90.000 €`, …) — the hosted salary-page money
+ * formatter with locale-driven digits/grouping and a real currency code.
+ *
+ * `notation` matches `formatSalaryRange`: omit to pick by magnitude
+ * (`|value| ≥ 1000` → compact; smaller → standard so hourly/day rates keep
+ * CLDR minor units). Pass `'standard'` for full figures (`$90,000`) or
+ * `'compact'` to force short form. Compact vs standard is register (hero
+ * card vs FAQ prose), not locale.
+ *
+ * Empty/missing/`null` currency is not USD — returns `null` (same stance as
+ * `job-posting` omitting `baseSalary`). When `Intl` rejects the locale or
+ * currency, or the value is non-finite (`NaN` / `±Infinity`), returns `null`
+ * rather than English `M`/`k` abbreviations, a bare `$`, or a literal `$NaN`.
  */
-export function formatUsd(locale: string, value: number): string {
-  try {
-    return getCompactCurrencyFormatter(locale).format(value);
-  } catch {
-    // Fallback
-    if (value >= 1_000_000) {
-      const millions = value / 1_000_000;
-      return `$${millions % 1 === 0 ? millions : millions.toFixed(1)}M`;
-    }
-    if (value >= 1_000) {
-      const thousands = value / 1_000;
-      return `$${thousands % 1 === 0 ? thousands : thousands.toFixed(1)}k`;
-    }
-    return `$${value}`;
-  }
-}
-
-/** `formatUsd(min) – formatUsd(max)` with the hosted spaced en dash. */
-export function formatRange(locale: string, min: number, max: number): string {
-  return `${formatUsd(locale, min)} – ${formatUsd(locale, max)}`;
+export function formatSalaryStat(
+  locale: string,
+  value: number,
+  currency: string | null | undefined,
+  notation?: NumberNotation,
+): string | null {
+  if (!Number.isFinite(value)) return null;
+  // Match formatSalaryRange: optional-chain so a runtime null/undefined
+  // (wire types claim string; consumers still pass null) returns null,
+  // never TypeError on `.trim()`.
+  const currencyCode = currency?.trim().toUpperCase() || null;
+  if (!currencyCode) return null;
+  const normalized = normalizeLocale(locale);
+  if (!normalized) return null;
+  const resolved = notation ?? notationForMagnitude(value);
+  const formatter = getCurrencyFormatter(normalized, currencyCode, resolved);
+  if (!formatter) return null;
+  return formatter.format(value);
 }
 
 /**
- * Seniority display label. Precedence (hosted shape): owner override >
- * board-language lexicon (en = the English source labels) > title-case
- * fallback for an unknown key.
+ * Salary range via `Intl.NumberFormat.prototype.formatRange` so the
+ * locale owns separator, repeated currency/magnitude, and bidi marks.
+ * Returns `null` when currency is empty/null, either bound is non-finite, or
+ * `Intl` rejects the inputs.
+ *
+ * `notation` matches `formatSalaryRange` / `formatSalaryStat` (magnitude
+ * default when omitted). Pass `'standard'` for full-figure ranges used in
+ * FAQ prose (`$100,000 – $150,000`); default compact suits hero cards.
+ *
+ * When `min === max` the figure is a fixed salary, not a range: format a
+ * single amount. ICU's `formatRange(X, X)` emits `approximatelySign`
+ * (`~$140K`) because a degenerate range is not silently flattened — correct
+ * for "about X", wrong for a pin where min and max are the same posted
+ * salary.
  */
-export function formatSeniority(
+export function formatSalaryStatRange(
   locale: string,
-  value: string,
-  overrides?: Record<string, string>,
-): string {
-  if (overrides?.[value]) {
-    return overrides[value];
-  }
-  const lexiconLabel = (
-    getSalaryLexicon(locale).seniority as Record<string, string>
-  )[value];
-  if (lexiconLabel) {
-    return lexiconLabel;
-  }
-  // Fallback: title-case the raw value
-  return value
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  min: number,
+  max: number,
+  currency: string | null | undefined,
+  notation?: NumberNotation,
+): string | null {
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return null;
+  const currencyCode = currency?.trim().toUpperCase() || null;
+  if (!currencyCode) return null;
+  const normalized = normalizeLocale(locale);
+  if (!normalized) return null;
+  // notationForMagnitude is order-insensitive (checks abs magnitude only).
+  const resolved = notation ?? notationForMagnitude(min, max);
+  const formatter = getCurrencyFormatter(normalized, currencyCode, resolved);
+  if (!formatter) return null;
+  // Inverted bounds (min > max): swap rather than emit `$120–90K`. ICU
+  // formatRange happily prints descending ranges; transposed feed columns
+  // still carry a real salary. formatSalaryRange does the same.
+  const low = Math.min(min, max);
+  const high = Math.max(min, max);
+  // Fixed salary (min === max): single amount, not ICU's ~approximate form.
+  if (low === high) return formatter.format(low);
+  return formatter.formatRange(low, high);
 }
 
 /** The canonical seniority ladder order the hosted salary pages sort by. */
@@ -134,13 +191,36 @@ const yearly = {
 };
 
 /**
+ * Options shared by salary JSON-LD builders that emit per-seniority
+ * distributions. Applications compose the finished distribution `name` —
+ * the SDK never invents display words or word order.
+ */
+export interface SalaryJsonLdOptions {
+  /**
+   * Composes the finished `MonetaryAmountDistribution.name` for one
+   * seniority row. Receives the wire seniority enum (`entry_level`,
+   * `senior`, …) and the occupation/entity label (category name, title,
+   * …). Return the whole string in board-language order — e.g. French
+   * `"Ingénieur logiciel sénior"`, Japanese without a space, English
+   * `"Senior Software Engineer"`. When omitted, per-seniority
+   * distributions ship without a `name` (valid structured data;
+   * wrong-language / wrong-order names are not).
+   */
+  seniorityName?: (args: {
+    seniority: string;
+    entity: string;
+  }) => string;
+}
+
+/**
  * One `MonetaryAmountDistribution` entry (yearly unit). `stats` carries the
  * caller's EXACT optional-field semantics — some builders truthy-drop their
  * percentiles, the location page includes nullable percentiles
  * unconditionally — hosted-parity quirks that must stay per-builder.
+ * `name` is optional: omit rather than invent an English seniority word.
  */
 function distribution(
-  name: string,
+  name: string | undefined,
   currency: string,
   minValue: number,
   maxValue: number,
@@ -148,7 +228,7 @@ function distribution(
 ): JsonLdObject {
   return {
     '@type': 'MonetaryAmountDistribution',
-    name,
+    ...(name !== undefined ? { name } : {}),
     currency,
     minValue,
     maxValue,
@@ -157,27 +237,36 @@ function distribution(
   };
 }
 
-/** The shared per-seniority distribution mapping (board-language labels). */
+/**
+ * Per-seniority distributions. When `seniorityName` is supplied, the app
+ * composes the finished `name` from wire seniority + entity; when omitted,
+ * each distribution ships without a `name`.
+ */
 function seniorityDistributions(
-  locale: string,
   rows: { seniority: string; avgSalaryMin: number; avgSalaryMax: number }[],
   currency: string,
-  nameFor: (seniorityLabel: string) => string,
+  entity: string,
+  options?: SalaryJsonLdOptions,
 ): JsonLdObject[] {
-  return rows.map((row) =>
-    distribution(
-      nameFor(formatSeniority(locale, row.seniority)),
+  return rows.map((row) => {
+    const name = options?.seniorityName?.({
+      seniority: row.seniority,
+      entity,
+    });
+    return distribution(
+      name,
       currency,
       row.avgSalaryMin,
       row.avgSalaryMax,
-    ),
-  );
+    );
+  });
 }
 
 /**
- * Shared envelope for the salary-page structured-data builders: the
- * null-guard/`@context` skeleton is identical across all six; only the
- * `@type`, name, extra top-level fields, and distributions differ.
+ * Shared envelope for Occupation-shaped salary-page structured data: the
+ * null-guard/`@context` skeleton is identical across the four occupation
+ * builders; only the `@type`, name, extra top-level fields, and
+ * distributions differ.
  */
 function salaryEnvelope(
   type: 'Occupation' | 'OccupationAggregationByEmployer',
@@ -194,31 +283,88 @@ function salaryEnvelope(
   };
 }
 
+/** Finished FAQ copy ready for `faqJsonLd` (application-composed). */
 export interface FaqItem {
   q: string;
   a: string;
 }
 
 /**
- * A templated salary FAQ (interim — see the module doc). The sentences are
- * English; the embedded range is board-language-formatted via `formatRange`
- * (the only part hosted localizes). Empty when there is no overall figure.
+ * Structured salary FAQ entry — kinds + values, never prose.
+ *
+ * - `average`: overall range (Intl compact convenience + raw figures) and
+ *   sample size for the "what is the average?" question. `range` is a
+ *   convenience string; `avgMin` / `avgMax` / `currency` stay so the app can
+ *   reformat (e.g. standard notation for prose FAQ answers).
+ * - `methodology`: label only; the application writes the calculation
+ *   explanation from its catalog.
+ *
+ * Map each entry to `{ q, a }` with board-language plural rules before
+ * calling `faqJsonLd`.
+ */
+export type SalaryFaqEntry =
+  | {
+      kind: 'average';
+      /**
+       * Entity label echoed so FAQ mapping is a pure map over entries —
+       * the app does not re-close over the page's category/skill name.
+       * The SDK never reads it for formatting.
+       */
+      label: string;
+      /**
+       * Convenience compact range from `formatSalaryStatRange`. Prefer
+       * `avgMin`/`avgMax`/`currency` when composing full-figure prose.
+       * `null` when Intl cannot format (raw figures still present).
+       */
+      range: string | null;
+      avgMin: number;
+      avgMax: number;
+      currency: string;
+      jobCount: number;
+    }
+  | {
+      kind: 'methodology';
+      /** Same echo as average — pure map over entries without re-closing. */
+      label: string;
+    };
+
+/**
+ * Salary FAQ *data* for a page that has an overall figure. Returns entry
+ * kinds plus values; the application composes questions and answers.
+ * Empty when there is no overall figure. Carries raw `avgMin` / `avgMax` /
+ * `currency` alongside the compact `range` convenience so FAQ prose can
+ * reformat (standard vs compact is register, not locale). Sentences leave
+ * the SDK.
+ *
+ * `label` is echoed on both entries so the application can map kinds →
+ * `{ q, a }` without re-threading the entity name from the page scope.
  */
 export function buildSalaryFaq(
   locale: string,
   label: string,
   overall: { avgMin: number; avgMax: number; jobCount: number } | null,
-): FaqItem[] {
+  currency: string,
+): SalaryFaqEntry[] {
   if (!overall) return [];
-  const range = formatRange(locale, overall.avgMin, overall.avgMax);
+  const range = formatSalaryStatRange(
+    locale,
+    overall.avgMin,
+    overall.avgMax,
+    currency,
+  );
   return [
     {
-      q: `What is the average salary for ${label}?`,
-      a: `The average salary for ${label} is ${range} per year, based on ${overall.jobCount} job ${overall.jobCount === 1 ? 'posting' : 'postings'} on this board that disclose pay.`,
+      kind: 'average',
+      label,
+      range,
+      avgMin: overall.avgMin,
+      avgMax: overall.avgMax,
+      currency,
+      jobCount: overall.jobCount,
     },
     {
-      q: `How is the salary figure for ${label} calculated?`,
-      a: `These figures are aggregated from current and recent job postings on this board that disclose pay, then averaged across roles. They are estimates, not guarantees of compensation.`,
+      kind: 'methodology',
+      label,
     },
   ];
 }
@@ -241,7 +387,7 @@ export function itemListJsonLd(
   };
 }
 
-/** A `FAQPage` from `buildSalaryFaq` items (or any `{q,a}` list). */
+/** A `FAQPage` from application-composed `{q,a}` items. */
 export function faqJsonLd(faqs: FaqItem[]): JsonLdObject | null {
   if (faqs.length === 0) return null;
   return {
@@ -256,17 +402,19 @@ export function faqJsonLd(faqs: FaqItem[]): JsonLdObject | null {
 }
 
 /**
- * `Occupation` for a job-title salary page. Per-seniority distribution
- * names embed the board-language seniority label (`formatSeniority`).
+ * `Occupation` for a job-title salary page.
+ *
+ * Names are data labels only (category name). Pass `seniorityName` so the
+ * application composes per-seniority distribution names (word order included).
  */
 export function titleSalaryJsonLd(
-  locale: string,
   d: TitleSalaryDetail,
+  options?: SalaryJsonLdOptions,
 ): JsonLdObject | null {
   if (!d.overallSalary) return null;
   return salaryEnvelope('Occupation', d.categoryName, {}, [
     distribution(
-      `${d.categoryName} salary (all levels)`,
+      d.categoryName,
       d.currency,
       d.overallSalary.avgMin,
       d.overallSalary.avgMax,
@@ -276,10 +424,10 @@ export function titleSalaryJsonLd(
       },
     ),
     ...seniorityDistributions(
-      locale,
       d.bySeniority,
       d.currency,
-      (label) => `${label} ${d.categoryName}`,
+      d.categoryName,
+      options,
     ),
   ]);
 }
@@ -289,7 +437,7 @@ export function skillSalaryJsonLd(d: SkillSalaryDetail): JsonLdObject | null {
   if (!d.overallSalary) return null;
   return salaryEnvelope('Occupation', d.skillName, {}, [
     distribution(
-      `${d.skillName} salary (all levels)`,
+      d.skillName,
       d.currency,
       d.overallSalary.avgMin,
       d.overallSalary.avgMax,
@@ -303,49 +451,55 @@ export function skillSalaryJsonLd(d: SkillSalaryDetail): JsonLdObject | null {
 }
 
 /**
- * `Occupation` for a location salary page. City-level pages only (the
- * hosted page gates on city/locality); `null` otherwise.
+ * Options for builders that list occupations present on a non-occupation
+ * page (location overview, company salary overview). Callers supply absolute
+ * URLs for each occupation's own salary page — that page carries the real
+ * Occupation rich result.
+ */
+export interface SalaryOccupationListOptions {
+  /**
+   * Absolute URL for an occupation (title / category) row on this page.
+   * Required so the ItemList links to pages that carry real Occupation
+   * structured data rather than inventing an Occupation for a place or
+   * employer.
+   */
+  occupationUrl: (row: {
+    categorySlug: string;
+    categoryName: string;
+  }) => string;
+}
+
+/**
+ * `ItemList` of occupations (top categories) on a city-level location
+ * salary page. Location and employer overviews are not occupations — they
+ * must not claim `schema.org/Occupation`. City-level pages only (hosted
+ * gate); `null` when not a city/locality or when there are no category rows.
  */
 export function locationSalaryJsonLd(
   d: LocationSalaryDetail,
+  options?: SalaryOccupationListOptions,
 ): JsonLdObject | null {
+  // Options required at runtime for real ItemList URLs; omitted → null
+  // (match siblings that return null rather than throw TypeError).
+  if (!options?.occupationUrl) return null;
   const isCity = d.adminLevel === 'city' || d.adminLevel === 'locality';
-  if (!isCity || !d.overallSalary) return null;
-  return salaryEnvelope(
-    'Occupation',
-    `Average Salary in ${d.placeName}`,
-    {
-      occupationLocation: {
-        '@type': 'City',
-        name: d.placeName,
-        address: { '@type': 'PostalAddress', addressCountry: d.countryCode },
-      },
-    },
-    [
-      distribution(
-        `Average salary in ${d.placeName}`,
-        d.currency,
-        d.overallSalary.avgMin,
-        d.overallSalary.avgMax,
-        {
-          median: Math.round(
-            (d.overallSalary.medianMin + d.overallSalary.medianMax) / 2,
-          ),
-          // Hosted includes these unconditionally, nulls and all.
-          percentile25: d.overallSalary.p25Min,
-          percentile75: d.overallSalary.p75Max,
-        },
-      ),
-    ],
+  if (!isCity) return null;
+  return itemListJsonLd(
+    d.topCategories.map((c) => ({
+      name: c.categoryName,
+      url: options.occupationUrl(c),
+    })),
   );
 }
 
 /**
  * Cross-axis (title×location / skill×location) `Occupation` JSON-LD. Takes
  * primitives to stay decoupled from the two cross-axis detail wire types.
+ *
+ * Occupation name is the axis name (data); place lives in
+ * `occupationLocation`. Pass `seniorityName` for per-seniority names.
  */
 export function crossAxisSalaryJsonLd(
-  locale: string,
   args: {
     name: string;
     placeName: string;
@@ -363,11 +517,12 @@ export function crossAxisSalaryJsonLd(
     }[];
     currency: string;
   },
+  options?: SalaryJsonLdOptions,
 ): JsonLdObject | null {
   if (!args.overall) return null;
   return salaryEnvelope(
     'Occupation',
-    `${args.name} salary in ${args.placeName}`,
+    args.name,
     {
       occupationLocation: {
         '@type': 'AdministrativeArea',
@@ -380,7 +535,7 @@ export function crossAxisSalaryJsonLd(
     },
     [
       distribution(
-        `${args.name} salary in ${args.placeName} (all levels)`,
+        args.name,
         args.currency,
         args.overall.avgMin,
         args.overall.avgMax,
@@ -390,73 +545,57 @@ export function crossAxisSalaryJsonLd(
         },
       ),
       ...seniorityDistributions(
-        locale,
         args.bySeniority,
         args.currency,
-        (label) => `${label} ${args.name} in ${args.placeName}`,
+        args.name,
+        options,
       ),
     ],
   );
 }
 
 /**
- * `OccupationAggregationByEmployer` for a company's salary overview —
- * mirrors the hosted company-salary page's Google-salary structured data
- * (base + per-seniority distributions, the board median/IQR baseline as
- * the aggregate stats).
+ * `ItemList` of occupations (categories) on a company salary overview.
+ * An employer is not an occupation — do not emit
+ * `OccupationAggregationByEmployer` with the company name as `Occupation.name`.
+ * Each list entry links to the category-at-company page that carries the
+ * real Occupation structured data. `null` when `byCategory` is empty.
  */
 export function companySalaryJsonLd(
-  locale: string,
   d: CompanySalary,
+  options?: SalaryOccupationListOptions,
 ): JsonLdObject | null {
-  if (!d.overallSalary) return null;
-  return salaryEnvelope(
-    'OccupationAggregationByEmployer',
-    `Jobs at ${d.companyName}`,
-    {
-      sampleSize: d.overallSalary.jobCount,
-      hiringOrganization: { '@type': 'Organization', name: d.companyName },
-    },
-    [
-      distribution(
-        'base',
-        d.currency,
-        d.overallSalary.avgMin,
-        d.overallSalary.avgMax,
-        {
-          ...(d.boardMedianMin && d.boardMedianMax
-            ? { median: Math.round((d.boardMedianMin + d.boardMedianMax) / 2) }
-            : {}),
-          ...(d.boardP25Min ? { percentile25: d.boardP25Min } : {}),
-          ...(d.boardP75Max ? { percentile75: d.boardP75Max } : {}),
-        },
-      ),
-      ...seniorityDistributions(
-        locale,
-        d.bySeniority,
-        d.currency,
-        (label) => `${label} salary`,
-      ),
-    ],
+  // Options required at runtime for real ItemList URLs; omitted → null
+  // (match siblings that return null rather than throw TypeError).
+  if (!options?.occupationUrl) return null;
+  return itemListJsonLd(
+    d.byCategory.map((c) => ({
+      name: c.categoryName,
+      url: options.occupationUrl(c),
+    })),
   );
 }
 
-/** `Occupation` for one job category at a company (the hosted category page). */
+/**
+ * `Occupation` for one job category at a company (the hosted category page).
+ * Occupation name is the category (data); company lives on
+ * `hiringOrganization`. Pass `seniorityName` for per-seniority names.
+ */
 export function companyCategorySalaryJsonLd(
-  locale: string,
   d: CompanyCategorySalary,
+  options?: SalaryJsonLdOptions,
 ): JsonLdObject | null {
   if (!d.overallSalary) return null;
   return salaryEnvelope(
     'Occupation',
-    `${d.categoryName} at ${d.companyName}`,
+    d.categoryName,
     {
       occupationalCategory: d.categoryName,
       hiringOrganization: { '@type': 'Organization', name: d.companyName },
     },
     [
       distribution(
-        `${d.categoryName} salary (all levels)`,
+        d.categoryName,
         d.currency,
         d.overallSalary.avgMin,
         d.overallSalary.avgMax,
@@ -470,10 +609,10 @@ export function companyCategorySalaryJsonLd(
         },
       ),
       ...seniorityDistributions(
-        locale,
         d.bySeniority,
         d.currency,
-        (label) => `${label} ${d.categoryName}`,
+        d.categoryName,
+        options,
       ),
     ],
   );

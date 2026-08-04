@@ -5,9 +5,9 @@ description: Build server-ranked search suggestions with @cavuno/board. Use for 
 
 # Server-ranked search suggestions
 
-`board.search.suggest` returns one interleaved list of companies and taxonomy terms. Server rank is the contract: render its order unchanged. For UI, the headless controller adds debounce, abort, and stale-result dropping.
+`board.search.suggest` returns one interleaved list of companies, markets, taxonomy terms, blog posts, and tags. Pass `types` to restrict kinds; `limit` applies after that filter. Server rank is the contract: render its order unchanged. For UI, the headless controller adds debounce, abort, and stale-result dropping.
 
-Location autocomplete uses `board.taxonomy.places.list({ q })`; filter option lists use `board.taxonomy.categories.list`, `board.taxonomy.skills.list`, or `board.taxonomy.suggestions.list`; job results use `board.jobs.list` or `board.jobs.search`.
+Location autocomplete uses `board.taxonomy.places.list({ q })`; filter option lists use `board.taxonomy.categories.list` or `board.taxonomy.skills.list`; job results use `board.jobs.list` or `board.jobs.search`. Route a selected suggestion with `suggestionPath` from `@cavuno/board/paths`.
 
 ## Read suggestions
 
@@ -15,6 +15,7 @@ Location autocomplete uses `board.taxonomy.places.list({ q })`; filter option li
 const { items, query } = await board.search.suggest({
   q: 'acme',
   limit: 10,
+  types: ['company', 'skill', 'category'],
 });
 
 for (const item of items) {
@@ -22,6 +23,10 @@ for (const item of items) {
     item.slug;
     item.name;
     item.jobCount;
+  } else if (item.type === 'market') {
+    item.slug;
+    item.name;
+    item.companyCount;
   } else {
     item.termType;
     item.displayName;
@@ -31,7 +36,7 @@ for (const item of items) {
 }
 ```
 
-Queries shorter than two characters return no items. `limit` accepts 1–25 and defaults to 25.
+Queries shorter than two characters return no items. `limit` accepts 1–25 and defaults to 25. `{ types: ['skill'], limit: 10 }` returns up to ten skills.
 
 Term suggestions have `termType: 'category' | 'skill'`; use `canonicalSlug` for links and `sourceSlug` for job filters.
 

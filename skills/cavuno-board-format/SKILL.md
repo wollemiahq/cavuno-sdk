@@ -1,13 +1,16 @@
 ---
 name: cavuno-board-format
-description: Board-language display formatting with @cavuno/board/format. Use for salary ranges, dates, job labels, location labels, card conversion, or salary metadata copy.
+description: Board-language display formatting with @cavuno/board/format. Use for salary ranges, dates, custom-field display, or salary-stat numbers.
 ---
 
 # Display formatting
 
-`@cavuno/board/format` matches the hosted board's display rules. Read the
-board language once and pass it as the required first argument to every
-label-producing helper.
+`@cavuno/board/format` matches the hosted board's display rules for
+**contract and data-shaping** helpers. Chrome words (enum→label, uiCopy,
+salary lexicon) are application-owned and are not exported here.
+
+Read the board language once and pass it as the required first argument to
+every label-producing helper.
 
 Filter controls use `cavuno-board-filters`. Salary values remain in their wire
 currency and retain their server-computed amounts.
@@ -16,87 +19,96 @@ currency and retain their server-computed amounts.
 
 ```ts snippet
 import {
-  fieldLabel,
   formatDate,
   formatPublishedRelativeDate,
   formatSalaryRange,
+  formatSalaryStat,
+  formatSalaryStatRange,
+  resolveCustomFieldDisplay,
 } from '@cavuno/board/format';
 
 const { language } = await board.context();
 
-formatSalaryRange(
+const salary = formatSalaryRange(
   language,
   job.salaryMin,
   job.salaryMax,
   job.salaryTimeframe,
   job.salaryCurrency);
+// salary: { text, timeframe, bound: 'range' | 'from' | 'upTo' } | null
+// Pieces — application composes order (do not paste a join template):
+// text       = Intl amount/range (e.g. "$90–120K", "90.000–120.000 €")
+// timeframe  = the WIRE ENUM ("per_year" … "per_hour") or null —
+// never a word. Map it through your own catalog.
+// bound      = which open-range chrome word to attach, if any
+// When joining text + timeframe (or any mixed-direction operands), isolate
+// each side: U+2066 FSI … U+2069 PDI, or HTML <bdi> / dir="auto".
+// Small rates default to standard by magnitude (|value| < 1000) so
+// cents survive: formatSalaryRange(lang, 22.5, null, 'per_hour', 'USD')
+// → { text: "$22.50", timeframe: "per_hour", bound: "from" }
+// Pass notation 'compact' only when you want forced compact glue.
 formatPublishedRelativeDate(language, job.publishedAt);
 formatDate(language, job.publishedAt);
-fieldLabel(language, job.seniority);
+
+// Salary-page stats (currency required — not USD-hardcoded).
+// notation matches formatSalaryRange: omit for magnitude default
+// (|value| ≥ 1000 → compact; smaller → standard). Pass 'standard' for
+// full figures ($90,000) or 'compact' to force short form.
+formatSalaryStat(language, 90000, detail.currency);
+formatSalaryStatRange(language, 90000, 120000, detail.currency);
+formatSalaryStatRange(language, 90000, 120000, detail.currency, 'standard');
+
+// Custom fields — language first. number → kind: 'number' (raw);
+// multi_select → kind: 'multi_select' with values: string[] (labels).
+// Do not String(n). Do not join multi-select in the SDK — app owns list
+// style (conjunction / short / chips):
+// new Intl.ListFormat(language, { style: 'long', type: 'conjunction' })
+// .format(entry.values)
+const fields = resolveCustomFieldDisplay(
+  language,
+  context.customFields.job,
+  job.customFieldValues);
 ```
 
-`formatPublishedRelativeDate` produces the compact relative value used on job
-cards and the job-detail header, such as `5d ago`. `formatDate` produces the
-UTC-pinned medium date used in blog metadata and detail facts, such as
-`Jun 24, 2026`. This format surface limits relative time to the compact
-job-publication label.
+`formatPublishedRelativeDate` produces the short relative value used on job
+cards and the job-detail header (locale-owned RTF `style: 'short'`). `formatDate`
+and `formatMonthYear` produce UTC-pinned absolute forms for blog metadata
+and detail facts.
 
-Salary timeframe and seniority copy is localized for English and German;
-other locales use English words with locale-correct number formatting.
-Employment and remote labels remain English across board languages because
-the hosted board currently has no translated vocabulary for them.
+The salary timeframe ships as the wire enum on `timeframe` alone —
+not glued to `text` with a space or `/`. Open-range chrome is also
+application-owned via `bound`. Compose amount, unit, and chrome in
+board-language order (prefix, postfix, particles, no-space gluing for ja/zh),
+with bidi isolation when directions may differ.
 
-## Render locations and saved-job cards
+Missing/`null` currency is not treated as USD: helpers return `null`. Pass the
+job's real `salaryCurrency`. Invalid or unsupported locales return `null`
+rather than English or host-default fallbacks; underscore tags like `ja_JP`
+are normalized to BCP-47 and checked with `Intl.NumberFormat.supportedLocalesOf`.
 
-Cards already contain server-computed location labels. Full `PublicJob`
-detail requires the full-job formatter. Convert a full saved job before
-placing it in a card collection.
+## Saved-job cards
+
+`me/saved-jobs` embeds the same slim `job_card` as the jobs list. Map it with
+the same card view-model as listings — do not convert a full job client-side.
 
 ```ts snippet
-import {
-  cardLocationLabel,
-  fullJobToCard,
-  locationLabel,
-} from '@cavuno/board/format';
-
-cardLocationLabel(language, card);
-locationLabel(language, job);
-const savedCard = fullJobToCard(language, job);
+// saved.job is already PublicJobCard
+const card = toJobCardVM(saved.job, { language, /* … */ });
 ```
-
-## Build salary metadata copy
-
-`getSalaryLexicon` exposes hosted salary terminology and sentence frames.
-
-```ts snippet
-import { getSalaryLexicon } from '@cavuno/board/format';
-
-const lexicon = getSalaryLexicon(language);
-lexicon.frames.entitySalariesTitle({
-  entity: 'JavaScript',
-  range: '$70K – $90K',
-});
-lexicon.seniority.senior;
-```
-
-Use the helpers as the formatting boundary: pass the board language, wire
-amounts, wire currency, and server location data in; render the returned text.
-This keeps symbol placement, timeframe copy, number rules, and hosted labels
-aligned. Sort-dropdown copy remains in `cavuno-board-filters`.
 
 ## Completion gate
 
 Finish only after every applicable check passes:
 
 - Every label-producing call receives `board.context().language`; no call site
-  substitutes a hardcoded locale.
-- A German board renders `pro Jahr`, `ab`, and `Führungskraft` where the same
-  path renders `Yearly`, `From`, and `Executive` in English.
-- English salary strings are byte-identical to the hosted board for the same
-  wire job.
-- Cards use `cardLocationLabel`; full jobs use `locationLabel`; saved full jobs
-  are converted with `fullJobToCard` before card rendering.
-- Formatting changes neither salary amounts nor currency.
+  substitutes a hardcoded locale or relies on a silent `en` default.
+- Amount and timeframe stay separate until the application joins them; the SDK
+  does not emit a pre-joined `"$90K / year"`.
+- Open ranges return `bound: 'from' | 'upTo'`; the application adds open-range
+  chrome and composes order itself.
+- Saved jobs arrive as cards; no `fullJobToCard` conversion.
+- Salary-stat formatters receive the detail's `currency` (never invent USD).
+- Formatting changes neither salary amounts nor invents chrome words.
 
 ## Cavuno SDK reference
 

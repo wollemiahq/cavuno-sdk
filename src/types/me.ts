@@ -1,6 +1,6 @@
 // Generated from the v1 OpenAPI spec (`components.schemas`) — see
-// scripts/gen-types.ts. `SavedJob` embeds the generated `PublicJob`. The
-// query type stays hand-written.
+// scripts/gen-types.ts. `SavedJob` embeds the generated `PublicJobCard`.
+// The query type stays hand-written.
 import type { Schemas } from './_spec';
 
 export type SavedJob = Schemas['SavedJob'];
