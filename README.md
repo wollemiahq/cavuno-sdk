@@ -53,8 +53,12 @@ const { name, language, features } = await board.context();
 const page = await board.jobs.list({ limit: 20 });
 const job = await board.jobs.retrieve('senior-chef');
 
-// Federated search-dropdown suggestions (companies + taxonomy terms).
-const { items } = await board.search.suggest({ q: 'acme', limit: 10 });
+// Federated search-dropdown suggestions (companies, markets, taxonomy terms).
+const { items } = await board.search.suggest({
+  q: 'acme',
+  limit: 10,
+  types: ['company', 'skill'],
+});
 // Or the headless controller (debounce / abort / stale-drop built in):
 // import { createSuggestController } from '@cavuno/board/suggest';
 // const suggest = createSuggestController(board);

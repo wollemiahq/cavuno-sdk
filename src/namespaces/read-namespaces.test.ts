@@ -2,11 +2,7 @@ import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 import { createBoardClient } from '../index';
 
-import type {
-  PublicTaxonomyTerm,
-  SuggestionsListQuery,
-  TaxonomyListQuery,
-} from '../index';
+import type { PublicTaxonomyTerm, TaxonomyListQuery } from '../index';
 import type { PublicBoard } from '../types/board';
 import type { PublicJob } from '../types/jobs';
 
@@ -58,7 +54,7 @@ describe('board.context()', () => {
         candidates: true,
         employers: true,
         blog: true,
-        talentDirectory: false,
+        talentDirectory: 'off',
         registrationWall: false,
         passwordProtected: false,
         publicJobSubmission: false,
@@ -67,7 +63,6 @@ describe('board.context()', () => {
         nativeApplications: true,
         messaging: true,
       },
-      talentDirectoryVisibility: 'off',
       analytics: {
         ga4MeasurementId: null,
         gtmId: null,
@@ -75,30 +70,29 @@ describe('board.context()', () => {
         linkedInPartnerId: null,
         cookieConsentRequired: false,
       },
-      // Custom-field definitions pass through untouched so the
-      // consumer can resolve a job's `customFieldValues` keys → labels.
-      customFields: [
-        {
-          key: 'security_clearance',
-          label: 'Security clearance',
-          type: 'single_select',
-          options: [
-            { key: 'ts_sci', label: 'TS/SCI' },
-            { key: 'none', label: 'None' },
-          ],
-          required: false,
-        },
-      ],
-      labels: {},
-      footer: {
-        description: null,
-        contactEmail: null,
+      // Custom-field definitions pass through untouched, keyed by
+      // model, so the consumer can resolve a job's `customFieldValues` via
+      // `customFields.job`.
+      customFields: {
+        job: [
+          {
+            key: 'security_clearance',
+            label: 'Security clearance',
+            type: 'single_select',
+            options: [
+              { key: 'ts_sci', label: 'TS/SCI' },
+              { key: 'none', label: 'None' },
+            ],
+            required: false,
+          },
+        ],
+      },
+      contact: {
+        email: null,
         websiteUrl: null,
         xUrl: null,
         facebookUrl: null,
         linkedinUrl: null,
-        navigationOrder: [],
-        customLinks: [],
       },
     };
     const spy = stubFetch(context);
@@ -119,15 +113,7 @@ describe('board.seo()', () => {
       indexNowKey: 'k',
       googleSiteVerification: 'g',
       canonicalBase: 'https://acme.cavuno.com',
-      icons: {
-        ico: 'https://cdn/a.ico',
-        svg: null,
-        appleTouch: null,
-        icon192: 'https://cdn/192.png',
-        icon512: null,
-        iconMaskable512: null,
-      },
-      manifest: { name: 'Acme Jobs', themeColor: '#1d4ed8' },
+      manifest: { name: 'Acme Jobs' },
     };
     const spy = stubFetch(seo);
     const result = await makeBoard().seo();
@@ -150,22 +136,6 @@ describe('board.redirects.resolve()', () => {
   });
 });
 
-describe('board.legal.retrieve()', () => {
-  it('GETs /legal/:type and passes the legal page through untouched', async () => {
-    const body = {
-      object: 'legal_page' as const,
-      type: 'impressum',
-      title: 'Impressum',
-      content: '<p>Angaben gemäß §5 TMG</p>',
-      contentFormat: 'html' as const,
-      legalEntity: { legalName: 'Acme GmbH', address: 'Berlin' },
-    };
-    const spy = stubFetch(body);
-    const result = await makeBoard().legal.retrieve('impressum');
-    expect(sentUrl(spy)).toBe(`${BASE}/legal/impressum`);
-    expect(result).toEqual(body);
-  });
-});
 
 describe('board.jobs', () => {
   it('list passes flat query params', async () => {
@@ -974,6 +944,25 @@ describe('board.search', () => {
 
     expect(sentUrl(spy, 0)).toBe(`${BASE}/search/suggest?q=acme&limit=10`);
   });
+
+  it('suggest serializes types as repeated query keys', async () => {
+    const spy = stubFetch({
+      object: 'suggest_result',
+      query: 'acme',
+      items: [],
+    });
+    const board = makeBoard();
+
+    await board.search.suggest({
+      q: 'acme',
+      limit: 10,
+      types: ['skill', 'company'],
+    });
+
+    expect(sentUrl(spy, 0)).toBe(
+      `${BASE}/search/suggest?q=acme&limit=10&types=skill&types=company`,
+    );
+  });
 });
 
 describe('board.taxonomy', () => {
@@ -985,10 +974,6 @@ describe('board.taxonomy', () => {
     expectTypeOf<TaxonomyListQuery>().toMatchTypeOf<{
       q?: string;
       cursor?: string;
-      limit?: number;
-    }>();
-    expectTypeOf<SuggestionsListQuery>().toMatchTypeOf<{
-      q?: string;
       limit?: number;
     }>();
   });
@@ -1027,17 +1012,15 @@ describe('board.taxonomy', () => {
     expect(sentUrl(spy, 1)).toBe(`${BASE}/places?q=ber`);
   });
 
-  it('categories.list, skills.list, and suggestions.list pass collection queries unchanged', async () => {
+  it('categories.list and skills.list pass collection queries unchanged', async () => {
     const spy = stubFetch();
     const board = makeBoard();
 
     await board.taxonomy.categories.list({ q: 'eng', limit: 5 });
     await board.taxonomy.skills.list({ cursor: 'next', limit: 10 });
-    await board.taxonomy.suggestions.list({ q: 'type', limit: 3 });
 
     expect(sentUrl(spy, 0)).toBe(`${BASE}/categories?q=eng&limit=5`);
     expect(sentUrl(spy, 1)).toBe(`${BASE}/skills?cursor=next&limit=10`);
-    expect(sentUrl(spy, 2)).toBe(`${BASE}/suggestions?q=type&limit=3`);
   });
 
   it('passes a resolution through unchanged', async () => {

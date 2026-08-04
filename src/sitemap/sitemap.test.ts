@@ -143,7 +143,18 @@ describe('renderSitemapIndex', () => {
 const ORIGIN = 'https://board.example';
 
 interface StubOverrides {
-  features?: Record<string, boolean>;
+  features?: Partial<{
+    jobAlerts: boolean;
+    candidates: boolean;
+    employers: boolean;
+    blog: boolean;
+    talentDirectory: 'off' | 'public' | 'employers_only';
+    registrationWall: boolean;
+    passwordProtected: boolean;
+    publicJobSubmission: boolean;
+    candidatePaywall: boolean;
+    impressum: boolean;
+  }>;
   language?: string;
   jobs?: unknown[];
   companies?: unknown[];
@@ -179,7 +190,7 @@ function stubBoard(overrides: StubOverrides = {}): BoardSdk {
     candidates: false,
     employers: false,
     blog: true,
-    talentDirectory: false,
+    talentDirectory: 'off' as const,
     registrationWall: false,
     passwordProtected: false,
     publicJobSubmission: false,
@@ -269,9 +280,29 @@ describe('marketing bucket', () => {
       `${ORIGIN}/cookie-policy`,
     ]);
 
+    // `employers_only` is deliberately absent from the sitemap: the page is
+    // gated behind an approved employer session, so advertising it to crawlers
+    // points them at the gate rather than the directory.
+    const employersOnly = await buildBucketUrls(
+      stubBoard({
+        features: {
+          impressum: false,
+          talentDirectory: 'employers_only',
+          employers: false,
+        },
+      }),
+      ORIGIN,
+      'marketing',
+    );
+    expect(employersOnly).not.toContain(`${ORIGIN}/talent`);
+
     const gated = await buildBucketUrls(
       stubBoard({
-        features: { impressum: true, talentDirectory: true, employers: true },
+        features: {
+          impressum: true,
+          talentDirectory: 'public',
+          employers: true,
+        },
       }),
       ORIGIN,
       'marketing',

@@ -13,8 +13,8 @@ export type PublicJobCard = Schemas['PublicJobCard'];
 
 /**
  * A job's opaque, display-only custom-field values, keyed by each
- * field's `key`. Resolve labels via the board's `CustomFieldDefinition`s
- * (`board.context().customFields`).
+ * field's `key`. Resolve labels via the board's job `CustomFieldDefinition`s
+ * (`board.context().customFields.job`).
  */
 export type CustomFieldValues = PublicJob['customFieldValues'];
 export type CustomFieldValue = CustomFieldValues[string];

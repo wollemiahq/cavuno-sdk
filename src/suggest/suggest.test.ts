@@ -83,6 +83,19 @@ describe('createSuggestController', () => {
     expect(suggest).not.toHaveBeenCalled();
   });
 
+  it('counts graphemes for minChars so a single CJK character qualifies', async () => {
+    const { board, suggest } = mockBoard(
+      vi.fn(async () => result('日', [term('日', 'skill')])),
+    );
+    const ctrl = createSuggestController(board, { minChars: 1, debounceMs: 0 });
+
+    // One CJK code point is one grapheme — must not be blocked as length 1 UTF-16.
+    ctrl.setQuery('日');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(suggest).toHaveBeenCalledTimes(1);
+    expect(suggest.mock.calls[0]![0]).toEqual({ q: '日' });
+  });
+
   it('debounces: only the last setQuery within debounceMs fires', async () => {
     const { board, suggest } = mockBoard();
     const ctrl = createSuggestController(board, { debounceMs: 250 });

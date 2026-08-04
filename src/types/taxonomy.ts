@@ -21,8 +21,6 @@ export type TaxonomyListQuery = {
   limit?: number;
 };
 
-export type SuggestionsListQuery = Omit<TaxonomyListQuery, 'cursor'>;
-
 /**
  * Query for `taxonomy.places.list()`. Omit it (or `q`) for the full
  * locations directory; pass `q` (≥2 chars) for location autocomplete — the

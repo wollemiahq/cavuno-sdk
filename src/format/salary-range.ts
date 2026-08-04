@@ -1,150 +1,145 @@
-import { getSalaryLexicon } from './salary-lexicon';
-
-import type { SalaryTimeframeValue } from './salary-lexicon';
+/**
+ * Wire enum for `salaryTimeframe`. Defined here (not re-exported from any
+ * private  catalog) so the published `@cavuno/board/format` types
+ * stay self-contained.
+ */
+export type SalaryTimeframeValue =
+  | 'per_year'
+  | 'per_month'
+  | 'per_week'
+  | 'per_day'
+  | 'per_hour';
 
 /**
  * Board-language salary-range formatting, transcribed from the hosted board's
  * `format-salary-range.ts` and tested against it
- * `en` boards keep the legacy manual symbol-before form
- * (byte-identical to hosted); non-`en` boards get locale-correct currency
- * placement via `Intl` `style:'currency'`.
+ *.
+ *
+ * Division of labour:
+ * - `Intl` owns the whole amount rendering: number, currency glyph, placement,
+ *   spacing, and range joining (`formatRange`). `currencyDisplay:'symbol'`
+ *   is deliberate — it is the UNAMBIGUOUS form (CAD → `CA$`, CNY → `CN¥`),
+ *   where `narrowSymbol` collapses USD/CAD/AUD/MXN/SGD/HKD/NZD/CLP all to a
+ *   bare `$`. A board lists many currencies side by side, so ambiguity is
+ *   the failure that matters; ICU falling back to an ISO code (`RUB 90K`) is
+ *   the documented preference in that situation, not a defect. See TC39
+ *   proposal-intl-currency-display-choices for why no third mode exists yet.
+ *   There is NO curated glyph map: a hand-written one drifts, cannot cover
+ *   every locale, and its spacing has to be re-derived per locale.
+ * - The timeframe comes back as the WIRE ENUM (`per_year`), never a word.
+ *   `per_year` renders as "year", "Yearly", "/yr", "per annum", "pro Jahr",
+ *   "年収" — `Intl` produces exactly one of those, so producing it here
+ *   would pick for the application. The SDK also does not join it: that join
+ *   is application-owned. Compose with bidi isolates when operands may
+ *   differ in direction — wrap each foreign-direction operand in
+ *   U+2066 FIRST STRONG ISOLATE … U+2069 POP DIRECTIONAL ISOLATE (or the
+ *   HTML equivalent `dir="auto"` / `<bdi>`). Example:
+ *   `` `${FSI}${amount}${PDI} ${FSI}${label}${PDI}` ``. Never paste a bare
+ *   `` `${amount} ${label}` `` template into RTL chrome without isolation.
+ * - Open-range chrome words ("From" / "Up to") are application-owned:
+ *   this helper returns a `bound` discriminant so apps can name them.
+ * - Missing currency is not USD. Returns `null` rather than an unadorned
+ *   number; `job-posting` already omits `baseSalary` for the same case.
+ * - Invalid / unsupported locales return `null` rather than English
+ *   `M`/`k` / `$` or the host default.
  */
 
-const CURRENCY_SYMBOLS: Record<string, string> = {
-  USD: '$',
-  EUR: '€',
-  GBP: '£',
-  JPY: '¥',
-  CNY: '¥',
-  KRW: '₩',
-  INR: '₹',
-  RUB: '₽',
-  BRL: 'R$',
-  CAD: 'C$',
-  AUD: 'A$',
-  CHF: 'CHF ',
-  SEK: 'kr ',
-  NOK: 'kr ',
-  DKK: 'kr ',
-  PLN: 'zł ',
-  MXN: 'MX$',
-  SGD: 'S$',
-  HKD: 'HK$',
-  NZD: 'NZ$',
-  ZAR: 'R ',
-  THB: '฿',
-  PHP: '₱',
-  IDR: 'Rp ',
-  MYR: 'RM ',
-  VND: '₫',
-  AED: 'AED ',
-  SAR: 'SAR ',
-  ILS: '₪',
-  TRY: '₺',
-  CZK: 'Kč ',
-  HUF: 'Ft ',
-  RON: 'lei ',
-  BGN: 'лв ',
-  HRK: 'kn ',
-  ISK: 'kr ',
-  CLP: 'CLP$',
-  COP: 'COP$',
-  PEN: 'S/',
-  ARS: 'ARS$',
-  TWD: 'NT$',
-  NGN: '₦',
-  EGP: 'E£',
-  PKR: '₨',
-  BDT: '৳',
-  UAH: '₴',
-  KZT: '₸',
-};
+import { normalizeLocale } from './locale';
 
-function getCurrencySymbol(currency: string | null | undefined): string {
-  if (!currency) {
-    return '$';
-  }
-
-  const normalized = currency.trim().toUpperCase();
-
-  return CURRENCY_SYMBOLS[normalized] ?? `${normalized} `;
-}
-
-const compactFormatCache = new Map<string, Intl.NumberFormat>();
-
-function getCompactFormatter(language: string): Intl.NumberFormat {
-  const cached = compactFormatCache.get(language);
-  if (cached) return cached;
-
-  const formatter = new Intl.NumberFormat(language, {
-    notation: 'compact',
-    compactDisplay: 'short',
-    maximumFractionDigits: 1,
-  });
-  compactFormatCache.set(language, formatter);
-  return formatter;
-}
-
-function formatCompactNumber(
-  value: number,
-  language: string | undefined,
-): string {
-  try {
-    return getCompactFormatter(language ?? 'en').format(value);
-  } catch {
-    // Fallback for invalid locale
-    if (value >= 1000000) {
-      const millions = value / 1000000;
-      return millions % 1 === 0 ? `${millions}M` : `${millions.toFixed(1)}M`;
-    }
-    if (value >= 1000) {
-      const thousands = value / 1000;
-      return thousands % 1 === 0 ? `${thousands}k` : `${thousands.toFixed(1)}k`;
-    }
-    return value.toString();
-  }
-}
-
-const compactCurrencyCache = new Map<string, Intl.NumberFormat | null>();
+const currencyCache = new Map<string, Intl.NumberFormat | null>();
 
 /**
- * Locale-correct compact currency for NON-`en` boards: the symbol sits per
- * locale via `Intl` `style:'currency'` (e.g. "80.000 €" — symbol after the
- * number). `en` boards never reach here — they keep the legacy manual
- * symbol-before form, byte-identical. Falls back to the manual symbol-before
- * form on an invalid currency code.
+ * Locale-correct amount with currency. Returns `null` when `Intl`
+ * rejects the locale or currency — never English `M`/`k` and never a bare `$`.
+ *
+ * Fraction digits: under `notation: 'compact'` we cap at one fractional digit
+ * so `$90K` stays readable (compact magnitude is the point). Under
+ * `notation: 'standard'` we leave minor units to the currency's CLDR data
+ * (USD → 2, KWD/BHD → 3, JPY → 0) — never override them globally.
  */
-function formatCompactCurrency(
+function formatAmount(
   value: number,
   language: string,
-  currency: string | null | undefined,
-): string {
-  const currencyCode = (currency ?? 'USD').trim().toUpperCase();
-  const cacheKey = `${language}:${currencyCode}`;
-
-  let formatter = compactCurrencyCache.get(cacheKey);
+  currencyCode: string,
+  currencyDisplay: CurrencyDisplay = 'symbol',
+  notation: NumberNotation = 'compact',
+): string | null {
+  const cacheKey = `${language}:${currencyCode}:${currencyDisplay}:${notation}`;
+  let formatter = currencyCache.get(cacheKey);
 
   if (formatter === undefined) {
     try {
-      formatter = new Intl.NumberFormat(language, {
+      const options: Intl.NumberFormatOptions = {
         style: 'currency',
         currency: currencyCode,
-        notation: 'compact',
-        compactDisplay: 'short',
-        maximumFractionDigits: 1,
-      });
+        currencyDisplay,
+        notation,
+      };
+      if (notation === 'compact') {
+        // Digit cap only while compacting — not a global minor-unit override.
+        options.compactDisplay = 'short';
+        options.maximumFractionDigits = 1;
+        options.minimumFractionDigits = 0;
+      }
+      formatter = new Intl.NumberFormat(language, options);
     } catch {
       formatter = null;
     }
-    compactCurrencyCache.set(cacheKey, formatter);
+    currencyCache.set(cacheKey, formatter);
   }
 
-  if (!formatter) {
-    return `${getCurrencySymbol(currency)}${formatCompactNumber(value, language)}`;
-  }
-
-  return formatter.format(value);
+  return formatter ? formatter.format(value) : null;
 }
+
+/**
+ * Range of two amounts via `Intl.NumberFormat.prototype.formatRange` so the
+ * locale owns separator, whether the currency/magnitude is repeated, and
+ * bidi marks (ja `～`, de tight en-dash, ar RTL-safe join).
+ * Returns `null` when `Intl` rejects the inputs.
+ */
+function formatRange(
+  min: number,
+  max: number,
+  language: string,
+  currencyCode: string,
+  currencyDisplay: CurrencyDisplay = 'symbol',
+  notation: NumberNotation = 'compact',
+): string | null {
+  const cacheKey = `${language}:${currencyCode}:${currencyDisplay}:${notation}:range`;
+  let formatter = currencyCache.get(cacheKey);
+
+  if (formatter === undefined) {
+    try {
+      const options: Intl.NumberFormatOptions = {
+        style: 'currency',
+        currency: currencyCode,
+        currencyDisplay,
+        notation,
+      };
+      if (notation === 'compact') {
+        // Digit cap only while compacting — see formatAmount.
+        options.compactDisplay = 'short';
+        options.maximumFractionDigits = 1;
+        options.minimumFractionDigits = 0;
+      }
+      formatter = new Intl.NumberFormat(language, options);
+    } catch {
+      formatter = null;
+    }
+    currencyCache.set(cacheKey, formatter);
+  }
+
+  if (!formatter) return null;
+  return formatter.formatRange(min, max);
+}
+
+const SALARY_TIMEFRAMES: ReadonlySet<SalaryTimeframeValue> = new Set([
+  'per_year',
+  'per_month',
+  'per_week',
+  'per_day',
+  'per_hour',
+]);
 
 export type SalaryTimeframeInput =
   | SalaryTimeframeValue
@@ -152,108 +147,206 @@ export type SalaryTimeframeInput =
   | null
   | undefined;
 
-function appendTimeframe(
-  value: string | null,
-  timeframeLabel: string | null,
-): string | null {
-  if (!value) {
-    return null;
-  }
+/**
+ * Which ICU currency form to render.
+ *
+ * `'symbol'` (default) is the UNAMBIGUOUS form — `CA$`, `A$`, `CN¥` — and is
+ * the right default for a board listing several currencies side by side.
+ * `'narrowSymbol'` is the short form (`$`, `¥`); on a single-currency board
+ * there is nothing to confuse it with, and it reads cleaner. A caller-supplied
+ * presentation preference, passed straight to `Intl` — not a word.
+ */
+export type CurrencyDisplay = 'symbol' | 'narrowSymbol';
 
-  if (!timeframeLabel) {
-    return value;
-  }
+/**
+ * Number notation preference, passed straight to `Intl.NumberFormat`.
+ *
+ * When omitted, magnitude picks: `'compact'` only where ICU actually
+ * shortens (absolute value ≥ 1000 → `$90K`); smaller values stay
+ * `'standard'` so hourly/day rates keep CLDR minor units (`$22.50`,
+ * `KWD 22.567`). Compact on a two-figure rate is meaningless and drops
+ * cents. Caller override always wins.
+ */
+export type NumberNotation = 'compact' | 'standard';
 
-  return `${value} ${timeframeLabel}`;
+/**
+ * Compact only where it shortens. ICU's en compact form starts at 1000
+ * (`$1K`); below that compact and standard differ mainly in fraction
+ * digits (and compact loses cents). Magnitude is a property of the
+ * number — not timeframe presentation — so this stays on the right side
+ * of .
+ *
+ * Notation is chosen once for the whole call (`formatRange` needs a
+ * single `NumberFormat`). If *any* finite operand is ≥ 1000, the range
+ * is compact — so a mixed-magnitude pair like `900` / `1200` renders
+ * `¥900 – ¥1.2K`, not mixed standard+compact formatters. Prefer that
+ * shared compact form over abandoning locale range joining.
+ */
+function notationForMagnitude(
+  ...values: Array<number | null | undefined>
+): NumberNotation {
+  let anyFinite = false;
+  for (const v of values) {
+    if (v == null || !Number.isFinite(v)) continue;
+    anyFinite = true;
+    if (Math.abs(v) >= 1000) return 'compact';
+  }
+  // No finite values → compact is a harmless default (callers already
+  // null-out empty ranges before formatting).
+  return anyFinite ? 'standard' : 'compact';
 }
 
-/** Owner-customized timeframe words (board settings) — from the board's SEO/labels config. */
-export interface SalaryTimeframeOverrides {
-  yearlyLabel?: string;
-  monthlyLabel?: string;
-  weeklyLabel?: string;
-  dailyLabel?: string;
-  hourlyLabel?: string;
-}
+/**
+ * Formatted salary amount + which open/closed bound it represents.
+ * Applications own:
+ * - chrome words for `from` / `upTo` (e.g. "From", "ab")
+ * - joining `text` with `timeframe` (order, spacing, `/`, particles)
+ * - bidi isolation around each operand when directions may differ
+ *   (U+2066/U+2069 FSI/PDI, or HTML `<bdi>` / `dir="auto"`)
+ */
+export type FormattedSalaryRange = {
+  /** Intl-formatted amount (or range). No timeframe attached. */
+  text: string;
+  /**
+   * The wire timeframe enum, passed straight back — NOT a word.
+   *
+   * Every rendering of it is presentation: "year", "Yearly", "/yr",
+   * "per annum", "pro Jahr", "年収". `Intl` can produce exactly one of
+   * those forms, so producing it here would pick for the application.
+   * The app maps the enum through its own catalog, the same way it maps
+   * `bound` and breadcrumb `kind`.
+   *
+   * `null` when the wire value is absent or not a known timeframe.
+   */
+  timeframe: SalaryTimeframeValue | null;
+  bound: 'range' | 'from' | 'upTo';
+};
 
 /**
  * Format a per-job salary range in the BOARD language
  * (`board.context().language` — required, never defaulted; see ).
- * The fixed words (timeframe, "From"/"Up to") come from
- * `getSalaryLexicon(language)` with precedence owner-override > lexicon >
- * English source. Currency placement is gated: `en` keeps the legacy manual
- * symbol-before form (byte-identical to the hosted board); non-`en` uses
- * `Intl` `style:'currency'` so the symbol sits per locale.
+ *
+ * Returns `{ text, timeframe, bound }` so applications can:
+ * - attach open-range chrome in their own locale (`bound`)
+ * - compose amount + timeframe order themselves (prefix vs postfix, with or
+ *   without `/`, with or without a space — ja/zh often glue with no space)
+ * - isolate bidi when composing (see module JSDoc)
+ *
+ * Returns `null` when both bounds are null, currency is missing/empty, the
+ * locale is invalid/unsupported, or `Intl` rejects the currency format.
  *
  * @example
  * formatSalaryRange('en', 90000, 120000, 'per_year', 'USD');
- * // "$90K – $120K Yearly"
- * formatSalaryRange('de', 90000, null, 'per_year', 'EUR');
- * // "ab 90.000 € pro Jahr"
+ * // { text: "$90–120K", timeframe: "per_year", bound: "range" }
+ * formatSalaryRange('en', 90000, null, 'per_year', 'USD');
+ * // { text: "$90K", timeframe: "per_year", bound: "from" }
+ * formatSalaryRange('de', 90000, 120000, 'per_year', 'EUR');
+ * // { text: "90.000–120.000 €", timeframe: "per_year", bound: "range" }
+ * formatSalaryRange('de', 90000, 120000, 'per_year', null);
+ * // null  // no currency → no salary
+ * formatSalaryRange('en', 22.5, null, 'per_hour', 'USD');
+ * // { text: "$22.50", timeframe: "per_hour", bound: "from" }  // magnitude → standard
  */
 export function formatSalaryRange(
-  language: string | undefined,
+  language: string,
   min: number | null,
   max: number | null,
   timeframe: SalaryTimeframeInput,
   currency: string | null = null,
-  timeframeOverrides?: SalaryTimeframeOverrides,
-): string | null {
+  currencyDisplay: CurrencyDisplay = 'symbol',
+  notation?: NumberNotation,
+): FormattedSalaryRange | null {
+  // Non-finite numbers (NaN, ±Infinity) are `number` at the type level and
+  // slip past `== null`. Route them to null like every other invalid input
+  // this release — reachable from `Number(row.salary_min)`.
+  const minOk = min == null || Number.isFinite(min);
+  const maxOk = max == null || Number.isFinite(max);
+  if (!minOk || !maxOk) {
+    return null;
+  }
   if (min == null && max == null) {
     return null;
   }
 
-  const locale = language ?? 'en';
-  const lexicon = getSalaryLexicon(locale);
+  // No currency means no salary. An unadorned "90.000 – 120.000" tells a job
+  // seeker nothing and reads as whatever currency they assume, so it is worse
+  // than omitting the figure. `createBaseSalary` (seo/job-posting.ts:178)
+  // already made this call for the JSON-LD; returning a string here made the
+  // same job assert a salary on the card while omitting `baseSalary` from its
+  // structured data.
+  const currencyCode = currency?.trim().toUpperCase() || null;
+  if (!currencyCode) {
+    return null;
+  }
 
-  // Timeframe label precedence: owner-CUSTOMIZED override > lexicon[locale] >
-  // none (unknown timeframe → null). An override equal to the English SOURCE
-  // word is the unchanged board-settings default — NOT a real customization —
-  // so it falls through to the board-language lexicon. On an en board this is
-  // a no-op (lexicon en == the dropped default), so en stays byte-identical.
-  const overrideMap: Record<string, string | undefined> = {
-    per_year: timeframeOverrides?.yearlyLabel,
-    per_month: timeframeOverrides?.monthlyLabel,
-    per_week: timeframeOverrides?.weeklyLabel,
-    per_day: timeframeOverrides?.dailyLabel,
-    per_hour: timeframeOverrides?.hourlyLabel,
-  };
-  const rawOverride = timeframe ? overrideMap[timeframe] : undefined;
-  const enSourceWord = timeframe
-    ? (getSalaryLexicon('en').timeframe as Record<string, string>)[timeframe]
-    : undefined;
-  const lexiconTimeframe = timeframe
-    ? ((lexicon.timeframe as Record<string, string>)[timeframe] ?? null)
-    : null;
+  const locale = normalizeLocale(language);
+  if (!locale) {
+    return null;
+  }
+
+  const resolvedNotation =
+    notation ?? notationForMagnitude(min, max);
+
+  // `.has` on a Set — not `in` on an object — so prototype keys
+  // ('__proto__', 'toString') cannot pass the guard.
   const timeframeLabel =
-    rawOverride && rawOverride !== enSourceWord
-      ? rawOverride
-      : lexiconTimeframe;
-
-  // `en` keeps the manual symbol-before form (byte-identical); non-`en`
-  // formats the amount with locale-correct currency placement.
-  const formatAmount =
-    locale === 'en'
-      ? (value: number) =>
-          `${getCurrencySymbol(currency)}${formatCompactNumber(value, locale)}`
-      : (value: number) => formatCompactCurrency(value, locale, currency);
+    typeof timeframe === 'string' &&
+    (SALARY_TIMEFRAMES as ReadonlySet<string>).has(timeframe)
+      ? (timeframe as SalaryTimeframeValue)
+      : null;
 
   if (min != null && max != null) {
-    return appendTimeframe(
-      `${formatAmount(min)} – ${formatAmount(max)}`,
-      timeframeLabel,
-    );
+    // Fixed salary (min === max): single amount. ICU formatRange(X, X)
+    // emits approximatelySign (`~$140K`) for a degenerate range — wrong
+    // when both ends of a posted salary are the same number.
+    //
+    // Inverted bounds (min > max): swap rather than null. ICU formatRange
+    // happily emits `$120–90K`, which reads backwards. Transposed columns
+    // in a board feed still carry a real salary — showing a usable ordered
+    // range is better for job seekers than dropping the figure. Callers
+    // that need strict validation should compare min/max before calling.
+    const low = min <= max ? min : max;
+    const high = min <= max ? max : min;
+    const text =
+      low === high
+        ? formatAmount(
+            low,
+            locale,
+            currencyCode,
+            currencyDisplay,
+            resolvedNotation,
+          )
+        : formatRange(
+            low,
+            high,
+            locale,
+            currencyCode,
+            currencyDisplay,
+            resolvedNotation,
+          );
+    return text ? { text, timeframe: timeframeLabel, bound: 'range' } : null;
   }
 
+  // Open ranges: amount only. Open-range chrome words, timeframe placement,
+  // and their position relative to the amount are application-owned.
+  // The `bound` discriminant names which chrome word to attach.
   if (min != null) {
-    return appendTimeframe(
-      `${lexicon.rangePrefix.from} ${formatAmount(min)}`,
-      timeframeLabel,
+    const text = formatAmount(
+      min,
+      locale,
+      currencyCode,
+      currencyDisplay,
+      resolvedNotation,
     );
+    return text ? { text, timeframe: timeframeLabel, bound: 'from' } : null;
   }
 
-  return appendTimeframe(
-    `${lexicon.rangePrefix.upTo} ${formatAmount(max as number)}`,
-    timeframeLabel,
+  const text = formatAmount(
+    max as number,
+    locale,
+    currencyCode,
+    currencyDisplay,
+    resolvedNotation,
   );
+  return text ? { text, timeframe: timeframeLabel, bound: 'upTo' } : null;
 }

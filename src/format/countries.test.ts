@@ -30,4 +30,12 @@ describe('countryOptions', () => {
   it('degrades to bare codes instead of throwing on an unresolvable language', () => {
     expect(countryOptions('not a locale')).toHaveLength(COUNTRY_CODES.length);
   });
+
+  it('unsupported well-formed tags use codes, not host-default English names', () => {
+    const options = countryOptions('xx');
+    expect(options).toHaveLength(COUNTRY_CODES.length);
+    // Every name is the ISO code — no English "Germany" from the host locale.
+    expect(options.every((o) => o.name === o.code)).toBe(true);
+    expect(options.find((o) => o.code === 'DE')?.name).toBe('DE');
+  });
 });

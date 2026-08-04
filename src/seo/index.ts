@@ -10,17 +10,17 @@
  *
  * Transcribed from the hosted board's builders and tested against
  * them  — the two implementations cannot drift silently.
- * JSON-LD structure is locale-neutral per schema.org; only helpers that
- * produce display strings (the salary formatters/FAQ and the seniority
- * labels embedded in salary distribution names) take the board language,
- * as a REQUIRED leading parameter (`board.context().language` — no `en`
- * default).
+ * Rule: the SDK formats with `Intl` and returns structure; it never picks
+ * words. Callers supply title/description copy for `listingHead`, map
+ * `buildSalaryFaq` entry kinds to localized FAQ prose, compose per-seniority
+ * distribution names via `seniorityName({ seniority, entity })`, and own
+ * any chrome around JSON-LD data labels.
  */
 
 export { createAuthorProfileJsonLd, createBlogArticleJsonLd } from './blog';
 export type { ArticleJsonLdPost } from './blog';
 export { buildJobBreadcrumbs, createBreadcrumbJsonLd } from './breadcrumbs';
-export type { BreadcrumbItemInput } from './breadcrumbs';
+export type { BreadcrumbItemInput, JobBreadcrumb } from './breadcrumbs';
 export {
   ALL_COUNTRY_CODES,
   createJobPostingJsonLd,
@@ -35,9 +35,8 @@ export {
   companySalaryJsonLd,
   crossAxisSalaryJsonLd,
   faqJsonLd,
-  formatRange,
-  formatSeniority,
-  formatUsd,
+  formatSalaryStat,
+  formatSalaryStatRange,
   itemListJsonLd,
   locationSalaryJsonLd,
   SENIORITY_ORDER,
@@ -45,4 +44,10 @@ export {
   sortBySeniority,
   titleSalaryJsonLd,
 } from './salary';
-export type { FaqItem } from './salary';
+export type {
+  FaqItem,
+  NumberNotation,
+  SalaryFaqEntry,
+  SalaryJsonLdOptions,
+  SalaryOccupationListOptions,
+} from './salary';

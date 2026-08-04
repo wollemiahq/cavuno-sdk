@@ -9,9 +9,12 @@
  * `options.origin` for relative ones. JSON-LD structure is locale-neutral:
  * the labels are caller copy passed through.
  */
-import { uiCopy } from '../format/ui-copy';
-
-import type { BoardLabelOverrides } from '../format/ui-copy';
+import {
+  BOARD_PATHS,
+  jobsCategoryPath,
+  jobsLocationCategoryPath,
+  jobsLocationPath,
+} from '../paths';
 import type { PublicJob } from '../types/jobs';
 import type { JsonLdObject } from './job-posting';
 
@@ -95,6 +98,15 @@ function isAbsoluteUrl(href: string) {
 }
 
 /**
+ * A single crumb in the job-detail trail. Chrome crumbs (`home`, `jobs`) are
+ * kinds — the application supplies display names. Record-derived crumbs keep
+ * `name` because that name is data off the job (place, category, title).
+ */
+export type JobBreadcrumb =
+  | { kind: 'home' | 'jobs'; path: string }
+  | { kind: 'place' | 'category' | 'job'; name: string; path?: string };
+
+/**
  * Home › Jobs › [country › region › city] › primaryCategory › Title.
  * The place crumbs link into the listing routes (`/jobs/locations/:slug`);
  * the category crumb nests under the most-specific place when present
@@ -102,37 +114,38 @@ function isAbsoluteUrl(href: string) {
  * crumb (the job title) carries no `path` — the current page. Mirrors
  * page.tsx:336-367.
  *
- * The Home/Jobs crumb names resolve from the copy catalog per board
- * language ⊕ operator overrides; omitting `language` keeps the
- * English source, so existing call sites render unchanged.
+ * Returns structural kinds for chrome crumbs and data names for record
+ * crumbs. The application maps `kind` → display labels.
  */
-export function buildJobBreadcrumbs(
-  job: PublicJob,
-  language?: string,
-  labels?: BoardLabelOverrides,
-): Array<{ name: string; path?: string }> {
-  const copy = uiCopy(language, labels).breadcrumbs;
-  const crumbs: Array<{ name: string; path?: string }> = [
-    { name: copy.home, path: '/' },
-    { name: copy.jobs, path: '/jobs' },
+export function buildJobBreadcrumbs(job: PublicJob): JobBreadcrumb[] {
+  // Paths from `src/paths` — the package's single source of truth
+  // (hand-built strings here would drift from the sitemap / doctor).
+  const crumbs: JobBreadcrumb[] = [
+    { kind: 'home', path: BOARD_PATHS.home },
+    { kind: 'jobs', path: BOARD_PATHS.jobs },
   ];
 
   let lastPlaceSlug: string | null = null;
   for (const place of job.placeHierarchy) {
     lastPlaceSlug = place.slug;
-    crumbs.push({ name: place.name, path: `/jobs/locations/${place.slug}` });
+    crumbs.push({
+      kind: 'place',
+      name: place.name,
+      path: jobsLocationPath(place.slug),
+    });
   }
 
   const primaryCategory = job.categories[0];
   if (primaryCategory) {
     crumbs.push({
+      kind: 'category',
       name: primaryCategory.name,
       path: lastPlaceSlug
-        ? `/jobs/locations/${lastPlaceSlug}/${primaryCategory.slug}`
-        : `/jobs/${primaryCategory.slug}`,
+        ? jobsLocationCategoryPath(lastPlaceSlug, primaryCategory.slug)
+        : jobsCategoryPath(primaryCategory.slug),
     });
   }
 
-  crumbs.push({ name: job.title });
+  crumbs.push({ kind: 'job', name: job.title });
   return crumbs;
 }

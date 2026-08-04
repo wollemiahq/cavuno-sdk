@@ -1107,26 +1107,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/boards/{identifier}/legal/{type}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Retrieve a board legal/about page
-         * @description The board's owner-authored legal/about prose as portable HTML (privacy/terms/cookie/about) plus the impressum's structured legal-entity facts. The starter renders its own layout + JSON-LD. `impressum` returns 404 `board_page_not_found` when the board has not enabled it.
-         */
-        get: operations["getBoardLegal"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/boards/{identifier}/me": {
         parameters: {
             query?: never;
@@ -2442,7 +2422,7 @@ export interface paths {
         };
         /**
          * List saved jobs
-         * @description Cursor-paginated list of the authenticated board user’s saved jobs, most recently saved first. Each row embeds the same `public_job` object the jobs list returns. Rows whose job was deleted are omitted, so a page can transiently hold fewer than `limit` items while a deletion cascade completes. Never cached.
+         * @description Cursor-paginated list of the authenticated board user’s saved jobs, most recently saved first. Each row embeds the same slim `job_card` the jobs list/search endpoints return — fetch the job detail by slug when the full body is needed. Rows whose job was deleted are omitted, so a page can transiently hold fewer than `limit` items while a deletion cascade completes. Never cached.
          */
         get: operations["listBoardMeSavedJobs"];
         put?: never;
@@ -2925,8 +2905,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Suggest companies and taxonomy terms for a public board's search
-         * @description Returns ONE interleaved, server-ordered list of company and taxonomy-term suggestions for a keyword, matching the hosted search dropdown by construction. Queries under two characters return an empty `items` array. Order is server-ranked; clients must not re-sort.
+         * Suggest companies, markets, taxonomy terms, blog posts, and tags for a public board's search
+         * @description Returns ONE interleaved, server-ordered list of company, market, taxonomy-term, blog-post, and tag suggestions for a keyword. Pass `types` to restrict the kinds returned; `limit` applies after that filter so `{ types: ["skill"], limit: 10 }` yields up to ten skills. Queries under two characters return an empty `items` array. Order is server-ranked; clients must not re-sort. Routing is application-side (`@cavuno/board/paths`).
          */
         get: operations["listBoardSearchSuggest"];
         put?: never;
@@ -2946,7 +2926,7 @@ export interface paths {
         };
         /**
          * Retrieve public board SEO infra
-         * @description The four public SEO values a headless frontend rebuilds `robots.txt` / `ads.txt` / `indexnow-key.txt` (+ the Google site-verification `<meta>` tag) from, byte-identically to the hosted board. Strict allowlist over the board settings: all three SEO values are already served publicly by the hosted board.
+         * @description Platform SEO infrastructure a headless frontend rebuilds `robots.txt` / `ads.txt` / `indexnow-key.txt` (+ the Google site-verification `<meta>` tag) from, byte-identically to the hosted board: `canonicalBase`, `adsTxt`, `indexNowKey`, `googleSiteVerification`, and `manifest.name`. Icon URLs and `themeColor` are not included — applications ship their own brand assets and tokens. Strict allowlist over the board settings.
          */
         get: operations["listBoardSeo"];
         put?: never;
@@ -2989,26 +2969,6 @@ export interface paths {
          * @description Resolves a (board-language or English) taxonomy slug to its canonical slug, source slug, display name, and a `redirectTo` the frontend emits as a 308 when the inbound slug is not canonical. Place resolutions also carry `geo`.
          */
         get: operations["getBoardSkill"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/boards/{identifier}/suggestions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List a public board's keyword suggestions
-         * @description Returns localized category and skill suggestions backed by published jobs on this board. Queries under two characters return an empty list.
-         */
-        get: operations["listBoardSuggestions"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3306,19 +3266,9 @@ export interface components {
              * @description The board's canonical base URL (honours a configured custom domain). Build `robots.txt`'s `Sitemap:` line (`${canonicalBase}/sitemap.xml`) and canonical links from it.
              */
             canonicalBase: string;
-            /** @description Absolute URLs for the board's configured favicons / app icons (null when unset). The variant key implies the role + size; build `<link rel="icon">` tags + the web-manifest icon list from these. */
-            icons: {
-                ico: string | null;
-                svg: string | null;
-                appleTouch: string | null;
-                icon192: string | null;
-                icon512: string | null;
-                iconMaskable512: string | null;
-            };
-            /** @description Web-manifest metadata; assemble `site.webmanifest` from this + `icons`. */
+            /** @description Web-manifest name only. Theme color and icons left the surface in 4.0.0: applications own brand assets and presentation tokens. */
             manifest: {
                 name: string;
-                themeColor: string;
             };
         };
         BoardUser: {
@@ -4400,23 +4350,6 @@ export interface components {
             /** Format: email */
             email: string;
         };
-        LegalPage: {
-            /** @enum {string} */
-            object: "legal_page";
-            /** @description The resolved legal page type. */
-            type: string;
-            /** @description Page heading (H1), with `{{board_name}}` resolved. */
-            title: string;
-            /** @description Owner-authored prose as portable HTML. Empty string when the page has no text body. */
-            content: string;
-            /** @enum {string} */
-            contentFormat: "html";
-            /** @description Structured impressum legal-entity facts; `null` for non-impressum pages. */
-            legalEntity: {
-                legalName: string | null;
-                address: string | null;
-            } | null;
-        };
         LocationSalaryDetail: {
             /** @enum {string} */
             object: "location_salary_detail";
@@ -4526,6 +4459,23 @@ export interface components {
                 jobCount: number;
             }[];
         };
+        MarketSuggestion: {
+            /** @enum {string} */
+            object: "suggestion";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "market";
+            /** @description Stable market identity (source slug; markets are slug-keyed). */
+            id: string;
+            /** @description Public market URL slug. */
+            slug: string;
+            /** @description Market display name. */
+            name: string;
+            /** @description Number of companies on the board in this market. */
+            companyCount: number;
+        };
         Message: {
             id: string;
             /** @enum {string} */
@@ -4622,6 +4572,21 @@ export interface components {
                 messagesPerPeriod: string;
             };
         };
+        PostSuggestion: {
+            /** @enum {string} */
+            object: "suggestion";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "post";
+            /** @description Stable published blog post identity. */
+            id: string;
+            /** @description Public blog post URL slug. */
+            slug: string;
+            /** @description Post title. */
+            title: string;
+        };
         PublicBlogAdjacentPosts: {
             /** @enum {string} */
             object: "blog_adjacent_posts";
@@ -4712,7 +4677,11 @@ export interface components {
                 candidates: boolean;
                 employers: boolean;
                 blog: boolean;
-                talentDirectory: boolean;
+                /**
+                 * @description Talent directory access mode. Link /talent whenever this is not `'off'`. An employers-only directory renders a sign-in upsell for anonymous visitors, matching the hosted chrome. Replaces the former top-level `talentDirectoryVisibility` and the boolean `features.talentDirectory`.
+                 * @enum {string}
+                 */
+                talentDirectory: "off" | "public" | "employers_only";
                 registrationWall: boolean;
                 passwordProtected: boolean;
                 publicJobSubmission: boolean;
@@ -4723,11 +4692,6 @@ export interface components {
                 /** @description Whether applicant↔employer messaging is enabled on the board. `false` means the `me/conversations` route family rejects with `messaging_disabled` (403). Hide inbox/dock/Message CTAs. */
                 messaging: boolean;
             };
-            /**
-             * @description The tri-state behind `features.talentDirectory` (which is `visibility === 'public'`). Link /talent whenever this is not `'off'`. An employers-only directory renders a sign-in upsell for anonymous visitors, matching the hosted chrome.
-             * @enum {string}
-             */
-            talentDirectoryVisibility: "off" | "public" | "employers_only";
             analytics: {
                 ga4MeasurementId: string | null;
                 gtmId: string | null;
@@ -4735,33 +4699,23 @@ export interface components {
                 linkedInPartnerId: string | null;
                 cookieConsentRequired: boolean;
             };
-            /** @description Operator-defined custom job-field definitions, in display order. Board-wide; the frontend uses these to render and localize each job's opaque `customFieldValues`. Empty when the board defines none. Display-only: not filterable or searchable in v1. */
-            customFields: components["schemas"]["CustomFieldDefinition"][];
-            /** @description Stored operator label overrides by config group (`jobCardLabels`, `navLabels`, `breadcrumbsLabels`, …): plain-text chrome copy to merge over the `@cavuno/board` `uiCopy(language)` catalog via `uiCopy(language, labels)`. Empty object when the board stores none. */
-            labels: {
-                [key: string]: {
-                    [key: string]: string;
-                };
+            /** @description Operator-defined custom field definitions keyed by model (currently only `job`). Each key holds that model's definitions in display order. Company and talent keys are added when those models ship. The frontend uses these to render and localize each record's opaque `customFieldValues`. Display-only: not filterable or searchable in v1. */
+            customFields: {
+                /** @description This model's custom-field definitions in display order. Empty when the board defines none for the model. */
+                job: components["schemas"]["CustomFieldDefinition"][];
             };
-            /** @description Footer/brand data the hosted board footer renders (description, contact, website + social links, navigation order). The brand/social URLs (`websiteUrl`, `facebookUrl`, `linkedinUrl`, `xUrl`) are sanitized to absolute http(s); `customLinks[].url` is served verbatim (see its own note). */
-            footer: {
-                /** @description Operator-written footer brand description. May carry a `{{board_name}}` placeholder. Resolve it before rendering. When null, fall back to the label catalog's `footer.defaultDescription` template. */
-                description: string | null;
-                /** @description Public contact email for the footer About column (render as `mailto:`). */
-                contactEmail: string | null;
+            /** @description Operator-authored contact and social identity (settings › Contact & company details). Extracted from the former `footer` group in 4.0.0: contact is identity data, not layout. Brand/social URLs are sanitized to absolute http(s). */
+            contact: {
+                /** @description Public contact email (render as `mailto:`). Operator-set in settings › Contact & company details. */
+                email: string | null;
+                /** @description Company website URL, sanitized to absolute http(s). Null when unset or non-http(s). */
                 websiteUrl: string | null;
                 /** @description X (Twitter) profile URL, normalized from the stored handle. */
                 xUrl: string | null;
+                /** @description Facebook profile URL, sanitized to absolute http(s). Null when unset or non-http(s). */
                 facebookUrl: string | null;
+                /** @description LinkedIn profile URL, sanitized to absolute http(s). Null when unset or non-http(s). */
                 linkedinUrl: string | null;
-                /** @description Operator-configured navigation order: system item ids (`home`, `companies`, `pricing`, `blog`) and `custom:<id>` refs into `customLinks`. Empty when the operator never reordered. Render the system defaults. System items still gate on their feature flags (e.g. `blog` only when `features.blog`). */
-                navigationOrder: string[];
-                /** @description Operator-defined navigation links referenced from `navigationOrder` as `custom:<id>`; links not referenced there append after the system items (hosted-footer behavior). Each `url` is served verbatim (trimmed only) and may be a relative path (e.g. `/hub`): unlike the brand/social URLs it is NOT run through http(s) sanitization (matching the hosted footer, which supports relative links), so a consumer MUST sanitize it before binding to an anchor href. */
-                customLinks: {
-                    id: string;
-                    label: string;
-                    url: string;
-                }[];
             };
         };
         PublicCompaniesSearchBody: {
@@ -4902,7 +4856,7 @@ export interface components {
                 slug: string;
                 name: string;
             }[];
-            /** @description Opaque, display-only custom-field values, keyed by each field's `key`. Values are the option `key`(s) for select fields, or the raw boolean/number/text otherwise. Resolve labels via the board's `customFields` definitions (see `GET /v1/boards/:identifier`). `{}` when the board defines no custom fields. Not filterable or searchable in v1. */
+            /** @description Opaque, display-only custom-field values, keyed by each field's `key`. Values are the option `key`(s) for select fields, or the raw boolean/number/text otherwise. Resolve labels via the board's `customFields.job` definitions (see `GET /v1/boards/:identifier`). `{}` when the board defines no custom fields. Not filterable or searchable in v1. */
             customFieldValues: {
                 [key: string]: string | string[] | boolean | number;
             };
@@ -5247,7 +5201,7 @@ export interface components {
             jobId: string;
             /** Format: date-time */
             savedAt: string;
-            job: components["schemas"]["PublicJob"];
+            job: components["schemas"]["PublicJobCard"];
         };
         SendWorkEmailBody: {
             /** Format: email */
@@ -5408,10 +5362,25 @@ export interface components {
             object: "suggest_result";
             /** @description The trimmed query string that produced these suggestions. */
             query: string;
-            /** @description Interleaved company + taxonomy-term suggestions. Order is server-ranked; clients must not re-sort. */
+            /** @description Interleaved company, market, taxonomy-term, blog-post, and tag suggestions. Order is server-ranked; clients must not re-sort. When `types` is set, only the requested kinds appear and `limit` applies after that filter. */
             items: components["schemas"]["SuggestionItem"][];
         };
-        SuggestionItem: components["schemas"]["CompanySuggestion"] | components["schemas"]["TermSuggestion"];
+        SuggestionItem: components["schemas"]["CompanySuggestion"] | components["schemas"]["MarketSuggestion"] | components["schemas"]["TermSuggestion"] | components["schemas"]["PostSuggestion"] | components["schemas"]["TagSuggestion"];
+        TagSuggestion: {
+            /** @enum {string} */
+            object: "suggestion";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "tag";
+            /** @description Stable tag identity (source slug; tags are slug-keyed). */
+            id: string;
+            /** @description Public blog tag URL slug. */
+            slug: string;
+            /** @description Tag display name. */
+            name: string;
+        };
         TalentAccess: {
             /** @enum {string} */
             object: "talent_access";
@@ -8745,40 +8714,6 @@ export interface operations {
             };
             /** @description The search core is unavailable (`search_unavailable`). */
             503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    getBoardLegal: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
-                identifier: string;
-                /** @description Legal page type: `terms-of-service` | `privacy-policy` | `cookie-policy` | `about` | `impressum`. */
-                type: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful response. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LegalPage"];
-                };
-            };
-            /** @description Public board not found, unknown legal page type, or impressum not enabled. */
-            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -15721,10 +15656,12 @@ export interface operations {
     listBoardSearchSuggest: {
         parameters: {
             query?: {
-                /** @description Keyword to match against company names and taxonomy terms. Queries under two characters return an empty list. */
+                /** @description Keyword to match against company names, markets, taxonomy terms, blog posts, and tags. Queries under two characters return an empty list. */
                 q?: string;
-                /** @description Maximum number of interleaved suggestions to return (1–25; default 25). */
+                /** @description Maximum number of interleaved suggestions to return after type filtering (1–25; default 25). */
                 limit?: number;
+                /** @description Include only these suggestion kinds. Omit to return every kind (company, category, skill, market, post, tag). `limit` applies after this filter. */
+                types?: ("company" | "category" | "skill" | "market" | "post" | "tag")[];
             };
             header?: never;
             path: {
@@ -15855,48 +15792,6 @@ export interface operations {
                 };
             };
             /** @description Public board not found, or the taxonomy slug does not resolve. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    listBoardSuggestions: {
-        parameters: {
-            query?: {
-                q?: string;
-                limit?: number;
-            };
-            header?: never;
-            path: {
-                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
-                identifier: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful response. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {string} */
-                        object: "list";
-                        url: string;
-                        hasMore: boolean;
-                        nextCursor: string | null;
-                        data: components["schemas"]["PublicTaxonomyTerm"][];
-                    };
-                };
-            };
-            /** @description Public board not found, or the board is private. */
             404: {
                 headers: {
                     [name: string]: unknown;

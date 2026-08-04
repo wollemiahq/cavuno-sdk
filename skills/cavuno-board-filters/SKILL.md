@@ -49,21 +49,19 @@ import {
   JOB_SORTS,
   REMOTE_OPTIONS,
   SENIORITIES,
-  seniorityLabels,
-  sortLabels,
 } from '@cavuno/board/filters';
 
-const { language } = await board.context();
-const seniorityCopy = seniorityLabels(language);
-const sortCopy = sortLabels(language);
+// Wire enums only — display labels are application-owned chrome.
+const seniorityOptions = SENIORITIES;
+const sortOptions = JOB_SORTS;
 ```
 
 Render seniority as a multi-select with all eight `SENIORITIES`.
 `EMPLOYMENT_TYPES` contains five listing options; `volunteer` and `other`
 remain valid job wire values but are absent from the filter control.
 `JOB_SORTS` contains exactly `relevance`, `newest`, and `salary_high`;
-`relevance` is the featured-ranked default. Sort labels follow the board copy
-catalog and operator overrides supplied to `sortLabels`.
+`relevance` is the featured-ranked default. Label each option with your
+application's copy (message catalog or hard-coded board language).
 
 ## Load taxonomy options
 
@@ -95,15 +93,16 @@ const second = first.nextCursor
   : null;
 ```
 
-Keyword suggestions accept `q` and `limit`. A present query shorter than two
-characters returns no results. Suggestions contain categories and skills only;
-because both types may share a slug, key each option by
-`type + canonicalSlug`.
+Keyword suggestions accept `q`, `limit`, and optional `types`. A present query
+shorter than two characters returns no results. Restrict to taxonomy terms with
+`types: ['category', 'skill']`; because both may share a slug, key each option
+by `termType + canonicalSlug`.
 
 ```ts snippet
-const suggestions = await board.taxonomy.suggestions.list({
+const { items } = await board.search.suggest({
   q: searchText,
   limit: 10,
+  types: ['category', 'skill'],
 });
 ```
 

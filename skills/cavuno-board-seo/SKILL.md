@@ -20,8 +20,9 @@ Read the matching reference completely before implementing that page:
 For a page that combines branches, read every matching reference.
 
 Sitemaps and robots.txt use `cavuno-board-sitemap`. The host app owns OG-image
-generation and its route map. `listingHead` receives app-owned heading copy;
-the SDK does not reproduce the board's configured meta copy.
+generation and its route map. `listingHead` receives app-owned title and
+meta description copy; the SDK never composes those sentences or joins
+count/heading/board name.
 
 ## Apply the shared rendering contract
 

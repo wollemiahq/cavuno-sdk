@@ -14,12 +14,15 @@ function job(overrides: Partial<PublicJob>): PublicJob {
 }
 
 describe('buildJobBreadcrumbs', () => {
-  it('always starts Home › Jobs and ends with the untitled current page', () => {
+  it('always starts home › jobs kinds and ends with the job title crumb', () => {
     const crumbs = buildJobBreadcrumbs(job({}));
-    expect(crumbs[0]).toEqual({ name: 'Home', path: '/' });
-    expect(crumbs[1]).toEqual({ name: 'Jobs', path: '/jobs' });
+    expect(crumbs[0]).toEqual({ kind: 'home', path: '/' });
+    expect(crumbs[1]).toEqual({ kind: 'jobs', path: '/jobs' });
     // Last crumb (the title) carries no path — it's the current page.
-    expect(crumbs.at(-1)).toEqual({ name: 'Senior Backend Engineer' });
+    expect(crumbs.at(-1)).toEqual({
+      kind: 'job',
+      name: 'Senior Backend Engineer',
+    });
   });
 
   it('nests the category under the most-specific place when both exist', () => {
@@ -33,10 +36,12 @@ describe('buildJobBreadcrumbs', () => {
       } as Partial<PublicJob>),
     );
     expect(crumbs).toContainEqual({
+      kind: 'place',
       name: 'Berlin',
       path: '/jobs/locations/berlin',
     });
     expect(crumbs).toContainEqual({
+      kind: 'category',
       name: 'Engineering',
       path: '/jobs/locations/berlin/engineering',
     });
@@ -49,22 +54,18 @@ describe('buildJobBreadcrumbs', () => {
       } as Partial<PublicJob>),
     );
     expect(crumbs).toContainEqual({
+      kind: 'category',
       name: 'Engineering',
       path: '/jobs/engineering',
     });
   });
 
-  it('resolves the Home/Jobs crumbs from the copy catalog per board language', () => {
-    const crumbs = buildJobBreadcrumbs(job({}), 'de');
-    expect(crumbs[0]).toEqual({ name: 'Startseite', path: '/' });
-    expect(crumbs[1]).toEqual({ name: 'Jobs', path: '/jobs' });
-  });
-
-  it('applies operator breadcrumb overrides on top of the catalog', () => {
-    const crumbs = buildJobBreadcrumbs(job({}), 'de', {
-      breadcrumbsLabels: { home: 'Start', jobs: 'Stellen' },
-    });
-    expect(crumbs[0]).toEqual({ name: 'Start', path: '/' });
-    expect(crumbs[1]).toEqual({ name: 'Stellen', path: '/jobs' });
+  it('does not pick chrome words — home/jobs are kinds only', () => {
+    const crumbs = buildJobBreadcrumbs(job({}));
+    expect(crumbs[0]).toEqual({ kind: 'home', path: '/' });
+    expect(crumbs[1]).toEqual({ kind: 'jobs', path: '/jobs' });
+    // No `name` on chrome crumbs — the application supplies display labels.
+    expect('name' in crumbs[0]!).toBe(false);
+    expect('name' in crumbs[1]!).toBe(false);
   });
 });
