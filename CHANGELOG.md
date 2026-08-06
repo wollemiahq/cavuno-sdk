@@ -3,6 +3,33 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.1.0 — 2026-08-06
+
+- **Salary null-clears on job PATCH** (operator `PATCH /v1/jobs/:id` and
+  employer `PATCH /v1/boards/:identifier/me/companies/:slug/jobs/:id`):
+  `salaryMin`, `salaryMax`, `salaryCurrency`, and `salaryTimeframe` now
+  accept an explicit `null` meaning "clear the stored value" — the same
+  tri-state `applicationUrl` and `expiresAt` already document (value sets,
+  `null` clears, omitted leaves unchanged). Clearing also drops the derived
+  USD figures, so salary filters stop matching a job whose salary was
+  withdrawn.
+- **Structured remote fields on `PublicJobCard`**: `remoteWorldwide`
+  (`boolean | null`) and `remoteWorkPermitCountryCodes` (`string[]`) beside
+  the pre-worded `remoteLocationLabel`, so templates can word remote
+  regions from their own catalogs instead of matching the board-language
+  `"Worldwide"` label string. Derived from the same permit selection the
+  label reads — the boolean and the label always agree.
+- **Docs**: `Plan.name` and `Plan.description` are documented as authoring
+  defaults — the localized public string lives in the board template,
+  composed from `featureSummary`, `billingInterval`, and `talent`.
+- **Marketing consent**: consent is a property of the board
+  user. New `board.me.marketingConsent` namespace — `retrieve()` (the
+  consent, or `null` when no decision exists), `grant()`, `withdraw()` —
+  plus the `MarketingConsent` type. The API records the decision, never
+  the prose: disclosure wording is authored by the board's own frontend.
+- **Outbound webhooks**: webhook subscription endpoints and event types
+  join the OpenAPI contract and generated types.
+
 ## 4.0.0 — 2026-08-03
 
 - **Lossy seams:** Resolution is fine;
