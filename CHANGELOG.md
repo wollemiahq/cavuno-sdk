@@ -3,6 +3,23 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.2.0 — 2026-08-06
+
+- **Card `summary` on jobs, companies, and talent**: list/card models gain a
+  server-derived plain-text `summary: string | null` — HTML stripped, entities
+  decoded, cut at a sentence boundary (or word boundary with `…`). The API does
+  the data cleaning; consumers decide how much of the string to show.
+  - `PublicJobCard.summary` — denormalized at write time on
+    `publicJobCardDocs` (backfill migration
+    `jobs/migrations:backfillPublicJobCardSummary`). Independent of the
+    existing `?fields=+description` opt-in, which keeps working as before.
+  - `CompanyPublic.summary` — derived from `description` at serialization for
+    list, search, and similar. Detail still ships the full HTML body.
+  - `TalentDirectoryEntry.summary` — derived from `bio` at serialization.
+- **Deprecations** (still returned; prefer `summary` for card teasers):
+  - `CompanyPublic.description` on list/search/similar
+  - `TalentDirectoryEntry.bio`
+
 ## 4.1.0 — 2026-08-06
 
 - **Salary null-clears on job PATCH** (operator `PATCH /v1/jobs/:id` and
