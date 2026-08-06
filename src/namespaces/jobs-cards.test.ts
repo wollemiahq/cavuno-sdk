@@ -46,6 +46,8 @@ const CARD: PublicJobCard = {
   employmentType: 'full_time',
   remoteOption: 'remote',
   remoteLocationLabel: 'Worldwide',
+  remoteWorldwide: true,
+  remoteWorkPermitCountryCodes: [],
   salaryMin: 100000,
   salaryMax: null,
   salaryCurrency: 'USD',

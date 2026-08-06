@@ -1,6 +1,7 @@
 import type { BoardClient, FetchOptions } from '../client';
 import type { BoardUser } from '../types/auth';
 import type { ListEnvelope } from '../types/common';
+import type { MarketingConsent } from '../types/marketing-consent';
 import type {
   AddApplicantNoteBody,
   Alert,
@@ -1477,6 +1478,43 @@ export function meNamespace(client: BoardClient) {
         return client.fetch<ModerationReport>(
           `/me/messages/${encodeURIComponent(id)}/report`,
           { ...options, method: 'POST', body },
+        );
+      },
+    },
+
+    /**
+     * My marketing-email consent.
+     *
+     * Consent is a property of the board user, given at sign-up or from the
+     * board's own settings page. Both surfaces render board-authored
+     * disclosure wording — the API records the decision, never the prose, so
+     * whatever you show beside these calls is what the person agreed to.
+     */
+    marketingConsent: {
+      /** My consent, or `null` when no decision has ever been recorded. */
+      retrieve(options?: FetchOptions) {
+        return client.fetch<MarketingConsent | null>(
+          '/me/marketing-consent',
+          options,
+        );
+      },
+
+      /**
+       * Grant. Call this only from a surface that displayed your disclosure
+       * copy — nothing server-side can check that you did.
+       */
+      grant(options?: FetchOptions) {
+        return client.fetch<MarketingConsent>('/me/marketing-consent/grant', {
+          ...options,
+          method: 'POST',
+        });
+      },
+
+      /** Withdraw. Repeating it returns the same state, no new event. */
+      withdraw(options?: FetchOptions) {
+        return client.fetch<MarketingConsent | null>(
+          '/me/marketing-consent/withdraw',
+          { ...options, method: 'POST' },
         );
       },
     },

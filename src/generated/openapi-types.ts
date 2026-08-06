@@ -2107,6 +2107,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/me/marketing-consent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieve my marketing consent
+         * @description The current consent decision, or `null` when none has ever been recorded. Never cached.
+         */
+        get: operations["listBoardMeMarketingConsent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/me/marketing-consent/grant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Grant marketing consent
+         * @description Record that the signed-in person agreed to receive marketing email. Call this only from a surface that displayed the board-authored disclosure wording — the server records the decision, never the prose. Idempotent: re-granting changes nothing and emits no event.
+         */
+        post: operations["createBoardMeMarketingConsentGrant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/me/marketing-consent/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Withdraw marketing consent
+         * @description Record that the signed-in person no longer consents. Recorded even when no grant ever existed — an explicit "do not email me" is durable. Idempotent: re-withdrawing changes nothing and emits no event.
+         */
+        post: operations["createBoardMeMarketingConsentWithdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/boards/{identifier}/me/messages/{id}": {
         parameters: {
             query?: never;
@@ -3226,6 +3286,8 @@ export interface components {
             /** @description Minimum 8 characters. */
             password: string;
             displayName: string;
+            /** @description True only when the person ticked a marketing checkbox your UI displayed with its disclosure wording. Omit when no checkbox was shown; false and absent both record nothing. */
+            marketingConsent?: boolean;
         };
         BoardAuthRequestMagicLinkBody: {
             /** Format: email */
@@ -4161,17 +4223,17 @@ export interface components {
             seniority?: "entry_level" | "associate" | "mid_level" | "senior" | "lead" | "principal" | "director" | "executive";
             /** @description Where candidates apply. Accepts an HTTPS URL, a `mailto:` URI, or a bare email address (normalized to `mailto:` form). Pass `null` to clear the stored value and switch the job to on-board (built-in) applications. Omitted means unchanged. */
             applicationUrl?: string | null;
-            /** @description Minimum salary, in `salaryCurrency` units. */
-            salaryMin?: number;
-            /** @description Maximum salary, in `salaryCurrency` units. */
-            salaryMax?: number;
-            /** @description Three-letter ISO 4217 currency code for `salaryMin` and `salaryMax`. */
-            salaryCurrency?: string;
+            /** @description Minimum salary, in `salaryCurrency` units. Pass `null` to clear the stored value; omitted means unchanged. */
+            salaryMin?: number | null;
+            /** @description Maximum salary, in `salaryCurrency` units. Pass `null` to clear the stored value; omitted means unchanged. */
+            salaryMax?: number | null;
+            /** @description Three-letter ISO 4217 currency code for `salaryMin` and `salaryMax`. Pass `null` to clear the stored value; omitted means unchanged. */
+            salaryCurrency?: string | null;
             /**
-             * @description Period the `salaryMin` and `salaryMax` figures are quoted against.
-             * @enum {string}
+             * @description Period the `salaryMin` and `salaryMax` figures are quoted against. Pass `null` to clear the stored value; omitted means unchanged.
+             * @enum {string|null}
              */
-            salaryTimeframe?: "per_year" | "per_month" | "per_week" | "per_day" | "per_hour";
+            salaryTimeframe?: "per_year" | "per_month" | "per_week" | "per_day" | "per_hour" | null;
             /** @description Up to 100 canonical skill slugs from `GET /v1/taxonomies/skills`. Every slug must exist in this account. */
             skills?: string[];
             /** @description Up to 100 canonical category slugs from `GET /v1/taxonomies/categories`. Every slug must exist in this account. */
@@ -4476,6 +4538,21 @@ export interface components {
             /** @description Number of companies on the board in this market. */
             companyCount: number;
         };
+        MarketingConsent: {
+            id: string;
+            /** @enum {string} */
+            object: "marketing_consent";
+            /** @enum {string} */
+            status: "granted" | "withdrawn";
+            source: string;
+            /** @enum {string|null} */
+            reason: "person_request" | "operator_request" | "account_deleted" | null;
+            /** Format: date-time */
+            grantedAt: string | null;
+            /** Format: date-time */
+            withdrawnAt: string | null;
+            revision: number;
+        } | null;
         Message: {
             id: string;
             /** @enum {string} */
@@ -4539,7 +4616,9 @@ export interface components {
             /** @enum {string} */
             object: "plan";
             id: string;
+            /** @description The operator's authoring-default plan name, in the board's language. Board templates that localize chrome should treat this as the fallback and word plan names from `featureSummary` structure or their own catalogs. */
             name: string;
+            /** @description Authoring default: the operator's prose description in the board's language. The localized public string lives in the board template — compose it from `featureSummary`, `billingInterval`, and `talent` rather than displaying this verbatim on localized surfaces. */
             description: string | null;
             /** @enum {string} */
             purpose: "job_posting" | "talent_access";
@@ -4934,6 +5013,10 @@ export interface components {
             remoteOption: "on_site" | "hybrid" | "remote" | null;
             /** @description Display region label for remote jobs (e.g. "United States", "Worldwide"); `null` for non-remote jobs. */
             remoteLocationLabel: string | null;
+            /** @description Structured twin of `remoteLocationLabel`’s "Worldwide" case: `true` when the remote permit selection is unrestricted (explicit worldwide, or no constraint), `false` for a constrained remote job, `null` for non-remote jobs. Word it from your own catalog instead of matching the board-language label string. */
+            remoteWorldwide: boolean | null;
+            /** @description ISO 3166-1 alpha-2 codes the remote permit selection covers (derived expansion, mirroring the job detail field of the same name). Empty for worldwide/unconstrained and non-remote jobs. */
+            remoteWorkPermitCountryCodes: string[];
             salaryMin: number | null;
             salaryMax: number | null;
             salaryCurrency: string | null;
@@ -12842,6 +12925,183 @@ export interface operations {
                 };
             };
             /** @description Rate limited (`rate_limited`): 100 requests per minute per board user. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listBoardMeMarketingConsent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The consent decision, or `null`. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarketingConsent"];
+                };
+            };
+            /** @description Missing/invalid/expired access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Token issued for a different board. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createBoardMeMarketingConsentGrant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The consent after the grant. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarketingConsent"];
+                };
+            };
+            /** @description Missing/invalid/expired access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Token issued for a different board. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createBoardMeMarketingConsentWithdraw: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The consent after the withdrawal. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarketingConsent"];
+                };
+            };
+            /** @description Missing/invalid/expired access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Token issued for a different board. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited. */
             429: {
                 headers: {
                     [name: string]: unknown;

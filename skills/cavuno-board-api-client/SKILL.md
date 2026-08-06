@@ -60,6 +60,48 @@ A module-scoped client is safe for concurrent SSR requests when it uses the serv
 
 **Complete when:** a shared server client contains no per-user state and each authenticated request supplies its own headers.
 
+## Record marketing consent for the signed-in person
+
+Marketing consent is a property of the board user, never a guest capture. The
+frontend owns the checkbox wording and the privacy-policy link — render your
+own copy beside the control; the API records the decision, not the prose.
+Leave any checkbox unticked by default and call nothing while it stays
+unticked: absence of a record means no consent, never a default.
+
+At sign-up, pass the tick through the register body so consent is recorded in
+the same transaction that creates the user:
+
+```ts snippet
+await board.auth.register({
+  role: 'candidate',
+  method: 'emailpass',
+  email: form.email,
+  password: form.password,
+  displayName: form.displayName,
+  marketingConsent: form.marketingChecked,
+});
+```
+
+Later, read or change only the signed-in person's own consent through the
+authenticated `me` namespace. There is intentionally no email parameter, so a
+frontend cannot target another person. Withdrawal is always an explicit POST —
+never a state-changing GET, which mail scanners would follow.
+
+```ts snippet
+const current = await board.me.marketingConsent.retrieve();
+if (current?.status !== 'granted') {
+  await board.me.marketingConsent.grant();
+}
+await board.me.marketingConsent.withdraw();
+```
+
+Call `grant()` only from a surface that displayed your disclosure wording.
+Both calls are idempotent: repeating one changes nothing and emits no event.
+
+**Complete when:** the checkbox defaults to unticked, unticked submits
+nothing, grant is only reachable beside rendered disclosure copy, and
+withdrawal is never implemented as a state-changing GET.
+
 ## Use the escape hatch for an untyped endpoint
 
 `board.client.fetch<T>(path, options)` keeps the full request pipeline while providing a response type locally.

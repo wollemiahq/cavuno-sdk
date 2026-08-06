@@ -178,6 +178,7 @@ export type {
 export type { BoardSeo } from './types/seo';
 export type { EmbedJobsQuery } from './types/embed';
 export type { BoardAccessGrant } from './types/password';
+export type { MarketingConsent } from './types/marketing-consent';
 export type { RedirectResolution } from './types/redirects';
 export type {
   BlogAuthorEmbed,
