@@ -3519,7 +3519,12 @@ export interface components {
             website: string | null;
             /** @description URL of the company logo, or `null` if no logo is set. */
             logoUrl: string | null;
-            /** @description Long-form description of the company, or `null` if not set. */
+            /** @description Plain-text card teaser: the operator-authored company summary when set, otherwise a derived teaser from the long-form description (HTML stripped, first sentence / word-boundary cut). `null` when neither yields anything. Prefer this over `description` for list/card renders. */
+            summary: string | null;
+            /**
+             * @deprecated
+             * @description Long-form description of the company (HTML), or `null` if not set. **Deprecated on list/search/similar responses** — prefer `summary` for card teasers. Still the full prose for detail pages (`GET …/companies/{slug}`).
+             */
             description: string | null;
             /** @description Total number of public-facing jobs at this company. Currently mirrors `publishedJobCount`. */
             jobCount: number;
@@ -3949,7 +3954,7 @@ export interface components {
              */
             employmentType?: "full_time" | "part_time" | "contract" | "internship" | "temporary" | "volunteer" | "other";
             /**
-             * @description Whether the role is on-site, hybrid, or fully remote.
+             * @description Whether the role is on-site, hybrid, or fully remote. **Never valid on its own:** `on_site` and `hybrid` require at least one `officeLocations` entry, and `remote` requires `remotePermits` (use `[{"type":"worldwide","value":"worldwide"}]` for anywhere; `remoteTimezones` then auto-derives on POST). Sending it alone returns `400`.
              * @enum {string}
              */
             remoteOption?: "on_site" | "hybrid" | "remote";
@@ -4194,7 +4199,7 @@ export interface components {
              */
             employmentType?: "full_time" | "part_time" | "contract" | "internship" | "temporary" | "volunteer" | "other";
             /**
-             * @description Whether the role is on-site, hybrid, or fully remote.
+             * @description Whether the role is on-site, hybrid, or fully remote. **Never valid on its own:** `on_site` and `hybrid` require at least one `officeLocations` entry, and `remote` requires `remotePermits` (use `[{"type":"worldwide","value":"worldwide"}]` for anywhere; `remoteTimezones` then auto-derives on POST). Sending it alone returns `400`.
              * @enum {string}
              */
             remoteOption?: "on_site" | "hybrid" | "remote";
@@ -5022,6 +5027,8 @@ export interface components {
             salaryCurrency: string | null;
             salaryTimeframe: string | null;
             isFeatured: boolean;
+            /** @description Plain-text card teaser derived from the job description (HTML stripped, first sentence / word-boundary cut). `null` when there is nothing honest to show. Always present — independent of the `?fields=+description` opt-in for the long-form HTML body. Prefer this over requesting `+description` for list/card renders. */
+            summary: string | null;
             locationLabel: string | null;
             /** @description Embedded company summary, or `null` if none is attached. */
             company: {
@@ -5484,6 +5491,12 @@ export interface components {
             headline: string | null;
             location: string | null;
             avatarUrl: string | null;
+            /** @description Plain-text card teaser derived from `bio` (HTML stripped, first sentence / word-boundary cut). `null` when there is nothing honest to show. Prefer this over `bio` for directory/card renders; cards still lead with `headline` when present. */
+            summary: string | null;
+            /**
+             * @deprecated
+             * @description Long-form candidate bio. **Deprecated on directory entries** — prefer `summary` for card teasers. Still the full prose on the talent profile detail (`GET …/talent/{handle}`).
+             */
             bio: string | null;
             jobSearchStatus: string | null;
             skills: string[];
