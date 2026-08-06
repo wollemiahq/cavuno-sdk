@@ -53,6 +53,7 @@ const CARD: PublicJobCard = {
   salaryCurrency: 'USD',
   salaryTimeframe: 'per_year',
   isFeatured: true,
+  summary: 'We build robots for every home.',
   locationLabel: null,
   company: { slug: 'acme', name: 'Acme', logoUrl: null },
   categories: [{ slug: 'engineering', name: 'Engineering' }],

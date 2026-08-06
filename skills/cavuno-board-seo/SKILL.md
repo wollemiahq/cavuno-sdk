@@ -19,6 +19,18 @@ Read the matching reference completely before implementing that page:
 
 For a page that combines branches, read every matching reference.
 
+## Favicons and board logo
+
+Brand identity — not SEO builders. Read them from `board.context()`:
+
+```ts
+const { logoUrl, icons } = await board.context();
+// logoUrl — board logo
+// icons.ico / .svg / .appleTouch / .icon192 / .icon512 / .iconMaskable512
+```
+
+`board.seo()` is infra tokens only (ads, IndexNow, verification, canonical base, optional `manifest.name`).
+
 Sitemaps and robots.txt use `cavuno-board-sitemap`. The host app owns OG-image
 generation and its route map. `listingHead` receives app-owned title and
 meta description copy; the SDK never composes those sentences or joins
