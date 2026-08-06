@@ -3949,7 +3949,7 @@ export interface components {
              */
             employmentType?: "full_time" | "part_time" | "contract" | "internship" | "temporary" | "volunteer" | "other";
             /**
-             * @description Whether the role is on-site, hybrid, or fully remote.
+             * @description Whether the role is on-site, hybrid, or fully remote. **Never valid on its own:** `on_site` and `hybrid` require at least one `officeLocations` entry, and `remote` requires `remotePermits` (use `[{"type":"worldwide","value":"worldwide"}]` for anywhere; `remoteTimezones` then auto-derives on POST). Sending it alone returns `400`.
              * @enum {string}
              */
             remoteOption?: "on_site" | "hybrid" | "remote";
@@ -4194,7 +4194,7 @@ export interface components {
              */
             employmentType?: "full_time" | "part_time" | "contract" | "internship" | "temporary" | "volunteer" | "other";
             /**
-             * @description Whether the role is on-site, hybrid, or fully remote.
+             * @description Whether the role is on-site, hybrid, or fully remote. **Never valid on its own:** `on_site` and `hybrid` require at least one `officeLocations` entry, and `remote` requires `remotePermits` (use `[{"type":"worldwide","value":"worldwide"}]` for anywhere; `remoteTimezones` then auto-derives on POST). Sending it alone returns `400`.
              * @enum {string}
              */
             remoteOption?: "on_site" | "hybrid" | "remote";
