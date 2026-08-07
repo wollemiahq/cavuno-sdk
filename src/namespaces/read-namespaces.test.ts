@@ -341,20 +341,22 @@ describe('board.companies', () => {
     ).toEqual(resolution);
   });
 
-  it('salaries(slug) + salaries.category(slug, cat) hit their routes', async () => {
+  it('salaries(slug) + salaries.summary(slug) + salaries.category hit their routes', async () => {
     const spy = stubFetch();
     const board = makeBoard();
     await board.companies.salaries('acme');
+    await board.companies.salaries.summary('acme');
     await board.companies.salaries.category('acme', 'software-engineer', {
       locale: 'de',
     });
     expect(sentUrl(spy, 0)).toBe(`${BASE}/companies/acme/salaries`);
-    expect(sentUrl(spy, 1)).toBe(
+    expect(sentUrl(spy, 1)).toBe(`${BASE}/companies/acme/salaries/summary`);
+    expect(sentUrl(spy, 2)).toBe(
       `${BASE}/companies/acme/salaries/software-engineer?locale=de`,
     );
   });
 
-  it('passes the company-salary overview + category through unchanged', async () => {
+  it('passes the company-salary overview + summary + category through unchanged', async () => {
     const overview = {
       object: 'company_salary',
       companyName: 'Acme',
@@ -378,6 +380,20 @@ describe('board.companies', () => {
     };
     stubFetch(overview);
     expect(await makeBoard().companies.salaries('acme')).toEqual(overview);
+
+    const summary = {
+      object: 'company_salary_summary',
+      companyName: 'Acme',
+      companySlug: 'acme',
+      overallSalary: { avgMin: 120000, avgMax: 180000, jobCount: 50 },
+      topCategories: [],
+      sampleCount: 50,
+      currency: 'USD',
+    };
+    stubFetch(summary);
+    expect(await makeBoard().companies.salaries.summary('acme')).toEqual(
+      summary,
+    );
 
     const category = {
       object: 'company_category_salary',

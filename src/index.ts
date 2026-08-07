@@ -210,6 +210,7 @@ export type {
   CompanyMarketRef,
   CompanyMarketsListQuery,
   CompanySalary,
+  CompanySalarySummary,
   CompanySimilarQuery,
   PublicCompany,
   PublicCompanyDetail,

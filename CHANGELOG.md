@@ -3,6 +3,20 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.3.0 — 2026-08-07
+
+- **`CompanyPublic.salarySampleCount`**: number of jobs that contribute to a
+  company's salary aggregates on the board (`0` when there is no usable
+  sample). Prefer this over fetching the full company-salary document just to
+  gate a Salaries tab or empty state. Distinct from `publishedJobCount` (open
+  roles without pay data stay at 0 here).
+- **`GET …/companies/{slug}/salaries/summary`** and
+  `board.companies.salaries.summary(slug)`: lightweight profile teaser —
+  overall pay numbers, top categories by sample size, `sampleCount`, and
+  `currency` as `CompanySalarySummary`. Skips seniority, competitors,
+  locations, and logo joins from the full `CompanySalary` document. Format
+  currency ranges and multi-locale UI strings in the app.
+
 ## 4.2.0 — 2026-08-06
 
 - **Board logo + favicon pack on `board.context()`**: public board context now
