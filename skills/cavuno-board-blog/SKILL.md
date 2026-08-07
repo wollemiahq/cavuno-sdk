@@ -36,8 +36,10 @@ const next = page.nextCursor
   : null;
 ```
 
-Embedded author rows carry `id`, `name`, `slug`, `bio`, `avatarUrl`, and
-social URLs. Embedded tag rows carry `id`, `name`, `slug`, and `description`.
+Embedded author rows carry `id`, `name`, `slug`, `bio`, `location`,
+`avatarUrl`, and social URLs (`websiteUrl`, `facebookUrl`, `twitterUrl`,
+`linkedinUrl`, `githubUrl`). Embedded tag rows carry `id`, `name`, `slug`, and
+`description`.
 
 ## Render a post and canonicalize its slug
 
@@ -84,8 +86,9 @@ const author = await board.blog.authors.retrieve('jane');
 ```
 
 `PublicBlogTag` carries `id`, `name`, `slug`, and `description`.
-`PublicBlogAuthor` carries `id`, `name`, `slug`, `bio`, `avatarUrl`,
-`websiteUrl`, `twitterUrl`, `linkedinUrl`, and `githubUrl`.
+`PublicBlogAuthor` carries `id`, `name`, `slug`, `bio`, `location`,
+`avatarUrl`, `websiteUrl`, `facebookUrl`, `twitterUrl`, `linkedinUrl`, and
+`githubUrl`.
 
 ## Search posts
 

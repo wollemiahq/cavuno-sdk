@@ -4730,8 +4730,10 @@ export interface components {
             name: string;
             slug: string;
             bio: string | null;
+            location: string | null;
             avatarUrl: string | null;
             websiteUrl: string | null;
+            facebookUrl: string | null;
             twitterUrl: string | null;
             linkedinUrl: string | null;
             githubUrl: string | null;
