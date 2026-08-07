@@ -80,12 +80,23 @@ the current company, and ranks by open roles. Fetch `retrieve` before reading
 
 ## Render company salaries
 
-`companies.salaries` is callable and carries `.category`. The overview returns
-`CompanySalary`: nullable `overallSalary`, `bySeniority` rows with board
-comparison `diffPercent`, `competitors`, `topLocations`, `byCategory`,
-board-wide baselines, and `currency`.
+`companies.salaries` is callable and carries `.summary` and `.category`.
+
+For a profile / overview teaser, prefer `.summary` — it returns
+`CompanySalarySummary` (overall numbers, top categories, `sampleCount`,
+`currency`) without seniority, competitors, locations, or logos. Format
+currency ranges and multi-locale UI strings in the app.
+
+The full overview returns `CompanySalary`: nullable `overallSalary`,
+`bySeniority` rows with board comparison `diffPercent`, `competitors`,
+`topLocations`, `byCategory`, board-wide baselines, and `currency`.
 
 ```ts snippet
+const teaser = await board.companies.salaries.summary('acme');
+teaser.overallSalary;
+teaser.topCategories;
+teaser.sampleCount;
+
 const overview = await board.companies.salaries('acme');
 overview.bySeniority[0]?.diffPercent;
 
@@ -97,11 +108,12 @@ category.categorySourceSlug;
 category.categoryCanonicalSlug;
 ```
 
-Pass `{ locale }` for board-language category names. Company identity remains
-untranslated. The API returns both the immutable English
+Pass `{ locale }` for board-language category names on `.category`. Company
+identity remains untranslated. The API returns both the immutable English
 `categorySourceSlug` and the board-language `categoryCanonicalSlug`; the host
 route issues a 308 when the inbound category slug differs from the canonical
-one.
+one. Gate a Salaries tab with `company.salarySampleCount > 0` from
+`companies.retrieve` rather than fetching salary documents just for presence.
 
 ## Completion gate
 

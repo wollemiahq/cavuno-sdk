@@ -9,6 +9,7 @@ import type {
   CompanyMarket,
   CompanyMarketsListQuery,
   CompanySalary,
+  CompanySalarySummary,
   CompanySimilarQuery,
   PublicCompany,
   PublicCompanyDetail,
@@ -46,13 +47,20 @@ export function companiesNamespace(client: BoardClient) {
 
   /**
    * A company's salary pages. `board.companies.salaries(slug)` is the
-   * overview; `.category(slug, categorySlug)` is one job category at the company.
-   * Pass `{ locale }` to the category call for board-language names; it returns
-   * BOTH `categorySourceSlug` + `categoryCanonicalSlug` (the consumer 308s to the
-   * canonical itself). The company slug/name are never localized.
+   * full overview; `.summary(slug)` is the lightweight profile teaser (overall +
+   * top categories + sampleCount); `.category(slug, categorySlug)` is one job
+   * category at the company. Pass `{ locale }` to the category call for
+   * board-language names; it returns BOTH `categorySourceSlug` +
+   * `categoryCanonicalSlug` (the consumer 308s to the canonical itself). The
+   * company slug/name are never localized.
+   *
+   * Prefer `.summary` for company profile / overview UIs — it skips seniority,
+   * competitors, locations, and logo joins. Format currency ranges and
+   * multi-locale UI strings in the app.
    *
    * @example
    * const overview = await board.companies.salaries('acme');
+   * const teaser = await board.companies.salaries.summary('acme');
    * const cat = await board.companies.salaries.category('acme', 'software-engineer', { locale: 'de' });
    */
   const salaries = Object.assign(
@@ -62,6 +70,12 @@ export function companiesNamespace(client: BoardClient) {
         options,
       ),
     {
+      summary(companySlug: string, options?: FetchOptions) {
+        return client.fetch<CompanySalarySummary>(
+          `/companies/${encodeURIComponent(companySlug)}/salaries/summary`,
+          options,
+        );
+      },
       category(
         companySlug: string,
         categorySlug: string,

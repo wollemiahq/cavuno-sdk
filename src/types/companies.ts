@@ -22,6 +22,14 @@ export type PublicCompanyDetail = Schemas['CompanyPublicDetail'];
 export type CompanySalary = Schemas['CompanySalary'];
 
 /**
+ * Lightweight company salary teaser for profile / overview UIs: overall pay
+ * numbers, top categories, currency, and sampleCount. Prefer over
+ * `CompanySalary` when you only need a teaser. Format ranges and multi-locale
+ * UI strings in the app.
+ */
+export type CompanySalarySummary = Schemas['CompanySalarySummary'];
+
+/**
  * A company's salary for one job category: the category's source + board-language
  * canonical slug, by-seniority vs the board-category baseline, and competitors in
  * the category. The category name is localized; the company name is not.

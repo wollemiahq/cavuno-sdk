@@ -643,6 +643,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/companies/{companySlug}/salaries/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieve a company's salary summary (profile teaser)
+         * @description A lightweight salary teaser for company profile / overview UIs: overall pay range numbers, top categories by sample size, currency, and sampleCount. No seniority table, competitors, locations, or logos — those stay on the full company salary document. Format currency ranges and multi-locale UI strings in the app; this response is structured numbers and board-language category names/slugs only. Static path `summary` is registered before the category slug route so it never collides with a category named `summary`.
+         */
+        get: operations["getBoardCompanySalarySummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/boards/{identifier}/companies/{companySlug}/salaries/{categorySlug}": {
         parameters: {
             query?: never;
@@ -3530,6 +3550,8 @@ export interface components {
             jobCount: number;
             /** @description Number of currently-published, non-expired jobs at this company. */
             publishedJobCount: number;
+            /** @description Number of jobs that contribute to this company's salary aggregates on the board (the salary sample size). `0` when there is no usable salary data — prefer this over fetching the full company-salary document just to decide whether to show a Salaries tab. Not the same as `publishedJobCount` (open roles without pay data stay at 0 here). */
+            salarySampleCount: number;
             links: components["schemas"]["PublicCompanyLinks"];
         };
         CompanyPublicDetail: components["schemas"]["CompanyPublic"] & {
@@ -3594,6 +3616,28 @@ export interface components {
             boardP75Min: number | null;
             boardP25Max: number | null;
             boardP75Max: number | null;
+            currency: string;
+        };
+        CompanySalarySummary: {
+            /** @enum {string} */
+            object: "company_salary_summary";
+            companyName: string;
+            companySlug: string;
+            overallSalary: {
+                avgMin: number;
+                avgMax: number;
+                jobCount: number;
+            } | null;
+            /** @description Top job categories at the company by sample size (capped; full list is on CompanySalary.byCategory). Category names/slugs are board-language localized. */
+            topCategories: {
+                categorySlug: string;
+                categoryName: string;
+                avgSalaryMin: number;
+                avgSalaryMax: number;
+                jobCount: number;
+            }[];
+            /** @description Jobs contributing to this company's salary aggregates (same meaning as CompanyPublic.salarySampleCount / overallSalary.jobCount). */
+            sampleCount: number;
             currency: string;
         };
         CompanySuggestion: {
@@ -7480,6 +7524,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CompanySalary"];
+                };
+            };
+            /** @description Public board or company not found, or no salary data. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getBoardCompanySalarySummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                /** @description URL slug of the company. */
+                companySlug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanySalarySummary"];
                 };
             };
             /** @description Public board or company not found, or no salary data. */
