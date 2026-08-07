@@ -30,6 +30,14 @@ const BOARD = {
   name: 'Acme Jobs',
   language: 'en',
   logoUrl: 'https://assets.example.com/board-logo.png',
+  icons: {
+    ico: null,
+    svg: null,
+    appleTouch: null,
+    icon192: null,
+    icon512: null,
+    iconMaskable512: null,
+  },
   primaryDomain: null,
   showCavunoBranding: true,
   features: {

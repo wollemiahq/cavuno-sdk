@@ -3,6 +3,30 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.2.0 — 2026-08-06
+
+- **Board logo + favicon pack on `board.context()`**: public board context now
+  includes `icons` next to `logoUrl` — absolute CDN URLs (or `null`) for
+  `ico`, `svg`, `appleTouch`, `icon192`, `icon512`, and `iconMaskable512`.
+  Derived from the operator logo (Settings → General upload / logo generator).
+  Brand identity, not SEO infra — `board.seo()` stays ads/IndexNow/GSV/
+  canonical/manifest.name only. Map `icons` into root-layout favicon `<link>`
+  tags. Operators set the logo in Cavuno; the API resolves the pack.
+- **Card `summary` on jobs, companies, and talent**: list/card models gain a
+  server-derived plain-text `summary: string | null` — HTML stripped, entities
+  decoded, cut at a sentence boundary (or word boundary with `…`). The API does
+  the data cleaning; consumers decide how much of the string to show.
+  - `PublicJobCard.summary` — denormalized at write time on
+    `publicJobCardDocs` (backfill migration
+    `jobs/migrations:backfillPublicJobCardSummary`). Independent of the
+    existing `?fields=+description` opt-in, which keeps working as before.
+  - `CompanyPublic.summary` — derived from `description` at serialization for
+    list, search, and similar. Detail still ships the full HTML body.
+  - `TalentDirectoryEntry.summary` — derived from `bio` at serialization.
+- **Deprecations** (still returned; prefer `summary` for card teasers):
+  - `CompanyPublic.description` on list/search/similar
+  - `TalentDirectoryEntry.bio`
+
 ## 4.1.0 — 2026-08-06
 
 - **Salary null-clears on job PATCH** (operator `PATCH /v1/jobs/:id` and
