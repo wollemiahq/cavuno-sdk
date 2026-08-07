@@ -3,6 +3,16 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.3.1 — 2026-08-07
+
+- **Public blog authors: `location` and `facebookUrl`**: list, retrieve, and
+  post-embedded author objects now include optional `location` (free-text
+  label, e.g. `"Sydney, Australia"`) and `facebookUrl` (normalized Facebook
+  profile URL). Both are `string | null` on the wire; omit empty UI when null.
+  Generated OpenAPI types and the `cavuno-board-blog` skill document the
+  fields. Operators set them in the Cavuno author form (or v1 author write
+  APIs).
+
 ## 4.3.0 — 2026-08-07
 
 - **`CompanyPublic.salarySampleCount`**: number of jobs that contribute to a
