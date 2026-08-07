@@ -4,4 +4,4 @@
  * constant because the package is platform-neutral and cannot read
  * package.json at runtime.
  */
-export const SDK_VERSION = '4.1.0'; //
+export const SDK_VERSION = '4.2.0'; //

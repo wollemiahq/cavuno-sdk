@@ -76,19 +76,20 @@ export function createBoardClient(options: CreateBoardClientOptions) {
     client,
 
     /**
-     * Board context — identity, language, features, and analytics.
+     * Board context — identity, brand (`logoUrl` + favicon `icons`), language,
+     * features, and analytics.
      *
      * @example
-     * const { name, language } = await board.context();
+     * const { name, language, logoUrl, icons } = await board.context();
      */
     context(options?: FetchOptions) {
       return client.fetch<PublicBoard>('', options);
     },
 
     /**
-     * Board SEO infra — `ads.txt`, IndexNow key, Google site-verification, and
-     * the canonical base URL. Rebuild `robots.txt` / `ads.txt` /
-     * `indexnow-key.txt` from it.
+     * Board SEO infra tokens — `ads.txt`, IndexNow key, Google site-verification,
+     * canonical base URL, and `manifest.name`. Favicon / app-icon URLs are
+     * brand identity on `board.context()` (`logoUrl` + `icons`).
      *
      * @example
      * const { adsTxt, canonicalBase } = await board.seo();
