@@ -26,7 +26,8 @@ const wait = (milliseconds) =>
 
 async function fetchPublished(url) {
   let lastError;
-  for (let attempt = 1; attempt <= 12; attempt += 1) {
+  const maxAttempts = 30;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
       const response = await fetch(url, { redirect: 'follow' });
       if (!response.ok) {
@@ -42,7 +43,7 @@ async function fetchPublished(url) {
       return Buffer.from(await response.arrayBuffer());
     } catch (error) {
       lastError = error;
-      if (attempt < 12) await wait(10_000);
+      if (attempt < maxAttempts) await wait(10_000);
     }
   }
   throw new Error(`CDN did not become ready: ${url}`, { cause: lastError });
