@@ -51,6 +51,8 @@
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
+  "unpkg": "./dist/browser/cavuno-board.global.min.js",
+  "jsdelivr": "./dist/browser/cavuno-board.global.min.js",
   "exports": {
     ".": {
       "import": {
@@ -203,14 +205,17 @@
     "clean": "git clean -xdf .turbo dist node_modules src/generated",
     "typecheck": "tsgo --noEmit && tsgo --noEmit -p tsconfig.node.json",
     "test": "vitest run",
-    "check:publish": "publint --strict && attw --pack . --profile node16 && node scripts/check-no-private-kit-types.mjs",
+    "test:browser": "node scripts/run-packed-browser-tests.mjs",
+    "check:publish": "publint --strict && attw --pack . --profile node16 && node scripts/check-no-private-kit-types.mjs && node scripts/check-browser-global.mjs && node scripts/check-esm-tree-shaking.mjs",
     "gen:skills-manifest": "tsx scripts/generate-skills-manifest.ts",
     "assert-publish-target": "node -e \"const p=require('./package.json'); if(p.name!=='@cavuno/board'){throw new Error('Refusing to publish: package.json name is '+p.name+', expected @cavuno/board')}; if(p.private){throw new Error('Refusing to publish: package.json has private:true')}\"",
     "prepublishOnly": "pnpm run assert-publish-target && pnpm run gen:skills-manifest && pnpm run build"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.2",
+    "@playwright/test": "^1.59.1",
     "@types/node": "24.9.1",
+    "esbuild": "^0.27.7",
     "publint": "^0.3.12",
     "tsup": "^8.4.0",
     "tsx": "^4.19.2",
