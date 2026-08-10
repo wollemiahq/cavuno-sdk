@@ -2,136 +2,130 @@
 
 Build custom job boards and careers pages with Cavuno’s TypeScript SDK.
 
-`@cavuno/board` is a typed, isomorphic client for the
-[Cavuno job board platform](https://cavuno.com) Board API. It has zero runtime
-dependencies and runs in browsers, Node.js 20 or newer, and Cloudflare Workers.
+`@cavuno/board` is the zero-dependency client for the Cavuno Board API. It
+runs in browsers, Node.js 20 or newer, and Cloudflare Workers, with TypeScript
+declarations generated from the API’s OpenAPI contract.
 
-You bring the framework and own the layout; the SDK brings the job board:
-jobs and search, companies, salaries, blog, board-user auth, saved jobs,
-applications, job alerts, messaging, employer self-service, checkout, and
-the candidate paywall — every method typed from the API's own OpenAPI
-contract.
+[Documentation](https://cavuno.com/docs/sdk) ·
+[Installing](https://cavuno.com/docs/sdk/installing) ·
+[SDK reference](https://cavuno.com/docs/sdk/reference) ·
+[API reference](https://cavuno.com/docs/api) ·
+[Source](https://github.com/wollemiahq/cavuno-sdk)
 
-## Building with a coding agent
+## Installation
 
-The package ships an Agent Skills corpus for Codex, Claude Code, Cursor, and
-other compatible coding agents. It teaches them how to wire a board correctly — client setup,
-auth and session ownership, pagination, gating, error handling, and a
-runtime smoke test:
-
-Install the latest skills directly from the public SDK repository:
+### Install as package
 
 ```bash
-npx skills add wollemiahq/cavuno-sdk --skill cavuno-board-setup
-# Or install the complete Cavuno skill set:
-npx skills add wollemiahq/cavuno-sdk --skill '*'
+npm install @cavuno/board
 ```
 
-For skills matched exactly to an installed SDK version, copy them from the
-package instead:
+The package includes ESM and CommonJS builds. ESM imports are tree-shakeable,
+and helper packages such as `@cavuno/board/format` can be imported separately.
 
-```bash
-npm install @cavuno/board     # or: pnpm add / yarn add / bun add
-npx @cavuno/board setup       # copies version-matched Agent Skills
-```
+### Install via CDN
 
-Then ask your agent: *"set up my Cavuno board"* — it reads the
-`cavuno-board-setup` skill and works surface by surface. Because the
-skills live in your project and match your installed version, the agent
-never works from stale docs.
+No package manager or build step? Follow the
+[CDN installation guide](https://cavuno.com/docs/sdk/installing/cdn)
+for a version-pinned build and its integrity hash. The CDN build is
+the same SDK downloaded as one file; package imports remain the recommended
+choice when they are available.
 
-## Quick start (by hand)
+See [Installing](https://cavuno.com/docs/sdk/installing) for every installation option.
+
+## Quick start
 
 ```ts
 import { createBoardClient } from '@cavuno/board';
 
 const board = createBoardClient({
-  board: process.env.PUBLIC_CAVUNO_BOARD!, // pk_… publishable key
+  board: 'pk_your_publishable_key',
 });
 
-const { name, language, features } = await board.context();
-const page = await board.jobs.list({ limit: 20 });
-const job = await board.jobs.retrieve('senior-chef');
+const [context, jobs] = await Promise.all([
+  board.context(),
+  board.jobs.list({ limit: 20 }),
+]);
 
-// Federated search-dropdown suggestions (companies, markets, taxonomy terms).
-const { items } = await board.search.suggest({
-  q: 'acme',
-  limit: 10,
-  types: ['company', 'skill'],
-});
-// Or the headless controller (debounce / abort / stale-drop built in):
-// import { createSuggestController } from '@cavuno/board/suggest';
-// const suggest = createSuggestController(board);
-// suggest.setQuery('acme');
+console.log(context.name);
+console.log(jobs.data);
 ```
 
-Every method accepts trailing `FetchOptions` — `signal`, `headers`, and
-framework caching directives (`next: { tags }`, `cf: {…}`) pass through to
-`fetch` untouched. Walk full catalogs with the async iterator:
+A `pk_…` key identifies a board and is public by design. Get it from
+**Settings → Developer → SDK** in Cavuno. The client connects to
+`https://api.cavuno.com` by default.
+
+The client exposes typed namespaces for jobs and search, companies, salaries,
+blog, board-user authentication, saved jobs, applications, job alerts,
+messaging, employer workflows, checkout, candidate access, and SEO data.
+
+## Handle errors
+
+Every non-2xx response throws a `BoardApiError` with the API status, code,
+details, and request ID.
 
 ```ts
-import { paginate } from '@cavuno/board';
+import { BoardApiError, isNotFound } from '@cavuno/board';
 
-// the query `limit` is the page size; toArray's `limit` caps items collected
-for await (const card of paginate(board.jobs.list, { limit: 100 })) {
-  urls.push(card.links.public);
+try {
+  await board.jobs.retrieve('missing-job');
+} catch (error) {
+  if (isNotFound(error)) {
+    // Render your application's not-found state.
+  } else if (error instanceof BoardApiError) {
+    console.error(error.code, error.requestId);
+  }
 }
-const first500 = await paginate(board.companies.list, { limit: 100 })
-  .toArray({ limit: 500 });
 ```
 
-Errors are typed — every non-2xx throws a `BoardApiError` carrying the full
-v1 envelope (`status`, `code`, `details`, `requestId`), with guards like
-`isNotFound`, `isRateLimited`, and `isBoardPasswordRequired`.
+See [Handle SDK errors](https://cavuno.com/docs/sdk/fundamentals/errors) for
+the complete error contract and guards.
 
-## Use without a build step
+## Authentication
 
-Static HTML and CMS templates can load the same SDK as one classic script:
+- A `pk_…` publishable key identifies the board and may be included in browser
+  code.
+- Candidate and employer sessions use `board.auth.*`. Choose browser storage
+  deliberately; server-rendered applications should keep sessions in their
+  own httpOnly cookies.
+- Operator and admin credentials must never be used with this SDK or exposed
+  to frontend code.
 
-```html
-<script
-  src="https://cdn.jsdelivr.net/npm/@cavuno/board@4.4.0/dist/browser/cavuno-board.global.min.js"
-  integrity="sha384-tyurP0K/LUeaFZGfebA3Wv8pHpBocjLTv9O2v9ees5wLH4KnehfhaqUyL0YvG8w7"
-  crossorigin="anonymous"
-></script>
-<script>
-  const board = CavunoBoard.createBoardClient({ board: 'pk_example' });
-  board.jobs.list({ limit: 20 }).then(({ data }) => console.log(data));
-</script>
+Read [Authentication and sessions](https://cavuno.com/docs/sdk/fundamentals/authentication-and-session-ownership)
+before adding signed-in workflows.
+
+## Make a request to a custom endpoint
+
+For an endpoint without a namespace method, `board.client.fetch<T>(path, init)`
+uses the same board base path, headers, bearer token, serialization, and hooks
+as the rest of the client. Treat the generic response type as your
+application’s assertion; custom responses are not generated from the public
+OpenAPI contract.
+
+See [`board.client.fetch()`](https://cavuno.com/docs/sdk/reference/top-level-methods#make-a-request-to-a-custom-endpoint)
+for options and examples.
+
+## Set up with a coding agent
+
+The package includes version-matched Agent Skills for Codex, Claude Code,
+Cursor, and other compatible coding agents:
+
+```bash
+npx @cavuno/board setup
 ```
 
-`CavunoBoard` contains the complete root client plus `format`, `filters`,
-`suggest`, `seo`, and `paths` namespaces. The global bundle is downloaded in
-full; keep using package ESM imports when types and tree-shaking matter. See
-the [no-build guide](https://cavuno.com/docs/sdk/getting-started/browser-global)
-for UNPKG, CSP, authentication storage, and self-hosting guidance.
+Then ask your agent to set up the Cavuno board using the installed
+`cavuno-board-setup` skill. See
+[Set up with an agent](https://cavuno.com/docs/sdk/installing/agent)
+for the review and verification workflow.
 
-## Auth model
+## Resources
 
-Three tiers, safe for browsers by construction:
-
-- **`pk_…` publishable key** — identifies the board; public by design.
-- **Board-user JWT** — candidate/employer sessions via `board.auth.*`.
-  Pluggable storage (`memory` in the browser, `nostore` on the server);
-  on SSR, keep the session in an httpOnly cookie your app owns and pass
-  the token per call. No auto-refresh on 401 — rotation is explicit.
-- **No secret keys** — operator/admin credentials never touch this SDK.
-
-## Escape hatch
-
-`board.client.fetch<T>(path, init)` sends a typed request through the full
-pipeline (board base path, headers, bearer token, hooks) for endpoints the
-SDK doesn't cover yet.
-
-## Docs
-
-- Cavuno: <https://cavuno.com>
-- SDK guides and reference: <https://cavuno.com/docs/sdk>
-- API documentation: <https://cavuno.com/docs/api>
-- OpenAPI document: `GET https://api.cavuno.com/v1/openapi.json`
-- Source: <https://github.com/wollemiahq/cavuno-sdk>
-- Issues: <https://github.com/wollemiahq/cavuno-sdk/issues>
-- Clone-and-own TanStack Start + shadcn/ui template:
-  <https://github.com/wollemiahq/cavuno-tanstack-start-shadcn-job-board-template>
+- [SDK guides and reference](https://cavuno.com/docs/sdk)
+- [Board API documentation](https://cavuno.com/docs/api)
+- [OpenAPI document](https://api.cavuno.com/v1/openapi.json)
+- [Source](https://github.com/wollemiahq/cavuno-sdk)
+- [Issues](https://github.com/wollemiahq/cavuno-sdk/issues)
+- [TanStack Start + shadcn/ui job board template](https://github.com/wollemiahq/cavuno-tanstack-start-shadcn-job-board-template)
 
 MIT © Wollemia

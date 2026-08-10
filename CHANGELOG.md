@@ -3,6 +3,13 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.4.1 — 2026-08-10
+
+- **SDK installation documentation**: The npm and GitHub README now presents
+  package installation as the recommended TypeScript SDK path, with CDN
+  installation as a separate option for static HTML and other no-build sites.
+  Links point to the canonical SDK installation guides on cavuno.com.
+
 ## 4.4.0 — 2026-08-10
 
 - **Classic-script browser build**: `@cavuno/board` now ships a dependency-free
