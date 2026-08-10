@@ -97,6 +97,13 @@ jobs:
         if: steps.release.outputs.publish == 'true'
         run: npm publish
 
+      - name: Install dependencies for distribution verification
+        if: steps.release.outputs.publish == 'false'
+        run: pnpm install --frozen-lockfile
+
+      - name: Build for distribution verification
+        if: steps.release.outputs.publish == 'false'
+        run: pnpm build
+
       - name: Verify CDN distribution
-        if: steps.release.outputs.publish == 'true'
         run: node scripts/verify-browser-cdns.mjs

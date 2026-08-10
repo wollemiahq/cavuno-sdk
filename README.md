@@ -84,6 +84,28 @@ Errors are typed — every non-2xx throws a `BoardApiError` carrying the full
 v1 envelope (`status`, `code`, `details`, `requestId`), with guards like
 `isNotFound`, `isRateLimited`, and `isBoardPasswordRequired`.
 
+## Use without a build step
+
+Static HTML and CMS templates can load the same SDK as one classic script:
+
+```html
+<script
+  src="https://cdn.jsdelivr.net/npm/@cavuno/board@4.4.0/dist/browser/cavuno-board.global.min.js"
+  integrity="sha384-tyurP0K/LUeaFZGfebA3Wv8pHpBocjLTv9O2v9ees5wLH4KnehfhaqUyL0YvG8w7"
+  crossorigin="anonymous"
+></script>
+<script>
+  const board = CavunoBoard.createBoardClient({ board: 'pk_example' });
+  board.jobs.list({ limit: 20 }).then(({ data }) => console.log(data));
+</script>
+```
+
+`CavunoBoard` contains the complete root client plus `format`, `filters`,
+`suggest`, `seo`, and `paths` namespaces. The global bundle is downloaded in
+full; keep using package ESM imports when types and tree-shaking matter. See
+the [no-build guide](https://cavuno.com/docs/sdk/getting-started/browser-global)
+for UNPKG, CSP, authentication storage, and self-hosting guidance.
+
 ## Auth model
 
 Three tiers, safe for browsers by construction:
