@@ -49,6 +49,27 @@ export default defineConfig([
     sourcemap: false,
     minify: false,
   },
+  // Browser-global build for classic <script> consumers. This is a separate,
+  // self-contained artifact: npm consumers continue to use the tree-shakeable
+  // ESM entries above, while static HTML gets one stable CavunoBoard global.
+  {
+    entry: {
+      'browser/cavuno-board.global.min': 'src/browser-global.ts',
+    },
+    format: ['iife'],
+    globalName: 'CavunoBoard',
+    platform: 'browser',
+    target: 'es2020',
+    outDir: 'dist',
+    // tsup otherwise appends `.global.js` for IIFE output. The published CDN
+    // URL is an explicit, stable `.js` path.
+    outExtension: () => ({ js: '.js' }),
+    clean: false,
+    splitting: false,
+    dts: false,
+    sourcemap: false,
+    minify: true,
+  },
   // Types-only manifest shapes for the `./skills/types` subpath export —
   // isomorphic, no imports at all. A dedicated subpath is deliberate: the
   // remote-mcp worker's tsc program cannot type-check either `./skills`

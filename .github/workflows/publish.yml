@@ -8,6 +8,10 @@ on:
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'src/**'
+      - 'browser-tests/**'
+      - 'scripts/**'
+      - 'playwright.browser.config.mjs'
+      - 'tsup.config.ts'
       - 'skills/**'
       - 'CHANGELOG.md'
   workflow_dispatch:
@@ -81,6 +85,18 @@ jobs:
         if: steps.release.outputs.publish == 'true'
         run: pnpm check:publish
 
+      - name: Install browser engines
+        if: steps.release.outputs.publish == 'true'
+        run: pnpm exec playwright install --with-deps chromium firefox webkit
+
+      - name: Test classic-script distribution
+        if: steps.release.outputs.publish == 'true'
+        run: pnpm test:browser
+
       - name: Publish
         if: steps.release.outputs.publish == 'true'
         run: npm publish
+
+      - name: Verify CDN distribution
+        if: steps.release.outputs.publish == 'true'
+        run: node scripts/verify-browser-cdns.mjs

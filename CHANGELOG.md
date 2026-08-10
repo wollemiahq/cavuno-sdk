@@ -3,6 +3,21 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.4.0 — 2026-08-10
+
+- **Classic-script browser build**: `@cavuno/board` now ships a dependency-free
+  ES2020 IIFE at `dist/browser/cavuno-board.global.min.js` for static HTML,
+  CMS, and other no-build integrations. It installs `globalThis.CavunoBoard`
+  with the complete root client plus the browser-safe `format`, `filters`,
+  `suggest`, `seo`, and `paths` namespaces. Existing ESM and CommonJS entries
+  are unchanged; use ESM subpaths when tree-shaking matters. Production script
+  tags should pin 4.4.0 exactly and use the release SHA-384 integrity value.
+- **Automation job lifecycle events**: Zapier exposes separate job-created,
+  job-updated, and job-deleted triggers. Created and updated events carry the
+  allowlisted job snapshot, including HTML `description` and the public job
+  `url`; deleted events carry the minimal tombstone required to remove a
+  downstream copy.
+
 ## 4.3.1 — 2026-08-07
 
 - **Public blog authors: `location` and `facebookUrl`**: list, retrieve, and
