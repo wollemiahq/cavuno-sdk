@@ -92,6 +92,34 @@ function formatAmount(
 }
 
 /**
+ * Locale range join when the engine has `formatRange` (Chrome 106+,
+ * Safari 15.4+, Firefox 91+). Older engines construct `NumberFormat` but
+ * omit the method — calling it throws TypeError and takes down the job
+ * card. Fall back to two `format()` calls joined with an en-dash so the
+ * amounts stay locale-correct.
+ *
+ * Exported for `formatSalaryStatRange` (same engine gap, separate cache).
+ */
+export function formatNumberRange(
+  formatter: Intl.NumberFormat,
+  min: number,
+  max: number,
+): string | null {
+  if (typeof formatter.formatRange === 'function') {
+    try {
+      return formatter.formatRange(min, max);
+    } catch {
+      // Compact + currency ranges throw on some engines that advertise the method.
+    }
+  }
+  try {
+    return `${formatter.format(min)}\u2013${formatter.format(max)}`;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Range of two amounts via `Intl.NumberFormat.prototype.formatRange` so the
  * locale owns separator, whether the currency/magnitude is repeated, and
  * bidi marks (ja `～`, de tight en-dash, ar RTL-safe join).
@@ -130,7 +158,7 @@ function formatRange(
   }
 
   if (!formatter) return null;
-  return formatter.formatRange(min, max);
+  return formatNumberRange(formatter, min, max);
 }
 
 const SALARY_TIMEFRAMES: ReadonlySet<SalaryTimeframeValue> = new Set([
