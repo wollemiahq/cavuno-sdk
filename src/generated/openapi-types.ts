@@ -5083,6 +5083,8 @@ export interface components {
             salaryCurrency: string | null;
             salaryTimeframe: string | null;
             isFeatured: boolean;
+            /** @description True when this listing is a Forager CPC / partner-feed ad persisted on the board. */
+            isSponsored: boolean;
             /** @description Plain-text card teaser derived from the job description (HTML stripped, first sentence / word-boundary cut). `null` when there is nothing honest to show. Always present — independent of the `?fields=+description` opt-in for the long-form HTML body. Prefer this over requesting `+description` for list/card renders. */
             summary: string | null;
             locationLabel: string | null;
