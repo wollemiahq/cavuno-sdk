@@ -250,6 +250,34 @@ describe('formatSalaryRange', () => {
     });
   });
 
+  it('still formats a range when Intl.NumberFormat.formatRange is missing', () => {
+    // Chrome <106 / Safari <15.4 / older WebViews construct NumberFormat
+    // but have no formatRange. SharedJobCard calls this on the client;
+    // an uncaught TypeError takes down the page (client_ouch).
+    const proto = Intl.NumberFormat.prototype;
+    const original = proto.formatRange;
+    Object.defineProperty(proto, 'formatRange', {
+      value: undefined,
+      configurable: true,
+      writable: true,
+    });
+    try {
+      expect(
+        formatSalaryRange('en', 90000, 120000, 'per_year', 'USD'),
+      ).toEqual({
+        text: '$90K–$120K',
+        timeframe: 'per_year',
+        bound: 'range',
+      });
+    } finally {
+      Object.defineProperty(proto, 'formatRange', {
+        value: original,
+        configurable: true,
+        writable: true,
+      });
+    }
+  });
+
   it('swaps inverted bounds so the range reads low→high', () => {
     // Transposed min/max columns still carry a real salary; dropping the
     // figure (null) would hide pay from job seekers. ICU formatRange does

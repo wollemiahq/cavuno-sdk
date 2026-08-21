@@ -146,6 +146,29 @@ export type UpdateEmployerCompanyBody = Schemas['UpdateEmployerCompanyBody'];
 export type SendWorkEmailBody = Schemas['SendWorkEmailBody'];
 export type ConfirmWorkEmailBody = Schemas['ConfirmWorkEmailBody'];
 
+/** Body for `board.me.updatePassword`. */
+export type UpdatePasswordBody = Schemas['UpdatePasswordBody'];
+/** Body for `board.me.requestEmailChange`. */
+export type RequestEmailChangeBody = Schemas['RequestEmailChangeBody'];
+/** Body for `board.me.confirmEmailChange`. */
+export type ConfirmEmailChangeBody = Schemas['ConfirmEmailChangeBody'];
+/** One approved company member from `board.me.companies.listMembers`. */
+export type CompanyMember = Schemas['CompanyMember'];
+/** Body for `board.me.companies.updateMemberRole`. */
+export type UpdateCompanyMemberRoleBody =
+  Schemas['UpdateCompanyMemberRoleBody'];
+/** One pending company member invite from `board.me.companies.listInvites`. */
+export type CompanyMemberInvite = Schemas['CompanyMemberInvite'];
+/** Body for `board.me.companies.createInvite`. */
+export type CreateCompanyMemberInviteBody =
+  Schemas['CreateCompanyMemberInviteBody'];
+/** Result of `board.me.acceptInvite`. */
+export type CompanyMemberInviteAcceptance =
+  Schemas['CompanyMemberInviteAcceptance'];
+/** Body for `board.me.acceptInvite`. */
+export type AcceptCompanyMemberInviteBody =
+  Schemas['AcceptCompanyMemberInviteBody'];
+
 /**
  * The viewer's per-employer talent entitlement from
  * `board.me.talentAccess.retrieve` — the talent-CTA signal (sourced from the
