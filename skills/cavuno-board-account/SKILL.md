@@ -7,7 +7,7 @@ description: Candidate self-service boundary with @cavuno/board. Use for account
 
 Signed-in candidate data lives under `board.me`. Browser calls use the bearer token in `auth.storage`; server calls pass it per request in `options.headers`. See `cavuno-board-auth` for cookie-based server sessions.
 
-The only anonymous method here is token-based email unsubscribe. Applications, employer companies, messaging, and alerts have their own skills.
+Anonymous methods here are token-based email unsubscribe and email-change confirm (`confirmEmailChange`). Applications, employer companies, messaging, and alerts have their own skills.
 
 The host application owns forms, file pickers, and cookie plumbing; this SDK surface supplies data operations.
 
@@ -15,9 +15,19 @@ The host application owns forms, file pickers, and cookie plumbing; this SDK sur
 
 Account deletion is a synchronous, irreversible cascade over the profile, collections, saved jobs, alerts, avatar, and resume. Obtain explicit confirmation before calling it.
 
+Change the password with the current password. The SDK persists the returned session so the caller stays signed in. Passwordless accounts (magic-link or OAuth) get `no_password` — send them through `auth.forgotPassword` instead.
+
 ```ts snippet
 const me = await board.me.retrieve();
 await board.me.delete();
+
+await board.me.updatePassword({
+  currentPassword: 'oldpass99',
+  newPassword: 'newpass99',
+});
+
+await board.me.requestEmailChange({ email: 'new@example.com' });
+await board.me.confirmEmailChange({ token });
 
 const profile = await board.me.profile.retrieve();
 await board.me.profile.update({

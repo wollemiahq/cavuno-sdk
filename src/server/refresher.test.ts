@@ -26,6 +26,7 @@ const ROTATED_WIRE: BoardAuthSession = {
     email: 'a@b.com',
     displayName: 'Ada',
     emailVerified: true,
+    hasPassword: true,
     createdAt: '2026-01-01T00:00:00.000Z',
   } as BoardAuthSession['boardUser'],
 };

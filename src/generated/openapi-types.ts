@@ -1453,7 +1453,11 @@ export interface paths {
         get: operations["getBoardMeCompany"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete my company
+         * @description Admin-gated employer company delete: soft-delete cascade, Forager exclusion, and operator notification. Requires an approved admin membership. Disabled boards return 403 `company_deletion_disabled`. Never cached.
+         */
+        delete: operations["deleteBoardMeCompany"];
         options?: never;
         head?: never;
         /**
@@ -1602,6 +1606,50 @@ export interface paths {
          * @description Withdraw the caller’s pending claim on `:slug`.
          */
         delete: operations["deleteBoardMeCompanyClaim"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/me/companies/{slug}/invites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List pending company member invites
+         * @description Pending invites for a company the caller is an approved member of. Never cached.
+         */
+        get: operations["listBoardMeCompanyInvites"];
+        put?: never;
+        /**
+         * Create a company member invite
+         * @description Invite an email to join the company as a member. Admin-only. Never cached.
+         */
+        post: operations["createBoardMeCompanyInvite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/me/companies/{slug}/invites/{inviteId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke a company member invite
+         * @description Revoke a pending invite. Admin-only. Non-pending or missing invites return 404 `employer_invite_not_found`.
+         */
+        delete: operations["deleteBoardMeCompanyInvite"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1774,6 +1822,70 @@ export interface paths {
          */
         post: operations["createBoardMeCompanyLogo"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/me/companies/{slug}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List company members
+         * @description Approved members of a company the caller is an approved member of. Never cached.
+         */
+        get: operations["listBoardMeCompanyMembers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/me/companies/{slug}/members/{memberId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove a company member
+         * @description Remove an approved member. Admin-only. Removing the last admin returns 409 `last_admin`.
+         */
+        delete: operations["deleteBoardMeCompanyMember"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a company member role
+         * @description Set a member’s role to `admin` or `member`. Admin-only. Demoting the last admin returns 409 `last_admin`.
+         */
+        patch: operations["updateBoardMeCompanyMember"];
+        trace?: never;
+    };
+    "/boards/{identifier}/me/companies/{slug}/membership": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Leave a company
+         * @description Delete the caller’s approved membership of `:slug`. Leaving as the last admin returns 409 `last_admin`.
+         */
+        delete: operations["deleteBoardMeCompanyMembership"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2127,6 +2239,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/me/email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request an email change
+         * @description Start an email change for the authenticated board user. A verification link is mailed to the NEW address; the email swaps only after `POST /me/email/confirm`. 204 on accept. `same_email` when the address is already yours; `email_taken` when another user on this board already has it. Never cached.
+         */
+        post: operations["createBoardMeEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/me/email/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm an email change
+         * @description Token-action (no session): consume the `email_change` token from the verification email, swap the board user’s email, mark it verified, and send a security notice to the OLD address. Sessions stay (identity unchanged). Every rejection is 400 `invalid_token` except a race where the address was taken (`email_taken`).
+         */
+        post: operations["confirmBoardMeEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/me/invites/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept a company member invite
+         * @description Accept a company member invite for the authenticated board user. Session-gated (not a public token-action). Never cached.
+         */
+        post: operations["acceptBoardMeInvites"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/boards/{identifier}/me/marketing-consent": {
         parameters: {
             query?: never;
@@ -2269,6 +2441,26 @@ export interface paths {
          * @description Anonymous one-click unsubscribe (`/settings?u=&c=&t=` branch). The HMAC token bound to `(boardUserId, channel)` authorizes the flip: no session. Idempotent. Never cached.
          */
         post: operations["unsubscribeBoardMeNotificationPreferences"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/me/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change my password
+         * @description Set a new password for the authenticated board user. Requires the current password. Passwordless accounts (magic-link / OAuth) receive 400 `no_password` and should use `POST /auth/forgot-password` to set one. On success `authVersion` bumps (killing every other session) and this caller receives a fresh bearer pair so the SDK stays signed in. Never cached.
+         */
+        post: operations["createBoardMePassword"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3101,6 +3293,9 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AcceptCompanyMemberInviteBody: {
+            token: string;
+        };
         AccessCheckoutBody: {
             /**
              * @description The offer tier to purchase (from `GET /paywall/offers/enabled`).
@@ -3363,6 +3558,8 @@ export interface components {
             email: string;
             displayName: string | null;
             emailVerified: boolean;
+            /** @description Whether the account has a password credential. False for OAuth/magic-link-only accounts; frontends use it to offer change-password vs set-password (the set flow is POST /auth/forgot-password). */
+            hasPassword: boolean;
         };
         BulkMoveApplicantsBody: {
             applicationIds: string[];
@@ -3504,6 +3701,34 @@ export interface components {
             name: string;
             /** @description Source slug for the market. Use it as the `:market` segment of the market-scoped company browse. */
             slug: string;
+        };
+        CompanyMember: {
+            id: string;
+            /** @enum {string} */
+            object: "company_member";
+            boardUserId: string;
+            displayName: string | null;
+            email: string;
+            /** @enum {string} */
+            role: "admin" | "member";
+            approvedBy: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        CompanyMemberInvite: {
+            id: string;
+            /** @enum {string} */
+            object: "company_member_invite";
+            email: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        CompanyMemberInviteAcceptance: {
+            /** @enum {string} */
+            object: "company_member_invite_acceptance";
+            companySlug: string;
         };
         CompanyMembership: {
             id: string;
@@ -3659,6 +3884,9 @@ export interface components {
             /** @description Live published-job count for this company on the board. */
             jobCount: number;
         };
+        ConfirmEmailChangeBody: {
+            token: string;
+        };
         ConfirmWorkEmailBody: {
             token: string;
         };
@@ -3718,6 +3946,10 @@ export interface components {
             name: string;
             /** @description URL-friendly slug for the company. Auto-generated from `name` when omitted. */
             slug?: string;
+        };
+        CreateCompanyMemberInviteBody: {
+            /** Format: email */
+            email: string;
         };
         CreateEducationBody: {
             institutionName: string;
@@ -5083,6 +5315,8 @@ export interface components {
             salaryCurrency: string | null;
             salaryTimeframe: string | null;
             isFeatured: boolean;
+            /** @description True when this listing is a Forager CPC / partner-feed ad persisted on the board. */
+            isSponsored: boolean;
             /** @description Plain-text card teaser derived from the job description (HTML stripped, first sentence / word-boundary cut). `null` when there is nothing honest to show. Always present — independent of the `?fields=+description` opt-in for the long-form HTML body. Prefer this over requesting `+description` for list/card renders. */
             summary: string | null;
             locationLabel: string | null;
@@ -5254,6 +5488,10 @@ export interface components {
             /** @enum {string} */
             reason: "spam" | "harassment" | "misrepresentation" | "other";
             freeText?: string;
+        };
+        RequestEmailChangeBody: {
+            /** Format: email */
+            email: string;
         };
         Resume: {
             /** @enum {string} */
@@ -5831,6 +6069,10 @@ export interface components {
             jobSearchStatusVisibleTo?: "everyone" | "employers_only";
             openToRelocate?: boolean;
         };
+        UpdateCompanyMemberRoleBody: {
+            /** @enum {string} */
+            role: "admin" | "member";
+        };
         UpdateEducationBody: {
             institutionName?: string;
             institutionUrl?: string;
@@ -5875,6 +6117,11 @@ export interface components {
             /** @enum {string} */
             channel: "messageEmails" | "applicationEmails";
             subscribed: boolean;
+        };
+        UpdatePasswordBody: {
+            currentPassword: string;
+            /** @description Minimum 8 characters. */
+            newPassword: string;
         };
         UpdatePipelineStageBody: {
             label?: string;
@@ -10368,6 +10615,64 @@ export interface operations {
             };
         };
     };
+    deleteBoardMeCompany: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Company deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing/invalid/expired access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not a company admin (`not_company_admin`) or deletion disabled (`company_deletion_disabled`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board, or company (`employer_company_not_found`), not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     updateBoardMeCompany: {
         parameters: {
             query?: never;
@@ -10987,6 +11292,205 @@ export interface operations {
                 };
             };
             /** @description Board, or no pending claim (`employer_company_not_found`), not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listBoardMeCompanyInvites: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pending invites. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        object: "list";
+                        url: string;
+                        hasMore: boolean;
+                        nextCursor: string | null;
+                        data: components["schemas"]["CompanyMemberInvite"][];
+                    };
+                };
+            };
+            /** @description Missing/invalid/expired access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not an approved member (`not_company_member`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board, or company (`employer_company_not_found`), not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createBoardMeCompanyInvite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCompanyMemberInviteBody"];
+            };
+        };
+        responses: {
+            /** @description Pending invite created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyMemberInvite"];
+                };
+            };
+            /** @description Already a member (`already_member`), already invited (`already_invited`), invalid email (`invalid_email`), or validation failed. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing/invalid/expired access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not a company admin (`not_company_admin`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board, or company (`employer_company_not_found`), not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    deleteBoardMeCompanyInvite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                slug: string;
+                inviteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Invite revoked. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing/invalid/expired access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not a company admin (`not_company_admin`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board, company (`employer_company_not_found`), or invite (`employer_invite_not_found`) not found. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -11768,6 +12272,289 @@ export interface operations {
             };
             /** @description Unsupported image type (`media_unsupported_type`). */
             415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listBoardMeCompanyMembers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Approved members. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        object: "list";
+                        url: string;
+                        hasMore: boolean;
+                        nextCursor: string | null;
+                        data: components["schemas"]["CompanyMember"][];
+                    };
+                };
+            };
+            /** @description Missing/invalid/expired access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not an approved member (`not_company_member`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board, or company (`employer_company_not_found`), not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    deleteBoardMeCompanyMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                slug: string;
+                memberId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Member removed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing/invalid/expired access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not a company admin (`not_company_admin`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board, company (`employer_company_not_found`), or member (`employer_member_not_found`) not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Last admin (`last_admin`). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateBoardMeCompanyMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                slug: string;
+                memberId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateCompanyMemberRoleBody"];
+            };
+        };
+        responses: {
+            /** @description Role updated. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation failed. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing/invalid/expired access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not a company admin (`not_company_admin`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board, company (`employer_company_not_found`), or member (`employer_member_not_found`) not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Last admin (`last_admin`). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    deleteBoardMeCompanyMembership: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Membership deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing/invalid/expired access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not an approved member (`not_company_member`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board, or company (`employer_company_not_found`), not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Last admin (`last_admin`). */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -13038,6 +13825,200 @@ export interface operations {
             };
         };
     };
+    createBoardMeEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestEmailChangeBody"];
+            };
+        };
+        responses: {
+            /** @description Verification email sent to the new address. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Already your address (`same_email`), in use (`email_taken`), or validation failed. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing/invalid (`board_auth_invalid_token`) or expired access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Token was issued for a different board. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited (`rate_limited`). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    confirmBoardMeEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmEmailChangeBody"];
+            };
+        };
+        responses: {
+            /** @description Email changed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid/expired/used token (`invalid_token`) or the address was taken (`email_taken`). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited (`rate_limited`): 10 requests per minute per IP, plus 5 attempts per 15 minutes per IP. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    acceptBoardMeInvites: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcceptCompanyMemberInviteBody"];
+            };
+        };
+        responses: {
+            /** @description Invite accepted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyMemberInviteAcceptance"];
+                };
+            };
+            /** @description Invalid/expired/used token (`invalid_token`) or validation failed. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing/invalid (`board_auth_invalid_token`) or expired access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Invite was sent to a different email (`invite_email_mismatch`) or the caller is a candidate (`candidate_role`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited (`rate_limited`). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     listBoardMeMarketingConsent: {
         parameters: {
             query?: never;
@@ -13609,6 +14590,78 @@ export interface operations {
             };
             /** @description Board not found. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createBoardMePassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePasswordBody"];
+            };
+        };
+        responses: {
+            /** @description Password updated; fresh bearer pair for this caller. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BoardAuthSession"];
+                };
+            };
+            /** @description Wrong current password (`invalid_current_password`), passwordless account (`no_password`), or validation failed (`validation_bad_request`). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing/invalid (`board_auth_invalid_token`) or expired access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Token was issued for a different board. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited (`rate_limited`): 10 requests per minute per IP, plus 5 attempts per 15 minutes per board user. */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };

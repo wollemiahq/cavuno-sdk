@@ -102,7 +102,8 @@ const index = itemListJsonLd([
 - `formatSalaryStat(locale, value, currency, notation?)` /
   `formatSalaryStatRange(locale, min, max, currency, notation?)` for
   salary-page amounts (currency from the detail, not hardcoded USD;
-  `formatRange` owns the join). `notation` matches `formatSalaryRange`
+  `formatRange` owns the join when present, else two `format()` calls
+  joined with an en-dash). `notation` matches `formatSalaryRange`
   (magnitude default when omitted; pass `'standard'` for full figures).
   Returns `null` when currency is empty or `Intl` rejects inputs.
 - `SENIORITY_ORDER` / `sortBySeniority` for seniority ladder ordering

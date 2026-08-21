@@ -3,6 +3,27 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.5.0 — 2026-08-21
+
+- **Board-user account self-service**: signed-in board users manage their own
+  account over the API. New `board.me` verbs and `/v1/boards/{identifier}/me/*`
+  endpoints: `updatePassword`, `requestEmailChange` / `confirmEmailChange`
+  (verify-then-switch), and account deletion. The `board_user` resource now
+  exposes `hasPassword` so headless frontends can decide between change-password
+  and set-password flows.
+- **Company team management**: `board.me.companies` gains members and invites —
+  list members, change a member's role (`admin` / `member`), remove a member,
+  create / list / revoke email invites (7-day links), accept an invite, and
+  `leave(slug)` (`DELETE .../me/companies/{slug}/membership`). A company always
+  keeps at least one admin: the API answers `409 last_admin` when an action
+  would strand it.
+- **Analytics**: apply-clicks and job-visitors reporting can group by
+  first-touch channel, and apply-click rows carry `jobSlug`.
+- **Company blocklist**: endpoints for blocking a company from automated
+  sourcing so imports and aggregation cannot reintroduce it.
+- **Fix**: salary formatting falls back cleanly when the runtime lacks
+  `Intl.NumberFormat.formatRange`.
+
 ## 4.4.1 — 2026-08-10
 
 - **SDK installation documentation**: The npm and GitHub README now presents

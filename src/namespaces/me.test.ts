@@ -1,7 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createBoardClient } from '../index';
-import { ACCESS_TOKEN_KEY, resolveStorage } from '../storage';
+import {
+  ACCESS_TOKEN_KEY,
+  REFRESH_TOKEN_KEY,
+  resolveStorage,
+} from '../storage';
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -42,6 +46,63 @@ describe('board.me', () => {
     expect(spy.mock.calls[0]![0]).toBe(`${BASE}/me`);
     const headers = spy.mock.calls[0]![1]!.headers as Headers;
     expect(headers.get('authorization')).toBe('Bearer jwt');
+  });
+
+  it('updatePassword POSTs /me/password and persists the returned session', async () => {
+    const session = {
+      object: 'board_auth_session',
+      accessToken: 'new-access',
+      refreshToken: 'new-refresh',
+      expiresAt: 1765432100000,
+      boardUser: {
+        id: 'user_1',
+        object: 'board_user',
+        role: 'candidate',
+        email: 'a@b.com',
+        displayName: 'A',
+        emailVerified: false,
+      },
+    };
+    const spy = stubFetch(jsonResponse(session));
+    const board = await makeAuthedBoard();
+    const returned = await board.me.updatePassword({
+      currentPassword: 'oldpass99',
+      newPassword: 'newpass99',
+    });
+    expect(spy.mock.calls[0]![0]).toBe(`${BASE}/me/password`);
+    expect(spy.mock.calls[0]![1]!.method).toBe('POST');
+    expect(spy.mock.calls[0]![1]!.body).toBe(
+      '{"currentPassword":"oldpass99","newPassword":"newpass99"}',
+    );
+    expect(returned).toEqual(session);
+    expect(await board.client.storage.getItem(ACCESS_TOKEN_KEY)).toBe(
+      'new-access',
+    );
+    expect(await board.client.storage.getItem(REFRESH_TOKEN_KEY)).toBe(
+      'new-refresh',
+    );
+  });
+
+  it('requestEmailChange POSTs /me/email', async () => {
+    const spy = stubFetch(() => new Response(null, { status: 204 }));
+    const board = await makeAuthedBoard();
+    await expect(
+      board.me.requestEmailChange({ email: 'new@example.com' }),
+    ).resolves.toBeUndefined();
+    expect(spy.mock.calls[0]![0]).toBe(`${BASE}/me/email`);
+    expect(spy.mock.calls[0]![1]!.method).toBe('POST');
+    expect(spy.mock.calls[0]![1]!.body).toBe('{"email":"new@example.com"}');
+  });
+
+  it('confirmEmailChange POSTs /me/email/confirm without requiring a session', async () => {
+    const spy = stubFetch(() => new Response(null, { status: 204 }));
+    const board = await makeAuthedBoard();
+    await expect(
+      board.me.confirmEmailChange({ token: 'tok' }),
+    ).resolves.toBeUndefined();
+    expect(spy.mock.calls[0]![0]).toBe(`${BASE}/me/email/confirm`);
+    expect(spy.mock.calls[0]![1]!.method).toBe('POST');
+    expect(spy.mock.calls[0]![1]!.body).toBe('{"token":"tok"}');
   });
 
   it('profile.retrieve GETs /me/profile with the bearer token', async () => {
@@ -346,6 +407,98 @@ describe('board.me', () => {
     expect(spy.mock.calls[0]![0]).toBe(`${BASE}/me/companies/acme`);
     expect(spy.mock.calls[0]![1]!.method).toBe('PATCH');
     expect(spy.mock.calls[0]![1]!.body).toBe('{"website":"acme.io"}');
+  });
+
+  it('companies.delete DELETEs /me/companies/:slug and resolves void on 204', async () => {
+    const spy = stubFetch(() => new Response(null, { status: 204 }));
+    const board = await makeAuthedBoard();
+    await expect(board.me.companies.delete('acme')).resolves.toBeUndefined();
+    expect(spy.mock.calls[0]![0]).toBe(`${BASE}/me/companies/acme`);
+    expect(spy.mock.calls[0]![1]!.method).toBe('DELETE');
+  });
+
+  it('companies.listMembers GETs /me/companies/:slug/members', async () => {
+    const spy = stubFetch(jsonResponse({ object: 'list', data: [] }));
+    const board = await makeAuthedBoard();
+    await board.me.companies.listMembers('acme');
+    expect(spy.mock.calls[0]![0]).toBe(`${BASE}/me/companies/acme/members`);
+  });
+
+  it('companies.updateMemberRole PATCHes /me/companies/:slug/members/:id', async () => {
+    const spy = stubFetch(() => new Response(null, { status: 204 }));
+    const board = await makeAuthedBoard();
+    await expect(
+      board.me.companies.updateMemberRole('acme', 'mem_1', { role: 'admin' }),
+    ).resolves.toBeUndefined();
+    expect(spy.mock.calls[0]![0]).toBe(
+      `${BASE}/me/companies/acme/members/mem_1`,
+    );
+    expect(spy.mock.calls[0]![1]!.method).toBe('PATCH');
+    expect(spy.mock.calls[0]![1]!.body).toBe('{"role":"admin"}');
+  });
+
+  it('companies.removeMember DELETEs /me/companies/:slug/members/:id', async () => {
+    const spy = stubFetch(() => new Response(null, { status: 204 }));
+    const board = await makeAuthedBoard();
+    await expect(
+      board.me.companies.removeMember('acme', 'mem_1'),
+    ).resolves.toBeUndefined();
+    expect(spy.mock.calls[0]![0]).toBe(
+      `${BASE}/me/companies/acme/members/mem_1`,
+    );
+    expect(spy.mock.calls[0]![1]!.method).toBe('DELETE');
+  });
+
+  it('companies.leave DELETEs /me/companies/:slug/membership and resolves void on 204', async () => {
+    const spy = stubFetch(() => new Response(null, { status: 204 }));
+    const board = await makeAuthedBoard();
+    await expect(board.me.companies.leave('acme')).resolves.toBeUndefined();
+    expect(spy.mock.calls[0]![0]).toBe(
+      `${BASE}/me/companies/acme/membership`,
+    );
+    expect(spy.mock.calls[0]![1]!.method).toBe('DELETE');
+  });
+
+  it('companies.listInvites GETs /me/companies/:slug/invites', async () => {
+    const spy = stubFetch(jsonResponse({ object: 'list', data: [] }));
+    const board = await makeAuthedBoard();
+    await board.me.companies.listInvites('acme');
+    expect(spy.mock.calls[0]![0]).toBe(`${BASE}/me/companies/acme/invites`);
+  });
+
+  it('companies.createInvite POSTs { email }', async () => {
+    const spy = stubFetch(jsonResponse({ object: 'company_member_invite' }));
+    const board = await makeAuthedBoard();
+    await board.me.companies.createInvite('acme', { email: 'ada@acme.test' });
+    expect(spy.mock.calls[0]![0]).toBe(`${BASE}/me/companies/acme/invites`);
+    expect(spy.mock.calls[0]![1]!.method).toBe('POST');
+    expect(spy.mock.calls[0]![1]!.body).toBe('{"email":"ada@acme.test"}');
+  });
+
+  it('companies.revokeInvite DELETEs /me/companies/:slug/invites/:id', async () => {
+    const spy = stubFetch(() => new Response(null, { status: 204 }));
+    const board = await makeAuthedBoard();
+    await expect(
+      board.me.companies.revokeInvite('acme', 'inv_1'),
+    ).resolves.toBeUndefined();
+    expect(spy.mock.calls[0]![0]).toBe(
+      `${BASE}/me/companies/acme/invites/inv_1`,
+    );
+    expect(spy.mock.calls[0]![1]!.method).toBe('DELETE');
+  });
+
+  it('acceptInvite POSTs /me/invites/accept', async () => {
+    const spy = stubFetch(
+      jsonResponse({
+        object: 'company_member_invite_acceptance',
+        companySlug: 'acme',
+      }),
+    );
+    const board = await makeAuthedBoard();
+    await board.me.acceptInvite({ token: 'tok' });
+    expect(spy.mock.calls[0]![0]).toBe(`${BASE}/me/invites/accept`);
+    expect(spy.mock.calls[0]![1]!.method).toBe('POST');
+    expect(spy.mock.calls[0]![1]!.body).toBe('{"token":"tok"}');
   });
 
   it('companies.workEmail.verify POSTs /me/companies/:slug/work-email/verify', async () => {

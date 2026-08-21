@@ -620,6 +620,27 @@ describe('salary formatters', () => {
     expect(formatSalaryStatRange('en', 90000, 120000, '')).toBeNull();
   });
 
+  it('formatSalaryStatRange still formats when formatRange is missing', () => {
+    const proto = Intl.NumberFormat.prototype;
+    const original = proto.formatRange;
+    Object.defineProperty(proto, 'formatRange', {
+      value: undefined,
+      configurable: true,
+      writable: true,
+    });
+    try {
+      expect(formatSalaryStatRange('en', 90000, 120000, 'USD')).toBe(
+        '$90K–$120K',
+      );
+    } finally {
+      Object.defineProperty(proto, 'formatRange', {
+        value: original,
+        configurable: true,
+        writable: true,
+      });
+    }
+  });
+
   it('formatSalaryStatRange swaps inverted bounds so the range reads low→high', () => {
     expect(formatSalaryStatRange('en', 120000, 90000, 'USD')).toBe('$90–120K');
   });
