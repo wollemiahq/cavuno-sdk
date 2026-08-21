@@ -25,7 +25,10 @@ import type {
  * values; the application composes questions and answers from its catalog.
  */
 import { normalizeLocale } from '../format/locale';
-import type { NumberNotation } from '../format/salary-range';
+import {
+  formatNumberRange,
+  type NumberNotation,
+} from '../format/salary-range';
 import type { JsonLdObject } from './job-posting';
 
 export type { NumberNotation };
@@ -155,7 +158,7 @@ export function formatSalaryStatRange(
   const high = Math.max(min, max);
   // Fixed salary (min === max): single amount, not ICU's ~approximate form.
   if (low === high) return formatter.format(low);
-  return formatter.formatRange(low, high);
+  return formatNumberRange(formatter, low, high);
 }
 
 /** The canonical seniority ladder order the hosted salary pages sort by. */

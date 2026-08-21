@@ -22,6 +22,7 @@ const SESSION: BoardAuthSession = {
     email: 'a@b.com',
     displayName: 'A',
     emailVerified: false,
+    hasPassword: true,
   },
 };
 

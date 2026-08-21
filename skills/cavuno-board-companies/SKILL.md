@@ -12,6 +12,27 @@ Board-wide jobs use `jobs.*`, board-wide salary hubs use `salaries.*`, and
 employer self-service uses authenticated `board.me.companies.*`. The host app
 owns admin writes, sitemaps, and OG-image routes.
 
+An approved admin can delete a company they manage and can list, retitle, or
+remove members. Any approved member can leave with `board.me.companies.leave`.
+Demoting, removing, or leaving as the last admin is `last_admin`. Admins
+invite by email; approved members can list pending invites; accept is
+session-gated on `board.me.acceptInvite`.
+
+```ts snippet
+await board.me.companies.delete('acme');
+const { data: members } = await board.me.companies.listMembers('acme');
+await board.me.companies.updateMemberRole('acme', members[0].id, {
+  role: 'admin',
+});
+await board.me.companies.removeMember('acme', members[0].id);
+await board.me.companies.leave('acme');
+
+const { data: invites } = await board.me.companies.listInvites('acme');
+await board.me.companies.createInvite('acme', { email: 'ada@acme.test' });
+await board.me.companies.revokeInvite('acme', invites[0].id);
+const { companySlug } = await board.me.acceptInvite({ token });
+```
+
 ## List and search
 
 `companies.list` returns `CompanyListEnvelope`: `ListEnvelope<PublicCompany>`
