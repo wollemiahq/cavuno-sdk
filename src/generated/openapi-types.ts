@@ -5306,7 +5306,7 @@ export interface components {
             remoteOption: "on_site" | "hybrid" | "remote" | null;
             /** @description Display region label for remote jobs (e.g. "United States", "Worldwide"); `null` for non-remote jobs. */
             remoteLocationLabel: string | null;
-            /** @description Structured twin of `remoteLocationLabel`’s "Worldwide" case: `true` when the remote permit selection is unrestricted (explicit worldwide, or no constraint), `false` for a constrained remote job, `null` for non-remote jobs. Word it from your own catalog instead of matching the board-language label string. */
+            /** @description Structured twin of `remoteLocationLabel`’s "Worldwide" case: `true` when the job explicitly declares an unrestricted (worldwide) permit, `false` for a constrained remote job, `null` when the job declares no remote scope at all AND for non-remote jobs. A job that declares nothing is unknown, not worldwide — do not treat `null` as unrestricted. Word it from your own catalog instead of matching the board-language label string. */
             remoteWorldwide: boolean | null;
             /** @description ISO 3166-1 alpha-2 codes the remote permit selection covers (derived expansion, mirroring the job detail field of the same name). Empty for worldwide/unconstrained and non-remote jobs. */
             remoteWorkPermitCountryCodes: string[];
