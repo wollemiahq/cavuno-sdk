@@ -11,6 +11,16 @@ export type SavedJobsListQuery = {
   limit?: number;
 };
 
+/** Personalized recommendation wrapper — embeds the slim job card. */
+export type RecommendedJob = Schemas['RecommendedJob'];
+
+export type RecommendedJobsListQuery = {
+  /** Opaque position cursor from a previous page's `nextCursor`. */
+  cursor?: string;
+  /** 1–100. */
+  limit?: number;
+};
+
 export type SaveJobBody = Schemas['SaveJobBody'];
 
 /** The authenticated user's lean candidate profile singleton. */
