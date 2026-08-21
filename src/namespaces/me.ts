@@ -1,5 +1,7 @@
+import { writeSession } from '../storage';
+
 import type { BoardClient, FetchOptions } from '../client';
-import type { BoardUser } from '../types/auth';
+import type { BoardAuthSession, BoardUser } from '../types/auth';
 import type { ListEnvelope } from '../types/common';
 import type { MarketingConsent } from '../types/marketing-consent';
 import type {
@@ -22,6 +24,11 @@ import type {
   CandidateSkill,
   ClaimableCompany,
   CompanyMembership,
+  CompanyMember,
+  CompanyMemberInvite,
+  CompanyMemberInviteAcceptance,
+  ConfirmEmailChangeBody,
+  AcceptCompanyMemberInviteBody,
   ConfirmWorkEmailBody,
   Conversation,
   ConversationArchive,
@@ -29,6 +36,7 @@ import type {
   ConversationRef,
   ConversationsListQuery,
   CreateCompanyBody,
+  CreateCompanyMemberInviteBody,
   CreateEducationBody,
   CreateEmployerJobBody,
   CreateExperienceBody,
@@ -59,6 +67,7 @@ import type {
   ReadReceipt,
   ReorderPipelineStagesBody,
   ReplyBody,
+  RequestEmailChangeBody,
   ReportBody,
   Resume,
   ResumeUploadOptions,
@@ -79,7 +88,9 @@ import type {
   UpdateEmployerJobBody,
   UpdateExperienceBody,
   UpdateLanguagesBody,
+  UpdateCompanyMemberRoleBody,
   UpdateNotificationPreferenceBody,
+  UpdatePasswordBody,
   UpdatePipelineStageBody,
   UpdateSkillsBody,
 } from '../types/me';
@@ -117,6 +128,74 @@ export function meNamespace(client: BoardClient) {
      */
     delete(options?: FetchOptions) {
       return client.fetch<void>('/me', { ...options, method: 'DELETE' });
+    },
+
+    /**
+     * Change my password. Requires the current password. Persists the
+     * returned bearer pair (the server bumped `authVersion` and killed
+     * every other session). Passwordless accounts get 400 `no_password`
+     * — use `auth.forgotPassword` to set one.
+     *
+     * @example
+     * await board.me.updatePassword({
+     *   currentPassword: 'oldpass99',
+     *   newPassword: 'newpass99',
+     * });
+     */
+    async updatePassword(body: UpdatePasswordBody, options?: FetchOptions) {
+      const session = await client.fetch<BoardAuthSession>('/me/password', {
+        ...options,
+        method: 'POST',
+        body,
+      });
+      await writeSession(client.storage, session);
+      return session;
+    },
+
+    /**
+     * Request an email change. A verification link is mailed to the new
+     * address; the email swaps only after `confirmEmailChange`.
+     *
+     * @example
+     * await board.me.requestEmailChange({ email: 'new@example.com' });
+     */
+    requestEmailChange(body: RequestEmailChangeBody, options?: FetchOptions) {
+      return client.fetch<void>('/me/email', {
+        ...options,
+        method: 'POST',
+        body,
+      });
+    },
+
+    /**
+     * Confirm an email-change token (from the verification email) — no
+     * session required. Resolves void (204).
+     *
+     * @example
+     * await board.me.confirmEmailChange({ token });
+     */
+    confirmEmailChange(body: ConfirmEmailChangeBody, options?: FetchOptions) {
+      return client.fetch<void>('/me/email/confirm', {
+        ...options,
+        method: 'POST',
+        body,
+      });
+    },
+
+    /**
+     * Accept a company member invite. Session-gated — the signed-in
+     * board user's email must match the invite. Returns the company
+     * slug the caller now belongs to.
+     *
+     * @example
+     * const { companySlug } = await board.me.acceptInvite({ token });
+     */
+    acceptInvite(body: AcceptCompanyMemberInviteBody, options?: FetchOptions) {
+      return client.fetch<CompanyMemberInviteAcceptance>('/me/invites/accept', {
+        ...options,
+        method: 'POST',
+        body,
+      });
     },
 
     /**
@@ -424,6 +503,129 @@ export function meNamespace(client: BoardClient) {
         return client.fetch<EmployerCompany>(
           `/me/companies/${encodeURIComponent(slug)}`,
           { ...options, method: 'PATCH', body },
+        );
+      },
+
+      /**
+       * Delete a company I admin (soft-delete cascade + Forager
+       * exclusion). Resolves void on success (204).
+       *
+       * @example
+       * await board.me.companies.delete('acme');
+       */
+      delete(slug: string, options?: FetchOptions) {
+        return client.fetch<void>(`/me/companies/${encodeURIComponent(slug)}`, {
+          ...options,
+          method: 'DELETE',
+        });
+      },
+
+      /**
+       * List approved members of a company I belong to.
+       *
+       * @example
+       * const { data } = await board.me.companies.listMembers('acme');
+       */
+      listMembers(slug: string, options?: FetchOptions) {
+        return client.fetch<ListEnvelope<CompanyMember>>(
+          `/me/companies/${encodeURIComponent(slug)}/members`,
+          options,
+        );
+      },
+
+      /**
+       * Set a member's role (`admin` | `member`). Admin-only. Demoting
+       * the last admin is 409 `last_admin`. Resolves void (204).
+       *
+       * @example
+       * await board.me.companies.updateMemberRole('acme', memberId, {
+       *   role: 'admin',
+       * });
+       */
+      updateMemberRole(
+        slug: string,
+        memberId: string,
+        body: UpdateCompanyMemberRoleBody,
+        options?: FetchOptions,
+      ) {
+        return client.fetch<void>(
+          `/me/companies/${encodeURIComponent(slug)}/members/${encodeURIComponent(memberId)}`,
+          { ...options, method: 'PATCH', body },
+        );
+      },
+
+      /**
+       * Remove a member. Admin-only. Removing the last admin is 409
+       * `last_admin`. Resolves void (204).
+       *
+       * @example
+       * await board.me.companies.removeMember('acme', memberId);
+       */
+      removeMember(slug: string, memberId: string, options?: FetchOptions) {
+        return client.fetch<void>(
+          `/me/companies/${encodeURIComponent(slug)}/members/${encodeURIComponent(memberId)}`,
+          { ...options, method: 'DELETE' },
+        );
+      },
+
+      /**
+       * Leave a company I belong to. Leaving as the last admin is 409
+       * `last_admin`. Resolves void (204).
+       *
+       * @example
+       * await board.me.companies.leave('acme');
+       */
+      leave(slug: string, options?: FetchOptions) {
+        return client.fetch<void>(
+          `/me/companies/${encodeURIComponent(slug)}/membership`,
+          { ...options, method: 'DELETE' },
+        );
+      },
+
+      /**
+       * List pending member invites for a company I belong to.
+       *
+       * @example
+       * const { data } = await board.me.companies.listInvites('acme');
+       */
+      listInvites(slug: string, options?: FetchOptions) {
+        return client.fetch<ListEnvelope<CompanyMemberInvite>>(
+          `/me/companies/${encodeURIComponent(slug)}/invites`,
+          options,
+        );
+      },
+
+      /**
+       * Invite an email to join a company I admin. Returns the pending
+       * invite. Duplicate members/invites are 400
+       * `already_member` / `already_invited`.
+       *
+       * @example
+       * await board.me.companies.createInvite('acme', {
+       *   email: 'ada@acme.test',
+       * });
+       */
+      createInvite(
+        slug: string,
+        body: CreateCompanyMemberInviteBody,
+        options?: FetchOptions,
+      ) {
+        return client.fetch<CompanyMemberInvite>(
+          `/me/companies/${encodeURIComponent(slug)}/invites`,
+          { ...options, method: 'POST', body },
+        );
+      },
+
+      /**
+       * Revoke a pending invite. Admin-only. Resolves void (204).
+       *
+       * @example
+       * await board.me.companies.revokeInvite('acme', inviteId);
+       */
+      revokeInvite(slug: string, inviteId: string, options?: FetchOptions) {
+        return client.fetch<void>(
+          `/me/companies/${encodeURIComponent(slug)}/invites/${encodeURIComponent(inviteId)}`,
+          { ...options, method: 'DELETE' },
         );
       },
 
