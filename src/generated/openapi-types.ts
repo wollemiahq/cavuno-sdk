@@ -2657,6 +2657,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/me/recommended-jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List recommended jobs
+         * @description Personalized job recommendations for the authenticated board user, ranked best-match first from their candidate profile (skills, roles, seniority, work authorization). Each item embeds the same slim `job_card` the jobs list emits. Jobs the user already applied to are excluded; saved jobs are included. An empty list means the profile has no usable matching signal yet (e.g. no resume parsed) — check `/me/profile` to drive an upload prompt. Ranking is computed server-side and improves over time without contract changes. Never cached.
+         */
+        get: operations["listBoardMeRecommendedJobs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/boards/{identifier}/me/resume": {
         parameters: {
             query?: never;
@@ -5306,7 +5326,7 @@ export interface components {
             remoteOption: "on_site" | "hybrid" | "remote" | null;
             /** @description Display region label for remote jobs (e.g. "United States", "Worldwide"); `null` for non-remote jobs. */
             remoteLocationLabel: string | null;
-            /** @description Structured twin of `remoteLocationLabel`’s "Worldwide" case: `true` when the remote permit selection is unrestricted (explicit worldwide, or no constraint), `false` for a constrained remote job, `null` for non-remote jobs. Word it from your own catalog instead of matching the board-language label string. */
+            /** @description Structured twin of `remoteLocationLabel`’s "Worldwide" case: `true` when the job explicitly declares an unrestricted (worldwide) permit, `false` for a constrained remote job, `null` when the job declares no remote scope at all AND for non-remote jobs. A job that declares nothing is unknown, not worldwide — do not treat `null` as unrestricted. Word it from your own catalog instead of matching the board-language label string. */
             remoteWorldwide: boolean | null;
             /** @description ISO 3166-1 alpha-2 codes the remote permit selection covers (derived expansion, mirroring the job detail field of the same name). Empty for worldwide/unconstrained and non-remote jobs. */
             remoteWorkPermitCountryCodes: string[];
@@ -5459,6 +5479,11 @@ export interface components {
             object: "read_receipt";
             /** Format: date-time */
             markedAt: string;
+        };
+        RecommendedJob: {
+            /** @enum {string} */
+            object: "recommended_job";
+            job: components["schemas"]["PublicJobCard"];
         };
         RedirectResolution: {
             /** @enum {string} */
@@ -15784,6 +15809,84 @@ export interface operations {
             };
             /** @description Rate limited. */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listBoardMeRecommendedJobs: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recommended jobs, best match first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        object: "list";
+                        url: string;
+                        hasMore: boolean;
+                        nextCursor: string | null;
+                        data: components["schemas"]["RecommendedJob"][];
+                    };
+                };
+            };
+            /** @description Missing/invalid (`board_auth_invalid_token`) or expired (`board_auth_token_expired`) access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Token was issued for a different board. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited (`rate_limited`): 100 requests per minute per board user. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Search backend unavailable (`search_unavailable`) — retry later. */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
