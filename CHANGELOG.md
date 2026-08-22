@@ -3,6 +3,16 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.6.0 — 2026-08-22
+
+- **`board.me.recommendedJobs.list`**: personalized jobs for the signed-in
+  candidate, best match first. Each item wraps the same slim `job_card` the
+  jobs list returns. The response never includes scores, weights, or ranker
+  identity. Empty list means there is no usable profile signal yet — drive a
+  resume-upload CTA from `board.me.profile` / `board.me.resume`. Exported
+  types: `RecommendedJob`, `RecommendedJobsListQuery`. Documented in the
+  account skill and [How to show job matches](https://cavuno.com/docs/sdk/cookbook/recommended-jobs).
+
 ## 4.5.0 — 2026-08-21
 
 - **Board-user account self-service**: signed-in board users manage their own
