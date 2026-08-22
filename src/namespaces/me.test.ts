@@ -239,6 +239,15 @@ describe('board.me', () => {
     expect(spy.mock.calls[0]![1]!.method).toBe('DELETE');
   });
 
+  it('recommendedJobs.list GETs /me/recommended-jobs with query', async () => {
+    const spy = stubFetch(jsonResponse({ object: 'list', data: [] }));
+    const board = await makeAuthedBoard();
+    await board.me.recommendedJobs.list({ limit: 20, cursor: '20' });
+    expect(spy.mock.calls[0]![0]).toBe(
+      `${BASE}/me/recommended-jobs?limit=20&cursor=20`,
+    );
+  });
+
   it('savedJobs.list GETs /me/saved-jobs with query', async () => {
     const spy = stubFetch(jsonResponse({ object: 'list', data: [] }));
     const board = await makeAuthedBoard();

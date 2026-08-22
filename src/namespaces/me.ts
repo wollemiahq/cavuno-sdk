@@ -67,6 +67,8 @@ import type {
   ReadReceipt,
   ReorderPipelineStagesBody,
   ReplyBody,
+  RecommendedJob,
+  RecommendedJobsListQuery,
   RequestEmailChangeBody,
   ReportBody,
   Resume,
@@ -1350,6 +1352,25 @@ export function meNamespace(client: BoardClient) {
           ...options,
           method: 'DELETE',
         });
+      },
+    },
+
+    recommendedJobs: {
+      /**
+       * Personalized job recommendations for the authenticated candidate,
+       * best match first (ranked server-side from their profile). Each item
+       * wraps the same slim `job_card` the jobs list emits. Empty when the
+       * profile has no matching signal yet — check `board.me.profile` to
+       * drive an upload-resume prompt.
+       *
+       * @example
+       * const { data } = await board.me.recommendedJobs.list({ limit: 20 });
+       */
+      list(query?: RecommendedJobsListQuery, options?: FetchOptions) {
+        return client.fetch<ListEnvelope<RecommendedJob>>(
+          '/me/recommended-jobs',
+          { ...options, query },
+        );
       },
     },
 
