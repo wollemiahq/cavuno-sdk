@@ -128,6 +128,9 @@ export const BOARD_API_ERROR_CODES = [
   'invalid_email',
   'invite_email_mismatch',
   'candidate_role',
+  // Employer recommended talent — a draft job carries no vectors,
+  // so it cannot be matched at all. Distinct from `jobs_not_published`.
+  'job_not_published',
   // Candidate job-access paywall
   'paywall_already_active',
   'paywall_disabled',

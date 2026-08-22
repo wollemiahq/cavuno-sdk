@@ -144,7 +144,6 @@ describe('board.redirects.resolve()', () => {
   });
 });
 
-
 describe('board.jobs', () => {
   it('list passes flat query params', async () => {
     const spy = stubFetch();

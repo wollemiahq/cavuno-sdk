@@ -69,6 +69,8 @@ import type {
   ReplyBody,
   RecommendedJob,
   RecommendedJobsListQuery,
+  RecommendedTalent,
+  RecommendedTalentListQuery,
   RequestEmailChangeBody,
   ReportBody,
   Resume,
@@ -939,6 +941,43 @@ export function meNamespace(client: BoardClient) {
         ) {
           return client.fetch<ListEnvelope<EmployerProfileViewsPoint>>(
             `/me/companies/${encodeURIComponent(slug)}/profile-stats/timeseries`,
+            { ...options, query },
+          );
+        },
+      },
+
+      /**
+       * Candidates who fit a job this company posted and who have NOT applied
+       * to it, best match first. A sourcing surface, not a
+       * screening one: applicants are excluded because they belong to the
+       * pipeline above, order IS the ranking, and no rank, score, band, or
+       * ranker identity is exposed — `reasons` and a coarse `strength` band
+       * are reserved so they can land later as minor additions.
+       *
+       * Each item embeds the same `talent_directory_entry` card the public
+       * directory emits, so existing rendering works unchanged. Only
+       * candidates who chose to be discoverable appear, and one who set their
+       * job-search status to `not_looking` never does. The list is a bounded
+       * top slice rather than everyone who matched, so expect it to be short.
+       * An empty `data` is not a relevance signal, and it can arrive
+       * mid-pagination — follow `hasMore`/`nextCursor` rather than stopping
+       * at the first empty page. A draft job raises
+       * `job_not_published` rather than returning an empty list.
+       *
+       * @example
+       * const { data } = await board.me.companies.recommendedTalent.list(
+       *   'acme',
+       *   { job: jobId, limit: 20 },
+       * );
+       */
+      recommendedTalent: {
+        list(
+          slug: string,
+          query: RecommendedTalentListQuery,
+          options?: FetchOptions,
+        ) {
+          return client.fetch<ListEnvelope<RecommendedTalent>>(
+            `/me/companies/${encodeURIComponent(slug)}/recommended-talent`,
             { ...options, query },
           );
         },

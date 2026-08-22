@@ -4,4 +4,9 @@
  */
 export { runDoctor } from './run';
 export type { DoctorRun, RunDoctorOptions } from './run';
-export type { CheckResult, CheckStatus, DoctorEnv, DoctorSummary } from './checks';
+export type {
+  CheckResult,
+  CheckStatus,
+  DoctorEnv,
+  DoctorSummary,
+} from './checks';

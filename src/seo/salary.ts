@@ -1,9 +1,3 @@
-import type { CompanyCategorySalary, CompanySalary } from '../types/companies';
-import type {
-  LocationSalaryDetail,
-  SkillSalaryDetail,
-  TitleSalaryDetail,
-} from '../types/salaries';
 /**
  * Salary-page helpers — the hosted salary-page formatters plus the
  * `Occupation`/`MonetaryAmountDistribution`/`ItemList`/`FAQPage` structured
@@ -25,10 +19,14 @@ import type {
  * values; the application composes questions and answers from its catalog.
  */
 import { normalizeLocale } from '../format/locale';
-import {
-  formatNumberRange,
-  type NumberNotation,
-} from '../format/salary-range';
+import { formatNumberRange, type NumberNotation } from '../format/salary-range';
+
+import type { CompanyCategorySalary, CompanySalary } from '../types/companies';
+import type {
+  LocationSalaryDetail,
+  SkillSalaryDetail,
+  TitleSalaryDetail,
+} from '../types/salaries';
 import type { JsonLdObject } from './job-posting';
 
 export type { NumberNotation };
@@ -209,10 +207,7 @@ export interface SalaryJsonLdOptions {
    * distributions ship without a `name` (valid structured data;
    * wrong-language / wrong-order names are not).
    */
-  seniorityName?: (args: {
-    seniority: string;
-    entity: string;
-  }) => string;
+  seniorityName?: (args: { seniority: string; entity: string }) => string;
 }
 
 /**
@@ -256,12 +251,7 @@ function seniorityDistributions(
       seniority: row.seniority,
       entity,
     });
-    return distribution(
-      name,
-      currency,
-      row.avgSalaryMin,
-      row.avgSalaryMax,
-    );
+    return distribution(name, currency, row.avgSalaryMin, row.avgSalaryMax);
   });
 }
 

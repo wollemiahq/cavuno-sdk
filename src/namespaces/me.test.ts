@@ -248,6 +248,20 @@ describe('board.me', () => {
     );
   });
 
+  it('recommendedTalent.list GETs the company-scoped path with ?job=', async () => {
+    const spy = stubFetch(jsonResponse({ object: 'list', data: [] }));
+    const board = await makeAuthedBoard();
+    await board.me.companies.recommendedTalent.list('analytical engines', {
+      job: 'jobs_123',
+      limit: 20,
+      cursor: '20',
+    });
+    // The slug is path-encoded; `job` is required and rides the query string.
+    expect(spy.mock.calls[0]![0]).toBe(
+      `${BASE}/me/companies/analytical%20engines/recommended-talent?job=jobs_123&limit=20&cursor=20`,
+    );
+  });
+
   it('savedJobs.list GETs /me/saved-jobs with query', async () => {
     const spy = stubFetch(jsonResponse({ object: 'list', data: [] }));
     const board = await makeAuthedBoard();
@@ -462,9 +476,7 @@ describe('board.me', () => {
     const spy = stubFetch(() => new Response(null, { status: 204 }));
     const board = await makeAuthedBoard();
     await expect(board.me.companies.leave('acme')).resolves.toBeUndefined();
-    expect(spy.mock.calls[0]![0]).toBe(
-      `${BASE}/me/companies/acme/membership`,
-    );
+    expect(spy.mock.calls[0]![0]).toBe(`${BASE}/me/companies/acme/membership`);
     expect(spy.mock.calls[0]![1]!.method).toBe('DELETE');
   });
 
