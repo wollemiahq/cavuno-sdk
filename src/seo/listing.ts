@@ -11,6 +11,7 @@
  * Pass a fully composed `title` (and `description`), same ownership.
  */
 import { boardUrl, jobDetailPath } from '../paths';
+
 import type { JsonLdObject } from './job-posting';
 
 export interface ListingHeadOptions {
@@ -93,9 +94,7 @@ export function listingJsonLd(options: {
         '@type': 'ListItem',
         position: index + 1,
         name: crumb.name,
-        ...(crumb.path
-          ? { item: boardUrl(options.origin, crumb.path) }
-          : {}),
+        ...(crumb.path ? { item: boardUrl(options.origin, crumb.path) } : {}),
       })),
     });
   }

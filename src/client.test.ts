@@ -1,10 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  BoardClient,
-  redactUrlForLog,
-  type BoardRequest,
-} from './client';
+import { BoardClient, redactUrlForLog, type BoardRequest } from './client';
 import { BoardApiError, isUnauthorized } from './errors';
 import { ACCESS_TOKEN_KEY, resolveStorage } from './storage';
 import { SDK_VERSION } from './version';

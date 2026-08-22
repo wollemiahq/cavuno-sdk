@@ -462,9 +462,7 @@ describe('board.me', () => {
     const spy = stubFetch(() => new Response(null, { status: 204 }));
     const board = await makeAuthedBoard();
     await expect(board.me.companies.leave('acme')).resolves.toBeUndefined();
-    expect(spy.mock.calls[0]![0]).toBe(
-      `${BASE}/me/companies/acme/membership`,
-    );
+    expect(spy.mock.calls[0]![0]).toBe(`${BASE}/me/companies/acme/membership`);
     expect(spy.mock.calls[0]![1]!.method).toBe('DELETE');
   });
 

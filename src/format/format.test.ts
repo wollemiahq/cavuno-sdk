@@ -5,8 +5,8 @@ import {
   formatMonthYear,
   formatPublishedRelativeDate,
 } from './dates';
-import { formatSalaryRange } from './salary-range';
 import { normalizeLocale } from './locale';
+import { formatSalaryRange } from './salary-range';
 
 // Contract/data-shaping formatters on `@cavuno/board/format`. Timeframe unit
 // words come from Intl as a separate field; open-range chrome words and the
@@ -114,13 +114,13 @@ describe('formatSalaryRange', () => {
 
   it('returns null with no bounds; omits the timeframe for unknown timeframes', () => {
     expect(formatSalaryRange('en', null, null, 'per_year', 'USD')).toBeNull();
-    expect(formatSalaryRange('en', 90000, 120000, 'per_project', 'USD')).toEqual(
-      {
-        text: '$90–120K',
-        timeframe: null,
-        bound: 'range',
-      },
-    );
+    expect(
+      formatSalaryRange('en', 90000, 120000, 'per_project', 'USD'),
+    ).toEqual({
+      text: '$90–120K',
+      timeframe: null,
+      bound: 'range',
+    });
     expect(formatSalaryRange('en', 90000, 120000, null, 'USD')).toEqual({
       text: '$90–120K',
       timeframe: null,
@@ -136,7 +136,9 @@ describe('formatSalaryRange', () => {
     // while its structured data said there was none.
     expect(formatSalaryRange('de', 90000, 120000, 'per_year', null)).toBeNull();
     expect(formatSalaryRange('en', 90000, null, 'per_year', null)).toBeNull();
-    expect(formatSalaryRange('en', 90000, 120000, 'per_year', '   ')).toBeNull();
+    expect(
+      formatSalaryRange('en', 90000, 120000, 'per_year', '   '),
+    ).toBeNull();
     expect(formatSalaryRange('ja', 9_000_000, null, 'per_year', '')).toBeNull();
   });
 
@@ -149,21 +151,21 @@ describe('formatSalaryRange', () => {
 
   it('invalid or unsupported locale returns null (no English M/k, no host default)', () => {
     expect(
-      formatSalaryRange(
-        'xx-BAD-!!',
-        90000,
-        1200000,
-        'per_year',
-        'EUR',
-      ),
+      formatSalaryRange('xx-BAD-!!', 90000, 1200000, 'per_year', 'EUR'),
     ).toBeNull();
     expect(
       formatSalaryRange('not a locale!', 90000, 120000, 'per_year', 'USD'),
     ).toBeNull();
     // Well-formed but unsupported — must not fall through to host English.
-    expect(formatSalaryRange('xx', 90000, 120000, 'per_year', 'USD')).toBeNull();
-    expect(formatSalaryRange('qqq', 90000, 120000, 'per_year', 'USD')).toBeNull();
-    expect(formatSalaryRange('und', 90000, 120000, 'per_year', 'USD')).toBeNull();
+    expect(
+      formatSalaryRange('xx', 90000, 120000, 'per_year', 'USD'),
+    ).toBeNull();
+    expect(
+      formatSalaryRange('qqq', 90000, 120000, 'per_year', 'USD'),
+    ).toBeNull();
+    expect(
+      formatSalaryRange('und', 90000, 120000, 'per_year', 'USD'),
+    ).toBeNull();
   });
 
   it('normalizes underscore locale tags so ja_JP is Japanese, not English', () => {
@@ -181,9 +183,7 @@ describe('formatSalaryRange', () => {
   });
 
   it('prototype-polluting timeframe strings do not throw', () => {
-    expect(
-      formatSalaryRange('en', 90000, 120000, '__proto__', 'USD'),
-    ).toEqual({
+    expect(formatSalaryRange('en', 90000, 120000, '__proto__', 'USD')).toEqual({
       text: '$90–120K',
       timeframe: null,
       bound: 'range',
@@ -230,20 +230,12 @@ describe('formatSalaryRange', () => {
       formatSalaryRange('en', 90000, Number.NaN, 'per_year', 'USD'),
     ).toBeNull();
     expect(
-      formatSalaryRange(
-        'en',
-        0,
-        Number.POSITIVE_INFINITY,
-        'per_year',
-        'USD',
-      ),
+      formatSalaryRange('en', 0, Number.POSITIVE_INFINITY, 'per_year', 'USD'),
     ).toBeNull();
   });
 
   it('formats identical min/max as a fixed salary (not ICU ~approximate)', () => {
-    expect(
-      formatSalaryRange('en', 140000, 140000, 'per_year', 'USD'),
-    ).toEqual({
+    expect(formatSalaryRange('en', 140000, 140000, 'per_year', 'USD')).toEqual({
       text: '$140K',
       timeframe: 'per_year',
       bound: 'range',
@@ -262,13 +254,13 @@ describe('formatSalaryRange', () => {
       writable: true,
     });
     try {
-      expect(
-        formatSalaryRange('en', 90000, 120000, 'per_year', 'USD'),
-      ).toEqual({
-        text: '$90K–$120K',
-        timeframe: 'per_year',
-        bound: 'range',
-      });
+      expect(formatSalaryRange('en', 90000, 120000, 'per_year', 'USD')).toEqual(
+        {
+          text: '$90K–$120K',
+          timeframe: 'per_year',
+          bound: 'range',
+        },
+      );
     } finally {
       Object.defineProperty(proto, 'formatRange', {
         value: original,
@@ -282,9 +274,7 @@ describe('formatSalaryRange', () => {
     // Transposed min/max columns still carry a real salary; dropping the
     // figure (null) would hide pay from job seekers. ICU formatRange does
     // not reorder, so we normalize before formatting.
-    expect(
-      formatSalaryRange('en', 120000, 90000, 'per_year', 'USD'),
-    ).toEqual({
+    expect(formatSalaryRange('en', 120000, 90000, 'per_year', 'USD')).toEqual({
       text: '$90–120K',
       timeframe: 'per_year',
       bound: 'range',
@@ -375,7 +365,7 @@ describe('formatSalaryRange', () => {
           )?.text;
           // Two-or-more letters touching a digit on either side.
           // formatRange may use ～ / – / -; split on common range separators.
-          const left = text?.split(/[–～\-]/u)[0] ?? '';
+          const left = text?.split(/[–～-]/u)[0] ?? '';
           if (text && /\p{L}{2,}\p{Nd}|\p{Nd}\p{L}{2,}/u.test(left)) {
             glued.push(`${language}/${currency}: ${text}`);
           }
@@ -398,13 +388,7 @@ describe('formatSalaryRange', () => {
         'HKD',
         'MXN',
       ] as const) {
-        const text = formatSalaryRange(
-          'en',
-          90000,
-          null,
-          null,
-          currency,
-        )?.text;
+        const text = formatSalaryRange('en', 90000, null, null, currency)?.text;
         expect(text, `${currency} must not render like USD`).not.toBe(usd);
       }
     });
@@ -491,9 +475,7 @@ describe('dates', () => {
     // Future is not the same as past (sign was not stripped via Math.abs alone).
     expect(futureLabel).not.toBe(pastLabel);
     expect(futureLabel).toBe('in 5 days');
-    expect(
-      formatPublishedRelativeDate('xx-BAD-!!', past, now),
-    ).toBeNull();
+    expect(formatPublishedRelativeDate('xx-BAD-!!', past, now)).toBeNull();
     // Underscore typo normalizes rather than falling to English abbreviations.
     expect(formatPublishedRelativeDate('ja_JP', past, now)).toBeTruthy();
     expect(formatPublishedRelativeDate('ja_JP', past, now)).not.toBe('5d');

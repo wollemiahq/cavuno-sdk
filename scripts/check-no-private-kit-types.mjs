@@ -187,7 +187,9 @@ function expandFilesEntry(entry) {
 const manifest = JSON.parse(
   readFileSync(join(pkgRoot, 'package.json'), 'utf8'),
 );
-const publishedRoots = Array.isArray(manifest.files) ? manifest.files : ['dist'];
+const publishedRoots = Array.isArray(manifest.files)
+  ? manifest.files
+  : ['dist'];
 const privateNames = privatePackageNamesFromWorkspace();
 
 const hits = [];

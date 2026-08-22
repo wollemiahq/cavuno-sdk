@@ -604,12 +604,8 @@ describe('salary formatters', () => {
   it('returns null for non-finite amounts (NaN / Infinity)', () => {
     expect(formatSalaryStat('en', Number.NaN, 'USD')).toBeNull();
     expect(formatSalaryStat('en', Number.POSITIVE_INFINITY, 'USD')).toBeNull();
-    expect(
-      formatSalaryStatRange('en', Number.NaN, 120000, 'USD'),
-    ).toBeNull();
-    expect(
-      formatSalaryStatRange('en', 90000, Number.NaN, 'USD'),
-    ).toBeNull();
+    expect(formatSalaryStatRange('en', Number.NaN, 120000, 'USD')).toBeNull();
+    expect(formatSalaryStatRange('en', 90000, Number.NaN, 'USD')).toBeNull();
   });
 
   it('formatSalaryStatRange uses Intl.formatRange', () => {
@@ -694,7 +690,13 @@ describe('buildSalaryFaq', () => {
     // Raw figures stay so the app can reformat (e.g. standard notation for FAQ prose).
     const avg = faq[0] as Extract<(typeof faq)[number], { kind: 'average' }>;
     expect(
-      formatSalaryStatRange('en', avg.avgMin, avg.avgMax, avg.currency, 'standard'),
+      formatSalaryStatRange(
+        'en',
+        avg.avgMin,
+        avg.avgMax,
+        avg.currency,
+        'standard',
+      ),
     ).toBe('$70,000.00 – $90,000.00');
   });
 
@@ -963,22 +965,16 @@ describe('salary JSON-LD builders', () => {
     expect(city.occupationLocation).toBeUndefined();
     expect(city.estimatedSalary).toBeUndefined();
     expect(
-      locationSalaryJsonLd(
-        { ...location, adminLevel: 'region' } as never,
-        {
-          occupationUrl: (row) =>
-            `https://jobs.example.com/salaries/titles/${row.categorySlug}`,
-        },
-      ),
+      locationSalaryJsonLd({ ...location, adminLevel: 'region' } as never, {
+        occupationUrl: (row) =>
+          `https://jobs.example.com/salaries/titles/${row.categorySlug}`,
+      }),
     ).toBeNull();
     expect(
-      locationSalaryJsonLd(
-        { ...location, topCategories: [] } as never,
-        {
-          occupationUrl: (row) =>
-            `https://jobs.example.com/salaries/titles/${row.categorySlug}`,
-        },
-      ),
+      locationSalaryJsonLd({ ...location, topCategories: [] } as never, {
+        occupationUrl: (row) =>
+          `https://jobs.example.com/salaries/titles/${row.categorySlug}`,
+      }),
     ).toBeNull();
   });
 
@@ -1066,13 +1062,10 @@ describe('salary JSON-LD builders', () => {
     expect(company.name).toBeUndefined();
     expect(company.estimatedSalary).toBeUndefined();
     expect(
-      companySalaryJsonLd(
-        { byCategory: [] } as never,
-        {
-          occupationUrl: (row) =>
-            `https://jobs.example.com/companies/acme/salaries/${row.categorySlug}`,
-        },
-      ),
+      companySalaryJsonLd({ byCategory: [] } as never, {
+        occupationUrl: (row) =>
+          `https://jobs.example.com/companies/acme/salaries/${row.categorySlug}`,
+      }),
     ).toBeNull();
 
     const category = companyCategorySalaryJsonLd(
@@ -1102,8 +1095,7 @@ describe('salary JSON-LD builders', () => {
 describe('listingHead', () => {
   it('passes through caller title + description into meta, OG, and canonical', () => {
     const title = '42 Robotics jobs in Berlin | Acme Jobs';
-    const description =
-      'Browse 42 Robotics jobs in Berlin on Acme Jobs.';
+    const description = 'Browse 42 Robotics jobs in Berlin on Acme Jobs.';
     const head = listingHead({
       title,
       origin: 'https://acme.example.com',

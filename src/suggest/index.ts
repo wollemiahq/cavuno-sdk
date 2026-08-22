@@ -56,10 +56,7 @@ export interface SuggestController {
 
 type SuggestBoard = {
   search: {
-    suggest(
-      q?: SearchSuggestQuery,
-      o?: FetchOptions,
-    ): Promise<SuggestResult>;
+    suggest(q?: SearchSuggestQuery, o?: FetchOptions): Promise<SuggestResult>;
   };
 };
 

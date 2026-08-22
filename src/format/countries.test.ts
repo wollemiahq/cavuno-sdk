@@ -23,8 +23,9 @@ describe('countryOptions', () => {
   });
 
   it('resolves the user-assigned Kosovo code', () => {
-    expect(countryOptions('en').find((option) => option.code === 'XK')?.name)
-      .not.toHaveLength(2);
+    expect(
+      countryOptions('en').find((option) => option.code === 'XK')?.name,
+    ).not.toHaveLength(2);
   });
 
   it('degrades to bare codes instead of throwing on an unresolvable language', () => {
