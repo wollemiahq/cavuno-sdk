@@ -295,6 +295,8 @@ export type {
   ReportBody,
   Resume,
   ResumeUploadOptions,
+  RecommendedJob,
+  RecommendedJobsListQuery,
   SaveJobBody,
   SavedJob,
   SavedJobsListQuery,

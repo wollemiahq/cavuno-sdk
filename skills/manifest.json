@@ -3,7 +3,7 @@
   "skills": [
     {
       "name": "cavuno-board-account",
-      "description": "Candidate self-service boundary with @cavuno/board. Use for account, profile, resume onboarding, avatar, experience, education, skills, languages, or notification preferences.",
+      "description": "Candidate self-service boundary with @cavuno/board. Use for account, profile, resume onboarding, recommended jobs, avatar, experience, education, skills, languages, or notification preferences.",
       "path": "skills/cavuno-board-account/SKILL.md",
       "framework": null,
       "category": "core"

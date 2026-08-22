@@ -1,6 +1,6 @@
 ---
 name: cavuno-board-account
-description: Candidate self-service boundary with @cavuno/board. Use for account, profile, resume onboarding, avatar, experience, education, skills, languages, or notification preferences.
+description: Candidate self-service boundary with @cavuno/board. Use for account, profile, resume onboarding, recommended jobs, avatar, experience, education, skills, languages, or notification preferences.
 ---
 
 # Candidate self-service boundary
@@ -114,6 +114,24 @@ if (resume.parseStatus === 'parsed') {
 
 Upload options also include `importMode: 'append_only' | 'replace_all'` and `confirmReplaceAll`. `resume.file.url` is a short-lived signed URL. `parseStatus` is null before any parse. `board.me.resume.delete()` removes the stored file and keep-on-file consent while retaining imported profile fields.
 
+## Recommended jobs
+
+`board.me.recommendedJobs.list` is the sibling of `savedJobs.list`. Each item wraps the same slim `PublicJobCard` (`{ object: 'recommended_job', job }`). Order is the ranking. The endpoint never returns scores, weights, or ranker identity.
+
+Cold start is an empty list — no hint field. Drive an upload-resume CTA from `board.me.profile` / `board.me.resume` (`parseStatus`, skills), not from the list response.
+
+```ts snippet
+const { data } = await board.me.recommendedJobs.list({ limit: 20 });
+data[0]?.job.title;
+
+const profile = await board.me.profile.retrieve();
+const skills = await board.me.profile.listSkills();
+const resume = await board.me.resume.retrieve();
+if (data.length === 0 && (skills.data.length === 0 || resume.parseStatus !== 'parsed')) {
+  promptResumeUpload();
+}
+```
+
 ## Notification preferences
 
 Authenticated settings expose `messageEmails` and `applicationEmails`. Updating one channel returns the full set.
@@ -142,6 +160,7 @@ await board.me.notificationPreferences.unsubscribeWithToken({
 - Adding a skill preserves every existing skill.
 - Uploaded `avatarUrl` renders.
 - Resume parsing reaches `parsed`, reports `parseFailureReason`, or reaches the explicit delayed state without blocking editing.
+- Recommended jobs render the returned cards in list order; an empty list plus missing skills / unparsed resume shows an upload-resume prompt.
 - Anonymous unsubscribe works in a logged-out browser.
 
 ## Cavuno SDK reference
