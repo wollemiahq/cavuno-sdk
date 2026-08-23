@@ -543,6 +543,8 @@ describe('method conventions', () => {
       updatedAt: '2026-01-01T00:00:00.000Z',
       description: null,
       applicationUrl: null,
+      isSponsored: false,
+      applyAction: 'native',
       remotePermits: [{ type: 'country', value: 'DE' }],
       remoteWorldwide: false,
       remoteTimezones: [{ type: 'utc_offset', value: '+2', plusMinus: 2 }],

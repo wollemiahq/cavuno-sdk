@@ -240,6 +240,40 @@ describe('board.taxonomy.places.list (the locations directory)', () => {
 });
 
 describe('board.jobs apply methods', () => {
+  it('prepareApplyApproval POSTs only the server-owned session key', async () => {
+    const spy = stubFetch({
+      object: 'apply_approval_plan',
+      kind: 'approval_required',
+      approvalUrl: 'https://apply.cavuno.com/r/opaque_token',
+      expiresAt: '2026-01-01T00:00:00.000Z',
+    });
+    await makeBoard().jobs.prepareApplyApproval('senior-chef', {
+      sessionKey: 's'.repeat(32),
+    });
+    expect(sentUrl(spy)).toBe(`${BASE}/jobs/senior-chef/apply-approvals`);
+    expect(spy.mock.calls[0]![1]!.method).toBe('POST');
+    expect(spy.mock.calls[0]![1]!.body).toBe(
+      `{"sessionKey":"${'s'.repeat(32)}"}`,
+    );
+  });
+
+  it('createApplyIntent POSTs only the opaque duplicate-click session key', async () => {
+    const spy = stubFetch({
+      id: 'opaque_token',
+      object: 'apply_intent',
+      gatewayUrl: 'https://apply.cavuno.com/a/opaque_token',
+      expiresAt: '2026-01-01T00:00:00.000Z',
+    });
+    await makeBoard().jobs.createApplyIntent('senior-chef', {
+      sessionKey: 's'.repeat(32),
+    });
+    expect(sentUrl(spy)).toBe(`${BASE}/jobs/senior-chef/apply-intents`);
+    expect(spy.mock.calls[0]![1]!.method).toBe('POST');
+    expect(spy.mock.calls[0]![1]!.body).toBe(
+      `{"sessionKey":"${'s'.repeat(32)}"}`,
+    );
+  });
+
   it('apply POSTs /jobs/:slug/apply with the body', async () => {
     const spy = stubFetch({ object: 'application' });
     await makeBoard().jobs.apply('senior-chef', { coverNote: 'hi' });

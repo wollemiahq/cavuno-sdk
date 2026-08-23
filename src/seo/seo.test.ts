@@ -92,6 +92,8 @@ const JOB = {
   updatedAt: '2026-06-01T00:00:00.000Z',
   description: '<p>Build robots.</p>',
   applicationUrl: null,
+  isSponsored: false,
+  applyAction: 'native',
   remotePermits: [{ type: 'country', value: 'DE' }],
   remoteWorldwide: false,
   remoteTimezones: [],

@@ -1,4 +1,12 @@
 import type { BoardClient, FetchOptions } from '../client';
+import type {
+  ApplyApprovalPlan,
+  CreateApplyApprovalBody,
+} from '../types/apply-approvals';
+import type {
+  ApplyIntent,
+  CreateApplyIntentBody,
+} from '../types/apply-intents';
 import type { ListEnvelope } from '../types/common';
 import type {
   JobCardListEnvelope,
@@ -28,6 +36,9 @@ export function jobsNamespace(client: BoardClient) {
 
     /**
      * Retrieve one published job by slug.
+     * Compatible starters pass `x-cavuno-board-capabilities:
+     * apply-gateway-v1` in `options.headers` to opt in to the country-gated
+     * Apply shape. The SDK never sends that capability globally.
      *
      * @example
      * const job = await board.jobs.retrieve('senior-chef');
@@ -98,6 +109,53 @@ export function jobsNamespace(client: BoardClient) {
       return client.fetch<Application>(
         `/jobs/${encodeURIComponent(jobSlug)}/apply`,
         { ...options, method: 'POST', body: body ?? {} },
+      );
+    },
+
+    /**
+     * Create an opaque external-apply intent. A compatible starter then makes
+     * its own board-local POST return a browser 303 to `gatewayUrl`; do not
+     * render this value as a crawlable link. Pass
+     * `x-cavuno-board-capabilities: apply-gateway-v1` in `options.headers`;
+     * legacy callers receive 404.
+     */
+    createApplyIntent(
+      jobSlug: string,
+      body: CreateApplyIntentBody,
+      options?: FetchOptions,
+    ) {
+      return client.fetch<ApplyIntent>(
+        `/jobs/${encodeURIComponent(jobSlug)}/apply-intents`,
+        { ...options, method: 'POST', body },
+      );
+    },
+
+    /**
+     * Prepare country approval for a signed-in candidate's native Apply.
+     * When required, the candidate browser POSTs directly to `approvalUrl`
+     * with no body or credentials, then supplies the returned opaque receipt
+     * and the same server-owned session key to `apply`. Pass
+     * `x-cavuno-board-capabilities: apply-gateway-v1` in `options.headers` for
+     * both preparation and final Apply.
+     *
+     * @example
+     * const plan = await board.jobs.prepareApplyApproval(
+     *   'senior-chef',
+     *   { sessionKey },
+     *   { headers: {
+     *     authorization: `Bearer ${accessToken}`,
+     *     'x-cavuno-board-capabilities': 'apply-gateway-v1',
+     *   } },
+     * );
+     */
+    prepareApplyApproval(
+      jobSlug: string,
+      body: CreateApplyApprovalBody,
+      options?: FetchOptions,
+    ) {
+      return client.fetch<ApplyApprovalPlan>(
+        `/jobs/${encodeURIComponent(jobSlug)}/apply-approvals`,
+        { ...options, method: 'POST', body },
       );
     },
 

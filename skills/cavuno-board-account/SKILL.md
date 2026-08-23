@@ -134,7 +134,10 @@ if (data.length === 0 && (skills.data.length === 0 || resume.parseStatus !== 'pa
 
 ## Notification preferences
 
-Authenticated settings expose `messageEmails` and `applicationEmails`. Updating one channel returns the full set.
+Authenticated settings expose `messageEmails`, `applicationEmails`, and
+`recommendedJobEmails`. The first two default subscribed when no stored
+preference exists; recommendation email is explicit opt-in and defaults
+unsubscribed. Updating one channel returns the full set.
 
 ```ts snippet
 const preferences = await board.me.notificationPreferences.retrieve();

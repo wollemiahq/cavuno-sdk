@@ -181,6 +181,12 @@ export type { EmbedJobsQuery } from './types/embed';
 export type { BoardAccessGrant } from './types/password';
 export type { MarketingConsent } from './types/marketing-consent';
 export type { RedirectResolution } from './types/redirects';
+export type { ApplyIntent, CreateApplyIntentBody } from './types/apply-intents';
+export type {
+  ApplyApprovalPlan,
+  ApplyApprovalReceipt,
+  CreateApplyApprovalBody,
+} from './types/apply-approvals';
 export type {
   BlogAuthorEmbed,
   BlogPostsListQuery,

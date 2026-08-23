@@ -215,6 +215,18 @@ describe('board.me', () => {
     );
   });
 
+  it('notificationPreferences.update accepts recommendation-email opt-in', async () => {
+    const spy = stubFetch(jsonResponse({ object: 'list', data: [] }));
+    const board = await makeAuthedBoard();
+    await board.me.notificationPreferences.update({
+      channel: 'recommendedJobEmails',
+      subscribed: true,
+    });
+    expect(spy.mock.calls[0]![1]!.body).toBe(
+      '{"channel":"recommendedJobEmails","subscribed":true}',
+    );
+  });
+
   it('notificationPreferences.unsubscribeWithToken POSTs and resolves void on 204', async () => {
     const spy = stubFetch(() => new Response(null, { status: 204 }));
     const board = await makeAuthedBoard();
