@@ -2432,7 +2432,7 @@ export interface paths {
         };
         /**
          * List my notification preferences
-         * @description Every notification channel with its subscribed state (default subscribed). Never cached.
+         * @description Every notification channel with its subscribed state. Message and application email channels default subscribed when no preference exists; recommendation email is explicit opt-in and defaults unsubscribed. Never cached.
          */
         get: operations["listBoardMeNotificationPreferences"];
         /**
@@ -4911,7 +4911,7 @@ export interface components {
             /** @enum {string} */
             object: "notification_preference";
             /** @enum {string} */
-            channel: "messageEmails" | "applicationEmails";
+            channel: "messageEmails" | "applicationEmails" | "recommendedJobEmails";
             subscribed: boolean;
             updatedAt: number | null;
         };
@@ -6094,7 +6094,7 @@ export interface components {
         UnsubscribeBody: {
             boardUserId: string;
             /** @enum {string} */
-            channel: "messageEmails" | "applicationEmails";
+            channel: "messageEmails" | "applicationEmails" | "recommendedJobEmails";
             token: string;
         };
         UpdateApplicationFactsBody: {
@@ -6165,7 +6165,7 @@ export interface components {
         };
         UpdateNotificationPreferenceBody: {
             /** @enum {string} */
-            channel: "messageEmails" | "applicationEmails";
+            channel: "messageEmails" | "applicationEmails" | "recommendedJobEmails";
             subscribed: boolean;
         };
         UpdatePasswordBody: {
