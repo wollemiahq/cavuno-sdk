@@ -1036,7 +1036,7 @@ export interface paths {
         };
         /**
          * Retrieve a public job by slug
-         * @description Retrieves a published job by its slug on the named public board. Only published jobs are returned.
+         * @description Retrieves a published job by its slug on the named public board. Only published jobs are returned. Compatible starters opt in to the country-gated Apply shape with the Apply gateway capability header; other callers keep the legacy shape.
          */
         get: operations["getBoardJob"];
         put?: never;
@@ -1078,9 +1078,49 @@ export interface paths {
         put?: never;
         /**
          * Apply to a job
-         * @description Submit a native application to a live job. Optional auth: a signed-in candidate applies from their profile; an anonymous guest supplies name/email (only when the board permits applications without sign-up). Idempotent. A repeat apply resolves to the existing application.
+         * @description Submit a native application to a live job. Optional auth: a signed-in candidate applies from their profile; an anonymous guest supplies name/email (only when the board permits applications without sign-up). Idempotent. A repeat apply resolves to the existing application. Compatible starters send the Apply gateway capability header when submitting a browser-issued country approval receipt.
          */
         post: operations["createBoardJobApply"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/jobs/{jobSlug}/apply-approvals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Prepare native Apply country approval
+         * @description Returns a generic native Apply plan. When approval is required, the candidate browser POSTs directly to the opaque gateway URL so Cavuno evaluates trusted user-edge country metadata. The request accepts no country or destination. This protocol is available only to compatible starters that send the required capability header.
+         */
+        post: operations["createBoardJobApplyApproval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/jobs/{jobSlug}/apply-intents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create an opaque external Apply intent
+         * @description Creates a short-lived opaque hand-off for a published job with a stored HTTPS application destination. The opaque token has no destination or candidate data; a browser must visit the dedicated Apply gateway for the final decision. This protocol is available only to compatible starters that send the required capability header.
+         */
+        post: operations["createBoardJobApplyIntent"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2432,7 +2472,7 @@ export interface paths {
         };
         /**
          * List my notification preferences
-         * @description Every notification channel with its subscribed state (default subscribed). Never cached.
+         * @description Every notification channel with its subscribed state. Message and application email channels default subscribed when no preference exists; recommendation email is explicit opt-in and defaults unsubscribed. Never cached.
          */
         get: operations["listBoardMeNotificationPreferences"];
         /**
@@ -3460,11 +3500,40 @@ export interface components {
                 companyName: string | null;
             } | null;
         };
+        ApplyApprovalPlan: {
+            /** @enum {string} */
+            object: "apply_approval_plan";
+            /** @enum {string} */
+            kind: "not_required";
+        } | {
+            /** @enum {string} */
+            object: "apply_approval_plan";
+            /** @enum {string} */
+            kind: "approval_required";
+            /** Format: uri */
+            approvalUrl: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
         ApplyBody: {
             name?: string;
             /** Format: email */
             email?: string;
             coverNote?: string;
+            /** @description Opaque native country-approval receipt returned by the browser-direct Apply gateway. */
+            approvalReceipt?: string;
+            /** @description Server-owned board session key that prepared the country approval. */
+            approvalSessionKey?: string;
+        };
+        ApplyIntent: {
+            /** @description Opaque one-time Apply intent token. */
+            id: string;
+            /** @enum {string} */
+            object: "apply_intent";
+            /** Format: uri */
+            gatewayUrl: string;
+            /** Format: date-time */
+            expiresAt: string;
         };
         Block: {
             /** @enum {string} */
@@ -3662,6 +3731,7 @@ export interface components {
             handle: string | null;
             headline: string | null;
             location: string | null;
+            countryCode: string | null;
             /** @enum {string} */
             profileVisibility: "hidden" | "logged_in_only" | "public";
             /** @enum {string} */
@@ -3966,6 +4036,12 @@ export interface components {
             /** @enum {string} */
             object: "conversation_ref";
             conversationId: string | null;
+        };
+        CreateApplyApprovalBody: {
+            sessionKey: string;
+        };
+        CreateApplyIntentBody: {
+            sessionKey: string;
         };
         CreateCompanyBody: {
             /** @description Public company website URL. Normalized to a canonical apex domain when stored. */
@@ -4911,7 +4987,7 @@ export interface components {
             /** @enum {string} */
             object: "notification_preference";
             /** @enum {string} */
-            channel: "messageEmails" | "applicationEmails";
+            channel: "messageEmails" | "applicationEmails" | "recommendedJobEmails";
             subscribed: boolean;
             updatedAt: number | null;
         };
@@ -5213,6 +5289,9 @@ export interface components {
             description: string | null;
             /** @description Where candidates apply, or `null` if not specified. An HTTPS URL or `mailto:` URI. */
             applicationUrl: string | null;
+            isSponsored: boolean;
+            /** @enum {string} */
+            applyAction: "native" | "external_direct" | "gateway_external" | "gateway_native";
             /** @description Hierarchical permit selection authored by the board owner. The three `remoteWorkPermit*` and `remoteWorldwide` fields are read-only derived projections. */
             remotePermits: {
                 type: string;
@@ -6094,7 +6173,7 @@ export interface components {
         UnsubscribeBody: {
             boardUserId: string;
             /** @enum {string} */
-            channel: "messageEmails" | "applicationEmails";
+            channel: "messageEmails" | "applicationEmails" | "recommendedJobEmails";
             token: string;
         };
         UpdateApplicationFactsBody: {
@@ -6111,6 +6190,7 @@ export interface components {
             handle?: string;
             headline?: string;
             location?: string;
+            countryCode?: string | null;
             /** @enum {string} */
             profileVisibility?: "hidden" | "logged_in_only" | "public";
             /** @enum {string} */
@@ -6165,7 +6245,7 @@ export interface components {
         };
         UpdateNotificationPreferenceBody: {
             /** @enum {string} */
-            channel: "messageEmails" | "applicationEmails";
+            channel: "messageEmails" | "applicationEmails" | "recommendedJobEmails";
             subscribed: boolean;
         };
         UpdatePasswordBody: {
@@ -8944,7 +9024,10 @@ export interface operations {
     getBoardJob: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Explicit opt-in for the compatible Cavuno starter Apply gateway protocol. */
+                "x-cavuno-board-capabilities"?: "apply-gateway-v1";
+            };
             path: {
                 /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
                 identifier: string;
@@ -9038,7 +9121,10 @@ export interface operations {
     createBoardJobApply: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Explicit opt-in for the compatible Cavuno starter Apply gateway protocol. */
+                "x-cavuno-board-capabilities"?: "apply-gateway-v1";
+            };
             path: {
                 /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
                 identifier: string;
@@ -9061,7 +9147,7 @@ export interface operations {
                     "application/json": components["schemas"]["Application"];
                 };
             };
-            /** @description Guest apply not allowed (`applications_guest_not_allowed`). */
+            /** @description Guest apply not allowed (`applications_guest_not_allowed`) or country approval denied (`applications_country_not_allowed`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -9081,6 +9167,95 @@ export interface operations {
             };
             /** @description Job is external-apply-only (`applications_external_apply_only`). */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createBoardJobApplyApproval: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Explicit opt-in for the compatible Cavuno starter Apply gateway protocol. */
+                "x-cavuno-board-capabilities": "apply-gateway-v1";
+            };
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                jobSlug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateApplyApprovalBody"];
+            };
+        };
+        responses: {
+            /** @description No browser-edge approval is required. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplyApprovalPlan"];
+                };
+            };
+            /** @description Browser-edge approval is required before native Apply. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplyApprovalPlan"];
+                };
+            };
+            /** @description Board or native job not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createBoardJobApplyIntent: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Explicit opt-in for the compatible Cavuno starter Apply gateway protocol. */
+                "x-cavuno-board-capabilities": "apply-gateway-v1";
+            };
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                jobSlug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateApplyIntentBody"];
+            };
+        };
+        responses: {
+            /** @description A newly-created or short-window reused Apply intent. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplyIntent"];
+                };
+            };
+            /** @description Board or externally applicable job not found. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
