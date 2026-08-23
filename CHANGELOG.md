@@ -3,6 +3,27 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.7.0 — 2026-08-23
+
+- **`board.me.companies.recommendedTalent.list`**: candidates who fit one of
+  your company's jobs, best match first, for a signed-in employer. Pass the
+  company `slug` and the required `job`. Each item wraps the same
+  `talent_directory_entry` card the public directory returns, so existing
+  rendering works unchanged, and `jobSearchStatus` is populated even when the
+  candidate scoped it to employers only, because the caller is a verified
+  employer. Candidates who already applied to that job are excluded — they
+  belong to the job's pipeline, not to sourcing — as are hidden profiles and
+  anyone whose job-search status is `not_looking`. The response exposes no
+  rank, score, band, or ranker identity, and ranking improves server-side
+  without contract changes. The list is a bounded top slice, so expect it to
+  be short; an empty `data` is not a relevance signal and can arrive
+  mid-pagination, so follow `hasMore` / `nextCursor` rather than stopping at
+  the first empty page. Requires an approved `company_membership` for the
+  company, and the job must belong to it. A draft job answers
+  `409 job_not_published` rather than an empty list — only published jobs
+  carry the vectors matching needs. Exported types: `RecommendedTalent`,
+  `RecommendedTalentListQuery`.
+
 ## 4.6.0 — 2026-08-22
 
 - **`board.me.recommendedJobs.list`**: personalized jobs for the signed-in

@@ -1995,6 +1995,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/me/companies/{slug}/recommended-talent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List recommended talent for a job
+         * @description Candidates who fit the job named by the required `?job=` and who have **not applied to it**, best match first. Each item embeds the same `talent_directory_entry` card the public directory emits, so existing rendering works unchanged; `jobSearchStatus` is populated here even when the candidate scoped it to employers only, because the caller is a verified employer. Requires an approved `company_membership` for `:slug`, and the job must belong to that company. Eligibility is the candidate's decision first: hidden profiles are never returned, and a candidate whose job-search status is `not_looking` is excluded outright (an unset status stays eligible). Applicants are excluded — they belong to the Job pipeline, not to sourcing. Ranking is computed server-side and improves over time without contract changes, and the response exposes no rank, score, band, or ranker identity. The list is a bounded top slice, not everyone who matched, so expect it to be short. An empty `data` is not a relevance signal — it means nothing was ranked, or the entries for that page were dropped after ranking (profile deleted or hidden, or the candidate opted out since the last sync) — and it can arrive mid-pagination, so follow `hasMore`/`nextCursor` rather than stopping at the first empty page. Never cached.
+         */
+        get: operations["listBoardMeCompanyRecommendedTalent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/boards/{identifier}/me/companies/{slug}/work-email/confirm": {
         parameters: {
             query?: never;
@@ -5484,6 +5504,11 @@ export interface components {
             /** @enum {string} */
             object: "recommended_job";
             job: components["schemas"]["PublicJobCard"];
+        };
+        RecommendedTalent: {
+            /** @enum {string} */
+            object: "recommended_talent";
+            candidate: components["schemas"]["TalentDirectoryEntry"];
         };
         RedirectResolution: {
             /** @enum {string} */
@@ -13005,6 +13030,96 @@ export interface operations {
             };
             /** @description Rate limited. */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listBoardMeCompanyRecommendedTalent: {
+        parameters: {
+            query: {
+                /** @description Required. The job to source candidates for; it must belong to `:slug`. */
+                job: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recommended candidates, best match first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        object: "list";
+                        url: string;
+                        hasMore: boolean;
+                        nextCursor: string | null;
+                        data: components["schemas"]["RecommendedTalent"][];
+                    };
+                };
+            };
+            /** @description Missing/invalid/expired access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Token issued for a different board, or the caller is not an approved member of `:slug` (`employer_not_member`). Note `talent_directory_restricted` cannot occur here — the caller is a connected employer by construction, which is exactly the audience an `employers_only` directory admits. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board or company not found, the talent directory is off for this board (`talent_directory_not_found`), or `job` does not exist / does not belong to `:slug` (`employer_job_not_found`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The job is a draft (`job_not_published`) — only published jobs can be matched. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Search backend unavailable (`search_unavailable`) — retry later. */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

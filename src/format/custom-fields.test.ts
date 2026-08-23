@@ -95,9 +95,9 @@ describe('resolveCustomFieldDisplay', () => {
   });
 
   it('is empty when there are no definitions', () => {
-    expect(
-      resolveCustomFieldDisplay('en', undefined, { visa: true }),
-    ).toEqual([]);
+    expect(resolveCustomFieldDisplay('en', undefined, { visa: true })).toEqual(
+      [],
+    );
   });
 
   it('returns multi-select labels as an array (app owns ListFormat / chips)', () => {

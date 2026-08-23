@@ -194,9 +194,7 @@ describe('createSuggestController', () => {
 
     expect(ctrl.getState().status).toBe('ready');
     expect(
-      ctrl
-        .getState()
-        .items.map((i) => ('slug' in i ? i.slug : i.displayName)),
+      ctrl.getState().items.map((i) => ('slug' in i ? i.slug : i.displayName)),
     ).toEqual(['fast', 'Finance']);
   });
 
@@ -449,9 +447,7 @@ describe('createSuggestController', () => {
       term('Accounting'),
       company('globex'),
     ];
-    const { board } = mockBoard(
-      vi.fn(async () => result('a', items)),
-    );
+    const { board } = mockBoard(vi.fn(async () => result('a', items)));
     const ctrl = createSuggestController(board, { debounceMs: 0 });
 
     ctrl.setQuery('acme');
@@ -462,7 +458,10 @@ describe('createSuggestController', () => {
 
     ctrl.setExcludedCompanySlugs(['acme']);
     // Synchronous re-filter — no extra request.
-    expect(ctrl.getState().items).toEqual([term('Accounting'), company('globex')]);
+    expect(ctrl.getState().items).toEqual([
+      term('Accounting'),
+      company('globex'),
+    ]);
     expect(board.search.suggest).toHaveBeenCalledTimes(1);
 
     // Term items are never excluded by company slug.
@@ -498,15 +497,17 @@ describe('createSuggestController', () => {
   });
 
   it('treats aborts as silent (no error state)', async () => {
-    const suggest = vi.fn(async (_q?: unknown, opts?: { signal?: AbortSignal }) => {
-      return new Promise<SuggestResult>((_resolve, reject) => {
-        opts?.signal?.addEventListener('abort', () => {
-          const err = new Error('Aborted');
-          err.name = 'AbortError';
-          reject(err);
+    const suggest = vi.fn(
+      async (_q?: unknown, opts?: { signal?: AbortSignal }) => {
+        return new Promise<SuggestResult>((_resolve, reject) => {
+          opts?.signal?.addEventListener('abort', () => {
+            const err = new Error('Aborted');
+            err.name = 'AbortError';
+            reject(err);
+          });
         });
-      });
-    });
+      },
+    );
     const ctrl = createSuggestController(
       { search: { suggest } },
       { debounceMs: 0 },

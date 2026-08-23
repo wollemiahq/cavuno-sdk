@@ -351,6 +351,8 @@ export type {
   EmployerPipelineQuery,
   EmployerPipelineStage,
   MoveApplicantStageBody,
+  RecommendedTalent,
+  RecommendedTalentListQuery,
   ReorderPipelineStagesBody,
   SendWorkEmailBody,
   TalentAccess,

@@ -15,6 +15,7 @@ import {
   jobsLocationCategoryPath,
   jobsLocationPath,
 } from '../paths';
+
 import type { PublicJob } from '../types/jobs';
 import type { JsonLdObject } from './job-posting';
 

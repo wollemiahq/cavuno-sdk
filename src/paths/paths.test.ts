@@ -151,9 +151,9 @@ describe('suggestionPath', () => {
     expect(suggestionPath(category, { scope: 'jobs' })).toBe(
       '/jobs/engineering',
     );
-    expect(
-      suggestionPath(skill, { scope: 'jobs', location: 'berlin' }),
-    ).toBe('/jobs/locations/berlin/skills/react');
+    expect(suggestionPath(skill, { scope: 'jobs', location: 'berlin' })).toBe(
+      '/jobs/locations/berlin/skills/react',
+    );
     expect(
       suggestionPath(category, { scope: 'jobs', location: 'berlin' }),
     ).toBe('/jobs/locations/berlin/engineering');

@@ -312,8 +312,7 @@ export function formatSalaryRange(
     return null;
   }
 
-  const resolvedNotation =
-    notation ?? notationForMagnitude(min, max);
+  const resolvedNotation = notation ?? notationForMagnitude(min, max);
 
   // `.has` on a Set — not `in` on an object — so prototype keys
   // ('__proto__', 'toString') cannot pass the guard.

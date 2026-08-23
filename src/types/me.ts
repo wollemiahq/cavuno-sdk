@@ -21,6 +21,26 @@ export type RecommendedJobsListQuery = {
   limit?: number;
 };
 
+/**
+ * Employer→candidate recommendation wrapper — embeds the same
+ * `talent_directory_entry` card the public directory emits.
+ *
+ * The wrapper exists so typed `reasons` and a coarse `strength` band can land
+ * later as MINOR additions rather than breaks. It will never carry a rank,
+ * score, band, or ranker identity: order is the ranking. This is a sourcing
+ * surface, not a screening one.
+ */
+export type RecommendedTalent = Schemas['RecommendedTalent'];
+
+export type RecommendedTalentListQuery = {
+  /** Required. The job to source candidates for; it must belong to `:slug`. */
+  job: string;
+  /** Opaque position cursor from a previous page's `nextCursor`. */
+  cursor?: string;
+  /** 1–100. */
+  limit?: number;
+};
+
 export type SaveJobBody = Schemas['SaveJobBody'];
 
 /** The authenticated user's lean candidate profile singleton. */
