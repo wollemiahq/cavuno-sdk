@@ -340,9 +340,9 @@ describe('hasGeneratedBanner (opening comment block only)', () => {
 
   it('rejects a marker past the opening comment block or the head window', () => {
     expect(hasGeneratedBanner('const a = 1;\n// @generated\n')).toBe(false);
-    expect(
-      hasGeneratedBanner('//1\n//2\n//3\n//4\n//5\n// @generated\n'),
-    ).toBe(false);
+    expect(hasGeneratedBanner('//1\n//2\n//3\n//4\n//5\n// @generated\n')).toBe(
+      false,
+    );
   });
 
   it('rejects an ordinary file with no banner', () => {

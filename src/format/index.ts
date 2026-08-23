@@ -34,10 +34,7 @@ export type {
  * merge or unify the two; each is tested separately. Implementations
  * remain in `src/seo/salary.ts`.
  */
-export {
-  formatSalaryStat,
-  formatSalaryStatRange,
-} from '../seo/salary';
+export { formatSalaryStat, formatSalaryStatRange } from '../seo/salary';
 /** Scheme-less company website normalizer (presentation helper; lives in seo). */
 export { normalizeWebsiteUrl } from '../seo/job-posting';
 /** Job detail breadcrumb trail for listing UIs (presentation helper; lives in seo). */
