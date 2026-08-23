@@ -3,6 +3,17 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.8.0 — 2026-08-23
+
+- **Country-gated Apply flows**: compatible starters can use
+  `board.jobs.createApplyIntent` for opaque external-apply redirects and
+  `board.jobs.prepareApplyApproval` before native Apply. The browser completes
+  country approval directly against the Cavuno Apply gateway, then returns the
+  opaque receipt through the existing `board.jobs.apply` call. New job payloads
+  expose `applyAction`, and native Apply accepts `approvalReceipt` plus the
+  matching server-owned `approvalSessionKey`. These additions keep destination
+  URLs and client-supplied country or IP values out of the trusted decision.
+
 ## 4.7.0 — 2026-08-23
 
 - **`board.me.companies.recommendedTalent.list`**: candidates who fit one of

@@ -80,6 +80,7 @@ export const BOARD_API_ERROR_CODES = [
   'resume_upload_forbidden',
   // Applications
   'applications_external_apply_only',
+  'applications_country_not_allowed',
   'applications_guest_not_allowed',
   'applications_job_not_found',
   'applications_not_found',
