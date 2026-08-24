@@ -4989,6 +4989,7 @@ export interface components {
             /** @enum {string} */
             channel: "messageEmails" | "applicationEmails" | "recommendedJobEmails";
             subscribed: boolean;
+            waitlisted: boolean;
             updatedAt: number | null;
         };
         PaywallOffer: {
