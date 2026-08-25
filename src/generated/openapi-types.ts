@@ -2477,7 +2477,7 @@ export interface paths {
         get: operations["listBoardMeNotificationPreferences"];
         /**
          * Update a notification preference
-         * @description Set the subscribed state of a single channel; returns the full updated preference set. Never cached.
+         * @description Set the subscribed state of a single channel; returns the full updated preference set. When Job recommendations are paused, existing recommendation-email subscribers may opt out but new opt-ins return `candidate_notification_preference_paused`. Never cached.
          */
         put: operations["updateBoardMeNotificationPreferences"];
         post?: never;
@@ -2725,7 +2725,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List recommended jobs
+         * List Job recommendations
          * @description Personalized job recommendations for the authenticated board user, ranked best-match first from their candidate profile (skills, roles, seniority, work authorization). Each item embeds the same slim `job_card` the jobs list emits. Jobs the user already applied to are excluded; saved jobs are included. An empty list means the profile has no usable matching signal yet (e.g. no resume parsed) — check `/me/profile` to drive an upload prompt. Ranking is computed server-side and improves over time without contract changes. Never cached.
          */
         get: operations["listBoardMeRecommendedJobs"];
@@ -4989,6 +4989,7 @@ export interface components {
             /** @enum {string} */
             channel: "messageEmails" | "applicationEmails" | "recommendedJobEmails";
             subscribed: boolean;
+            waitlisted: boolean;
             updatedAt: number | null;
         };
         PaywallOffer: {
@@ -5162,6 +5163,10 @@ export interface components {
             showCavunoBranding: boolean;
             features: {
                 jobAlerts: boolean;
+                /** @description Whether personalized candidate job recommendations are available on this board. Absent board config defaults to `true`. */
+                jobRecommendationsEnabled: boolean;
+                /** @description Whether employer recommended-talent matches are available on this board. Absent board config defaults to `false`. */
+                recommendedTalentEnabled: boolean;
                 candidates: boolean;
                 employers: boolean;
                 blog: boolean;
@@ -13266,7 +13271,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Board or company not found, the talent directory is off for this board (`talent_directory_not_found`), or `job` does not exist / does not belong to `:slug` (`employer_job_not_found`). */
+            /** @description Board or company not found, Recommended talent is disabled (`recommended_talent_not_found`), the talent directory is off for this board (`talent_directory_not_found`), or `job` does not exist / does not belong to `:slug` (`employer_job_not_found`). */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -14851,6 +14856,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description Job recommendation email opt-ins are paused (`candidate_notification_preference_paused`). */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Rate limited. */
             429: {
                 headers: {
@@ -16123,7 +16137,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Recommended jobs, best match first. */
+            /** @description Job recommendations, best match first. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -16157,7 +16171,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Board not found. */
+            /** @description Board not found, or Job recommendations are disabled for this board (`job_recommendations_not_found`). */
             404: {
                 headers: {
                     [name: string]: unknown;
