@@ -113,9 +113,9 @@ export function jobsNamespace(client: BoardClient) {
     },
 
     /**
-     * Create an opaque external-apply intent. A compatible starter then makes
-     * its own board-local POST return a browser 303 to `gatewayUrl`; do not
-     * render this value as a crawlable link. Pass
+     * Create an opaque external-apply intent. A compatible starter sends the
+     * candidate's browser to `gatewayUrl` (or asks it for the canonical JSON
+     * decision after a real Apply click); never render it as a crawlable link. Pass
      * `x-cavuno-board-capabilities: apply-gateway-v1` in `options.headers`;
      * legacy callers receive 404.
      */
