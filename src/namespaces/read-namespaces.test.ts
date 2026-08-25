@@ -59,6 +59,8 @@ describe('board.context()', () => {
       showCavunoBranding: true,
       features: {
         jobAlerts: true,
+        jobRecommendationsEnabled: true,
+        recommendedTalentEnabled: false,
         candidates: true,
         employers: true,
         blog: true,
