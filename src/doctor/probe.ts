@@ -4,7 +4,8 @@
  * can't drift between the two tiers. (writes.ts has its own
  * POST-capable `request`; this is the read-only shape.)
  */
-export const FETCH_TIMEOUT_MS = 10_000;
+/** Cold candidate child sitemaps are a ~30s first isolate (Cybersecurity 2026-08-25). */
+export const FETCH_TIMEOUT_MS = 60_000;
 
 export async function probe(
   fetchImpl: typeof fetch,
