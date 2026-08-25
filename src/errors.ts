@@ -67,6 +67,8 @@ export const BOARD_API_ERROR_CODES = [
   'talent_not_found',
   'talent_directory_not_found',
   'talent_directory_restricted',
+  'job_recommendations_not_found',
+  'recommended_talent_not_found',
   // Job alerts (anonymous + authenticated)
   'job_alert_not_found',
   'job_alerts_disabled',
@@ -76,6 +78,7 @@ export const BOARD_API_ERROR_CODES = [
   'candidate_entry_not_found',
   'candidate_handle_taken',
   'candidate_job_not_found',
+  'candidate_notification_preference_paused',
   'resume_invalid_file',
   'resume_upload_forbidden',
   // Applications
