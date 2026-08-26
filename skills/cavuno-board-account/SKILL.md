@@ -137,7 +137,9 @@ if (data.length === 0 && (skills.data.length === 0 || resume.parseStatus !== 'pa
 Authenticated settings expose `messageEmails`, `applicationEmails`, and
 `recommendedJobEmails`. The first two default subscribed when no stored
 preference exists; recommendation email is explicit opt-in and defaults
-unsubscribed. Updating one channel returns the full set.
+unsubscribed. Each preference includes additive `waitlisted`. Updating
+one channel returns the full set. A subscribe at the Email subscribers
+cap waitlists instead of failing.
 
 ```ts snippet
 const preferences = await board.me.notificationPreferences.retrieve();

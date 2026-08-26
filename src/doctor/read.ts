@@ -114,7 +114,13 @@ async function probeSitemap(
 
   let urls = doc.urls;
   if (doc.kind === 'index') {
-    const child = await probe(fetchImpl, onFrontend(base, urls[0]!));
+    const childUrl = onFrontend(base, urls[0]!);
+    let child = await probe(fetchImpl, childUrl);
+    // Concurrent SSR on one Worker isolate 503s the first child while
+    // the index is still warm (Cybersecurity marketing.xml 2026-08-25).
+    if (!child.ok && (child.status === 503 || child.status === 0)) {
+      child = await probe(fetchImpl, childUrl);
+    }
     const childDoc = child.ok ? parseSitemap(child.body) : null;
     if (!childDoc || childDoc.urls.length === 0) {
       return READ.sitemap(
@@ -138,13 +144,12 @@ export async function runReadProbes(
 ): Promise<CheckResult[]> {
   const base = frontendUrl.replace(/\/$/, '');
 
-  // Independent probes run concurrently; jsonld chains behind jobs.
-  const [home, jobsAndJsonLd, sitemap, robots] = await Promise.all([
-    probe(fetchImpl, base),
-    probeJobsAndJsonLd(fetchImpl, base),
-    probeSitemap(fetchImpl, base),
-    probe(fetchImpl, `${base}/robots.txt`),
-  ]);
+  // Serial on the same isolate the candidate Worker uses. Concurrent
+  // home+jobs+sitemap+robots 503 the first child sitemap.
+  const home = await probe(fetchImpl, base);
+  const jobsAndJsonLd = await probeJobsAndJsonLd(fetchImpl, base);
+  const sitemap = await probeSitemap(fetchImpl, base);
+  const robots = await probe(fetchImpl, `${base}/robots.txt`);
 
   return [
     home.ok && /<(html|body|div|main)[\s>]/i.test(home.body)

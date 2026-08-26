@@ -97,6 +97,51 @@ describe('runDoctor tiers 1-2', () => {
     expect(fetched).toContain('https://front.example/jobs');
   });
 
+  it('retries a 503 child sitemap once so a cold isolate can finish', async () => {
+    let marketingHits = 0;
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/sitemap/marketing.xml')) {
+        marketingHits += 1;
+        if (marketingHits === 1) {
+          return new Response('unavailable', { status: 503 });
+        }
+        return new Response(
+          '<urlset><url><loc>https://front.example/</loc></url></urlset>',
+          { status: 200 },
+        );
+      }
+      if (url.endsWith('/sitemap.xml')) {
+        return new Response(
+          '<sitemapindex><sitemap><loc>https://front.example/sitemap/marketing.xml</loc></sitemap></sitemapindex>',
+          { status: 200 },
+        );
+      }
+      if (url.includes('/openapi.json')) {
+        return new Response('{"openapi":"3.1.0"}', { status: 200 });
+      }
+      if (url.includes('/v1/boards/')) {
+        return new Response('{"board":{"name":"Example board"}}', {
+          status: 200,
+        });
+      }
+      if (url.endsWith('/robots.txt')) {
+        return new Response('User-agent: *', { status: 200 });
+      }
+      return new Response(JOB_HTML, { status: 200 });
+    });
+
+    const { results } = await runDoctor({
+      env: ENV,
+      frontendUrl: 'https://front.example',
+      projectRoot: EMPTY_ROOT,
+      fetchImpl,
+    });
+
+    expect(marketingHits).toBe(2);
+    expect(results.find((r) => r.id === 'read.sitemap')?.status).toBe('pass');
+  });
+
   it('fails loudly when the job page has no JobPosting JSON-LD', async () => {
     const fetchImpl = fetchStub({
       '/openapi.json': { body: '{"openapi":"3.1.0"}' },
