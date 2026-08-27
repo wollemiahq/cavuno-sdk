@@ -154,6 +154,16 @@
         "default": "./dist/well-known.js"
       }
     },
+    "./seo-files": {
+      "import": {
+        "types": "./dist/seo-files.d.mts",
+        "default": "./dist/seo-files.mjs"
+      },
+      "require": {
+        "types": "./dist/seo-files.d.ts",
+        "default": "./dist/seo-files.js"
+      }
+    },
     "./server": {
       "import": {
         "types": "./dist/server.d.mts",
