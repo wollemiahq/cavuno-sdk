@@ -202,9 +202,41 @@ export type AcceptCompanyMemberInviteBody =
 /**
  * The viewer's per-employer talent entitlement from
  * `board.me.talentAccess.retrieve` — the talent-CTA signal (sourced from the
- * same subscription/credit-pack truth the talent paywall enforces).
+ * same subscription/credit-pack truth the talent paywall enforces), plus
+ * charging model and remaining unlock/message credits.
  */
 export type TalentAccess = Schemas['TalentAccess'];
+
+/** Per-candidate unlock/credit gate from `board.me.talentAccess.retrieveCandidate`. */
+export type TalentCandidateAccess = Schemas['TalentCandidateAccess'];
+
+/** Body for `board.me.talentAccess.checkout`. */
+export type TalentAccessCheckoutBody = Schemas['TalentAccessCheckoutBody'];
+
+/**
+ * Connected-account mount kit from `board.me.talentAccess.checkout` — same
+ * generated schema as candidate-access checkout (`origin: talent_access`).
+ */
+export type TalentAccessCheckoutSession = Schemas['AccessCheckoutSession'];
+
+/** Polled state of a talent-access checkout session (`board.me.talentAccess.retrieveCheckout`). */
+export type TalentAccessCheckoutSessionState =
+  Schemas['AccessCheckoutSessionState'];
+
+/** Result of `board.me.talentAccess.unlock`. */
+export type TalentUnlock = Schemas['TalentUnlock'];
+
+/** Body for `board.me.talentAccess.unlock`. */
+export type TalentUnlockBody = Schemas['TalentUnlockBody'];
+
+/** Body for `board.me.talentAccess.upgrade`. */
+export type TalentAccessUpgradeBody = Schemas['TalentAccessUpgradeBody'];
+
+/**
+ * Acknowledgement from `board.me.talentAccess.upgrade` — entitlement (new
+ * credit counters) lands via webhook; re-read `me.talentAccess.retrieve`.
+ */
+export type TalentAccessUpgrade = Schemas['TalentUpgrade'];
 
 /** Query for `board.me.companies.search`. */
 export type EmployerCompanySearchQuery = {
@@ -300,3 +332,9 @@ export type EmployerBillingOption = Schemas['EmployerBillingOption'];
 /** The result of `board.me.companies.jobs.checkout`. */
 export type EmployerCheckout = Schemas['EmployerCheckout'];
 export type EmployerCheckoutBody = Schemas['EmployerCheckoutBody'];
+
+/** Optional body for `board.me.companies.billingPortal.create`. */
+export type CompanyBillingPortalBody = Schemas['CompanyBillingPortalBody'];
+/** A minted company Stripe Customer Portal session (job posting + talent access). */
+export type CompanyBillingPortalSession =
+  Schemas['CompanyBillingPortalSession'];

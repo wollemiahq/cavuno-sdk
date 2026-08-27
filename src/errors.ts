@@ -142,6 +142,13 @@ export const BOARD_API_ERROR_CODES = [
   'paywall_no_candidate_profile',
   'paywall_no_recurring_subscription',
   'paywall_offer_not_found',
+  // Employer talent-access paywall
+  'talent_access_unavailable',
+  'company_required',
+  'already_on_plan',
+  'talent_access_required',
+  'messaging_talent_access_required',
+  'stripe_not_connected',
   // Public job posting
   'job_posting_logo_lookup_unavailable',
   'job_posting_logo_not_found',

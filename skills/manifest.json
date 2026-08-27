@@ -154,6 +154,13 @@
       "path": "skills/cavuno-board-smoke-test/SKILL.md",
       "framework": null,
       "category": "core"
+    },
+    {
+      "name": "cavuno-board-talent-access",
+      "description": "Employer talent-access paywall with @cavuno/board. Use for charging models, remaining credits, per-candidate unlock gates, embedded checkout, in-place upgrades, or the company billing portal.",
+      "path": "skills/cavuno-board-talent-access/SKILL.md",
+      "framework": null,
+      "category": "core"
     }
   ]
 }
