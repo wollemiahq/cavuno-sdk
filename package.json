@@ -1,6 +1,6 @@
 {
   "name": "@cavuno/board",
-  "version": "4.8.0",
+  "version": "4.9.0",
   "description": "Build custom job boards and careers pages with Cavuno’s TypeScript SDK.",
   "keywords": [
     "api-client",
@@ -152,6 +152,16 @@
       "require": {
         "types": "./dist/well-known.d.ts",
         "default": "./dist/well-known.js"
+      }
+    },
+    "./seo-files": {
+      "import": {
+        "types": "./dist/seo-files.d.mts",
+        "default": "./dist/seo-files.mjs"
+      },
+      "require": {
+        "types": "./dist/seo-files.d.ts",
+        "default": "./dist/seo-files.js"
       }
     },
     "./server": {

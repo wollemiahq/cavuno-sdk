@@ -472,7 +472,7 @@ export interface paths {
         };
         /**
          * List a public board's active categories
-         * @description Returns localized, canonical taxonomy terms backed by published jobs on this board. Canonical slug collisions are returned once.
+         * @description Returns localized, canonical taxonomy terms backed by published jobs on this board, each with its live `jobCount`. Canonical slug collisions are returned once. Default order is display name; pass `sort=jobCount` for a busiest-first page.
          */
         get: operations["listBoardCategories"];
         put?: never;
@@ -2477,7 +2477,7 @@ export interface paths {
         get: operations["listBoardMeNotificationPreferences"];
         /**
          * Update a notification preference
-         * @description Set the subscribed state of a single channel; returns the full updated preference set. Never cached.
+         * @description Set the subscribed state of a single channel; returns the full updated preference set. When Job recommendations are paused, existing recommendation-email subscribers may opt out but new opt-ins return `candidate_notification_preference_paused`. Never cached.
          */
         put: operations["updateBoardMeNotificationPreferences"];
         post?: never;
@@ -2725,7 +2725,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List recommended jobs
+         * List Job recommendations
          * @description Personalized job recommendations for the authenticated board user, ranked best-match first from their candidate profile (skills, roles, seniority, work authorization). Each item embeds the same slim `job_card` the jobs list emits. Jobs the user already applied to are excluded; saved jobs are included. An empty list means the profile has no usable matching signal yet (e.g. no resume parsed) — check `/me/profile` to drive an upload prompt. Ranking is computed server-side and improves over time without contract changes. Never cached.
          */
         get: operations["listBoardMeRecommendedJobs"];
@@ -3298,7 +3298,7 @@ export interface paths {
         };
         /**
          * List a public board's active skills
-         * @description Returns localized, canonical taxonomy terms backed by published jobs on this board. Canonical slug collisions are returned once.
+         * @description Returns localized, canonical taxonomy terms backed by published jobs on this board, each with its live `jobCount`. Canonical slug collisions are returned once. Default order is display name; pass `sort=jobCount` for a busiest-first page.
          */
         get: operations["listBoardSkills"];
         put?: never;
@@ -4334,6 +4334,8 @@ export interface components {
             linkedinUrl: string | null;
             facebookUrl: string | null;
             logoUrl: string | null;
+            /** @description Whether company admins may delete this company. Mirrors the board Features toggle `employerCompanyDeletionEnabled`. Absent board config defaults to `true`. When `false`, DELETE returns 403 `company_deletion_disabled` and clients should hide the danger zone. */
+            deletionEnabled: boolean;
         };
         EmployerCreateJobBody: {
             /** @description Long-form description of the role. Up to 25,000 characters. */
@@ -4989,6 +4991,7 @@ export interface components {
             /** @enum {string} */
             channel: "messageEmails" | "applicationEmails" | "recommendedJobEmails";
             subscribed: boolean;
+            waitlisted: boolean;
             updatedAt: number | null;
         };
         PaywallOffer: {
@@ -5162,6 +5165,10 @@ export interface components {
             showCavunoBranding: boolean;
             features: {
                 jobAlerts: boolean;
+                /** @description Whether personalized candidate job recommendations are available on this board. Absent board config defaults to `true`. */
+                jobRecommendationsEnabled: boolean;
+                /** @description Whether the board-level Recommended talent toggle is enabled. The endpoint additionally requires the Candidate area and a non-off talent directory. Absent board config defaults to `false`. */
+                recommendedTalentEnabled: boolean;
                 candidates: boolean;
                 employers: boolean;
                 blog: boolean;
@@ -5187,10 +5194,36 @@ export interface components {
                 linkedInPartnerId: string | null;
                 cookieConsentRequired: boolean;
             };
+            /** @description Public AdSense switch + publisher id from board advertising settings. Not the slot map (Puck/Cavuno placements) and not `ads.txt` (`board.seo()`). */
+            ads: {
+                /** @description Whether AdSense is turned on for this board (Settings → Advertising). Headless frontends render their own placements only when this is true and `clientId` is a valid `ca-pub-` publisher id. Per-placement slot ids are not on this resource — applications own geometry. */
+                enabled: boolean;
+                /** @description AdSense publisher id (`ca-pub-` + 16 digits), or null when ads are off or the stored value is malformed. Already public on hosted pages as `data-ad-client`. */
+                clientId: string | null;
+            };
             /** @description Operator-defined custom field definitions keyed by model (currently only `job`). Each key holds that model's definitions in display order. Company and talent keys are added when those models ship. The frontend uses these to render and localize each record's opaque `customFieldValues`. Display-only: not filterable or searchable in v1. */
             customFields: {
                 /** @description This model's custom-field definitions in display order. Empty when the board defines none for the model. */
                 job: components["schemas"]["CustomFieldDefinition"][];
+            };
+            /** @description Built-in job-form field visibility from Settings → Job form. Does not include custom fields (`customFields.job`) or operator-only constraints (required, bounds, allowlists). */
+            jobForm: {
+                salary: {
+                    /** @description Whether salary is captured on posting forms and shown on public job cards. Absent board config defaults to `true`. */
+                    visible: boolean;
+                };
+                seniority: {
+                    /** @description Whether seniority is captured on posting forms. Absent board config defaults to `true`. */
+                    visible: boolean;
+                };
+                location: {
+                    /** @description Whether office location is captured on posting forms. Absent board config defaults to `true`. */
+                    visible: boolean;
+                };
+                sponsorship: {
+                    /** @description Whether visa sponsorship is captured on posting forms. Absent board config defaults to `true`. */
+                    visible: boolean;
+                };
             };
             /** @description Operator-authored contact and social identity (settings › Contact & company details). Extracted from the former `footer` group in 4.0.0: contact is identity data, not layout. Brand/social URLs are sanitized to absolute http(s). */
             contact: {
@@ -5568,6 +5601,8 @@ export interface components {
             canonicalSlug: string;
             /** @description Board-language name with source-name fallback. */
             displayName: string;
+            /** @description Live published-job count for this term on the board. Maintained as jobs publish and expire — not a tally of the current list page. */
+            jobCount: number;
         };
         PublicVerifyBoardPasswordBody: {
             /** @description The board password. */
@@ -7468,6 +7503,8 @@ export interface operations {
                 /** @description Opaque forward cursor from the previous response. */
                 cursor?: string;
                 limit?: number;
+                /** @description Order of the filtered collection. `name` (default) is locale-aware display-name order. `jobCount` is live published-job count, highest first, with `name` as the tie-break. Bound into the opaque cursor. */
+                sort?: "name" | "jobCount";
             };
             header?: never;
             path: {
@@ -13266,7 +13303,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Board or company not found, the talent directory is off for this board (`talent_directory_not_found`), or `job` does not exist / does not belong to `:slug` (`employer_job_not_found`). */
+            /** @description Board or company not found, Recommended talent is disabled (`recommended_talent_not_found`), the talent directory is off for this board (`talent_directory_not_found`), or `job` does not exist / does not belong to `:slug` (`employer_job_not_found`). */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -14851,6 +14888,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description Job recommendation email opt-ins are paused (`candidate_notification_preference_paused`). */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Rate limited. */
             429: {
                 headers: {
@@ -16123,7 +16169,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Recommended jobs, best match first. */
+            /** @description Job recommendations, best match first. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -16157,7 +16203,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Board not found. */
+            /** @description Board not found, or Job recommendations are disabled for this board (`job_recommendations_not_found`). */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -17540,6 +17586,8 @@ export interface operations {
                 /** @description Opaque forward cursor from the previous response. */
                 cursor?: string;
                 limit?: number;
+                /** @description Order of the filtered collection. `name` (default) is locale-aware display-name order. `jobCount` is live published-job count, highest first, with `name` as the tie-break. Bound into the opaque cursor. */
+                sort?: "name" | "jobCount";
             };
             header?: never;
             path: {

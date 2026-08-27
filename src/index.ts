@@ -77,10 +77,11 @@ export function createBoardClient(options: CreateBoardClientOptions) {
 
     /**
      * Board context — identity, brand (`logoUrl` + favicon `icons`), language,
-     * features, and analytics.
+     * features, analytics, and AdSense (`ads.enabled` + `ads.clientId`).
+     * Per-placement slot ids are not on this resource.
      *
      * @example
-     * const { name, language, logoUrl, icons } = await board.context();
+     * const { name, language, logoUrl, icons, ads } = await board.context();
      */
     context(options?: FetchOptions) {
       return client.fetch<PublicBoard>('', options);
@@ -173,8 +174,10 @@ export type {
   CustomFieldOption,
   CustomFieldType,
   PublicBoard,
+  PublicBoardAds,
   PublicBoardAnalytics,
   PublicBoardFeatures,
+  PublicBoardJobForm,
 } from './types/board';
 export type { BoardSeo } from './types/seo';
 export type { EmbedJobsQuery } from './types/embed';

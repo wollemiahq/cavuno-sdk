@@ -6,6 +6,8 @@ import type { Schemas } from './_spec';
 export type PublicBoard = Schemas['PublicBoardContext'];
 export type PublicBoardFeatures = PublicBoard['features'];
 export type PublicBoardAnalytics = PublicBoard['analytics'];
+export type PublicBoardAds = PublicBoard['ads'];
+export type PublicBoardJobForm = PublicBoard['jobForm'];
 
 /**
  * An operator-defined custom field definition. Board-wide and

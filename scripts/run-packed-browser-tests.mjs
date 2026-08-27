@@ -36,21 +36,28 @@ try {
     { stdio: 'inherit' },
   );
 
-  execFileSync(
-    'pnpm',
-    ['exec', 'playwright', 'test', '-c', 'playwright.browser.config.mjs'],
-    {
-      cwd: packageRoot,
-      env: {
-        ...process.env,
-        CAVUNO_BOARD_BROWSER_SCRIPT: join(
-          extracted,
-          'package/dist/browser/cavuno-board.global.min.js',
-        ),
-      },
-      stdio: 'inherit',
+  const playwrightArgs = [
+    'exec',
+    'playwright',
+    'test',
+    '-c',
+    'playwright.browser.config.mjs',
+  ];
+  if (process.env.PLAYWRIGHT_PROJECT) {
+    playwrightArgs.push('--project', process.env.PLAYWRIGHT_PROJECT);
+  }
+
+  execFileSync('pnpm', playwrightArgs, {
+    cwd: packageRoot,
+    env: {
+      ...process.env,
+      CAVUNO_BOARD_BROWSER_SCRIPT: join(
+        extracted,
+        'package/dist/browser/cavuno-board.global.min.js',
+      ),
     },
-  );
+    stdio: 'inherit',
+  });
 } finally {
   rmSync(work, { force: true, recursive: true });
 }

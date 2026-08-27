@@ -120,4 +120,14 @@ describe('summarize', () => {
     expect(red.exitCode).toBe(1);
     expect(red.failed).toEqual(['c']);
   });
+
+  it('counts warnings separately without failing the run', () => {
+    const warned = summarize([
+      { id: 'a', tier: 2, status: 'pass', detail: '' },
+      { id: 'read.adsTxt', tier: 2, status: 'warn', detail: 'clone leftover' },
+    ]);
+    expect(warned.exitCode).toBe(0);
+    expect(warned.warned).toEqual(['read.adsTxt']);
+    expect(warned.failed).toEqual([]);
+  });
 });

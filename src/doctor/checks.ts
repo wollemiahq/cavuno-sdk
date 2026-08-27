@@ -6,7 +6,7 @@
  * orchestrator in run.ts owns the fetches.
  */
 
-export type CheckStatus = 'pass' | 'fail' | 'skip';
+export type CheckStatus = 'pass' | 'fail' | 'skip' | 'warn';
 
 export interface CheckResult {
   id: string;
@@ -143,16 +143,26 @@ export interface DoctorSummary {
   passed: string[];
   failed: string[];
   skipped: string[];
+  /** Clone leftovers and similar — counted separately; does not fail the run. */
+  warned: string[];
 }
 
 /**
  * Fold results into the exit posture: failures fail the run; skips never
  * count as green silently — they're surfaced by id so "doctor passed"
- * always names what did NOT run (fail-loud rule).
+ * always names what did NOT run (fail-loud rule). Warnings are additive
+ * and do not change the exit code.
  */
 export function summarize(results: CheckResult[]): DoctorSummary {
   const passed = results.filter((r) => r.status === 'pass').map((r) => r.id);
   const failed = results.filter((r) => r.status === 'fail').map((r) => r.id);
   const skipped = results.filter((r) => r.status === 'skip').map((r) => r.id);
-  return { exitCode: failed.length > 0 ? 1 : 0, passed, failed, skipped };
+  const warned = results.filter((r) => r.status === 'warn').map((r) => r.id);
+  return {
+    exitCode: failed.length > 0 ? 1 : 0,
+    passed,
+    failed,
+    skipped,
+    warned,
+  };
 }

@@ -3,6 +3,30 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.9.0 — 2026-08-27
+
+- **`@cavuno/board/seo-files`**: new dependency-free subpath with
+  `robotsResponse`, `adsTxtResponse`, `indexNowResponse`, and
+  `googleSiteVerificationMeta`. Headless frontends serve `robots.txt`,
+  `ads.txt`, and `indexnow-key.txt` byte-identically to hosted boards from
+  `board.seo()`; the robots body now includes `Disallow: /go/` and
+  `Disallow: /t/` like hosted boards.
+- **Doctor**: `--frontend` probes gained `read.adsTxt`, `read.indexNow`,
+  `read.googleVerification`, and `read.oauthCallback`, and `read.robots` now
+  checks the `Sitemap:` line and `/go/` disallow. Results gained an additive
+  `warn` status (`DoctorSummary.warned`) that never fails the run; a file that
+  is served while unconfigured in the dashboard, or a missing OAuth callback
+  forward, warns instead of failing. Read probes run serially and retry a
+  503 child sitemap once.
+- **`board.context()`**: exposes `ads` (`enabled`, `clientId`) and
+  `jobForm` visibility, typed as `PublicBoardAds` and `PublicBoardJobForm`.
+  Employer companies expose `deletionEnabled`.
+- **Taxonomy lists** accept `sort: 'jobCount'` to order collections by live
+  job count.
+- **Generated types** cover the `candidate.profile.updated` webhook event
+  and the operator candidate sync resources (`CandidateSyncSnapshot`,
+  `CandidateReconcileResult`, and related bodies).
+
 ## 4.8.0 — 2026-08-23
 
 - **Country-gated Apply flows**: compatible starters can use
