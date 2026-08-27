@@ -19,6 +19,8 @@ export type TaxonomyListQuery = {
   q?: string;
   cursor?: string;
   limit?: number;
+  /** `name` (default) or `jobCount` (highest published-job count first). */
+  sort?: 'name' | 'jobCount';
 };
 
 /**

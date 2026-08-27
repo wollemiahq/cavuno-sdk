@@ -71,7 +71,7 @@ describe('runDoctor tiers 1-2', () => {
       '/sitemap.xml': {
         body: '<urlset><url><loc>https://canonical-prod.example/jobs</loc></url></urlset>',
       },
-      '/robots.txt': { body: 'User-agent: *' },
+      '/robots.txt': { body: 'User-agent: *\nDisallow: /go/\n' },
       '/companies/technova/jobs/senior-backend-engineer': { body: JOB_HTML },
       '/jobs': { body: JOB_HTML },
       'front.example': { body: JOB_HTML },
@@ -95,6 +95,51 @@ describe('runDoctor tiers 1-2', () => {
       false,
     );
     expect(fetched).toContain('https://front.example/jobs');
+  });
+
+  it('retries a 503 child sitemap once so a cold isolate can finish', async () => {
+    let marketingHits = 0;
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/sitemap/marketing.xml')) {
+        marketingHits += 1;
+        if (marketingHits === 1) {
+          return new Response('unavailable', { status: 503 });
+        }
+        return new Response(
+          '<urlset><url><loc>https://front.example/</loc></url></urlset>',
+          { status: 200 },
+        );
+      }
+      if (url.endsWith('/sitemap.xml')) {
+        return new Response(
+          '<sitemapindex><sitemap><loc>https://front.example/sitemap/marketing.xml</loc></sitemap></sitemapindex>',
+          { status: 200 },
+        );
+      }
+      if (url.includes('/openapi.json')) {
+        return new Response('{"openapi":"3.1.0"}', { status: 200 });
+      }
+      if (url.includes('/v1/boards/')) {
+        return new Response('{"board":{"name":"Example board"}}', {
+          status: 200,
+        });
+      }
+      if (url.endsWith('/robots.txt')) {
+        return new Response('User-agent: *\nDisallow: /go/\n', { status: 200 });
+      }
+      return new Response(JOB_HTML, { status: 200 });
+    });
+
+    const { results } = await runDoctor({
+      env: ENV,
+      frontendUrl: 'https://front.example',
+      projectRoot: EMPTY_ROOT,
+      fetchImpl,
+    });
+
+    expect(marketingHits).toBe(2);
+    expect(results.find((r) => r.id === 'read.sitemap')?.status).toBe('pass');
   });
 
   it('fails loudly when the job page has no JobPosting JSON-LD', async () => {
@@ -299,5 +344,74 @@ describe('static.cookie-codec wiring', () => {
     expect(cookie?.tier).toBe(1);
     // EMPTY_ROOT has no src/ — loud skip, not a silent absence.
     expect(cookie?.status).toBe('skip');
+  });
+});
+
+describe('tier-2 SEO snapshot fetch', () => {
+  it('probes /v1/boards/:key/seo after the board resolves and matches file bodies', async () => {
+    const seo = {
+      object: 'board_seo',
+      canonicalBase: 'https://jobs.example.com',
+      adsTxt: 'google.com, pub-1, DIRECT, f08c47fec0942fa0',
+      indexNowKey: 'idx-key',
+      googleSiteVerification: 'gsc-token',
+      manifest: { name: 'Example' },
+    };
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/openapi.json')) {
+        return new Response('{"openapi":"3.1.0"}', { status: 200 });
+      }
+      if (url.endsWith('/seo')) {
+        return new Response(JSON.stringify(seo), { status: 200 });
+      }
+      if (url.includes('/v1/boards/')) {
+        return new Response('{"board":{"name":"Example board"}}', {
+          status: 200,
+        });
+      }
+      if (url.endsWith('/robots.txt')) {
+        return new Response(
+          `User-agent: *\nDisallow: /go/\nSitemap: ${seo.canonicalBase}/sitemap.xml\n`,
+          { status: 200 },
+        );
+      }
+      if (url.endsWith('/ads.txt')) {
+        return new Response(seo.adsTxt, { status: 200 });
+      }
+      if (url.endsWith('/indexnow-key.txt')) {
+        return new Response(seo.indexNowKey, { status: 200 });
+      }
+      if (url.endsWith('/sitemap.xml')) {
+        return new Response(
+          '<urlset><url><loc>https://front.example/jobs</loc></url></urlset>',
+          { status: 200 },
+        );
+      }
+      const home = `<html><head><meta name="google-site-verification" content="gsc-token"></head><body>
+        <a href="/companies/technova/jobs/senior-backend-engineer">j</a>
+        <script type="application/ld+json">{"@type":"JobPosting","title":"Senior Backend Engineer"}</script>
+      </body></html>`;
+      return new Response(home, { status: 200 });
+    });
+
+    const { results, summary } = await runDoctor({
+      env: ENV,
+      frontendUrl: 'https://front.example',
+      projectRoot: EMPTY_ROOT,
+      fetchImpl,
+    });
+
+    expect(fetchImpl.mock.calls.map((call) => String(call[0]))).toEqual(
+      expect.arrayContaining([
+        `https://api.cavuno.example/v1/boards/${ENV.boardKey}/seo`,
+      ]),
+    );
+    expect(results.find((r) => r.id === 'read.adsTxt')?.status).toBe('pass');
+    expect(results.find((r) => r.id === 'read.indexNow')?.status).toBe('pass');
+    expect(
+      results.find((r) => r.id === 'read.googleVerification')?.status,
+    ).toBe('pass');
+    expect(summary.exitCode).toBe(0);
   });
 });

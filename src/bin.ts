@@ -22,16 +22,25 @@ async function doctor(argv: string[]): Promise<void> {
   console.log('\n@cavuno/board doctor');
   for (const result of results) {
     const mark =
-      result.status === 'pass' ? '✓' : result.status === 'fail' ? '✗' : '−';
+      result.status === 'pass'
+        ? '✓'
+        : result.status === 'fail'
+          ? '✗'
+          : result.status === 'warn'
+            ? '!'
+            : '−';
     console.log(
       `  ${mark} [tier ${result.tier}] ${result.id} — ${result.detail}`,
     );
   }
   console.log(
-    `\n${summary.passed.length} passed, ${summary.failed.length} failed, ${summary.skipped.length} skipped`,
+    `\n${summary.passed.length} passed, ${summary.failed.length} failed, ${summary.skipped.length} skipped, ${summary.warned.length} warned`,
   );
   if (summary.skipped.length > 0) {
     console.log(`  Skipped (NOT verified): ${summary.skipped.join(', ')}`);
+  }
+  if (summary.warned.length > 0) {
+    console.log(`  Warned: ${summary.warned.join(', ')}`);
   }
   if (!frontendUrl) {
     console.log(

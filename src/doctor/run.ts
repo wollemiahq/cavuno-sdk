@@ -11,7 +11,7 @@ import {
 } from './checks';
 import { checkCookieCodecConformance } from './cookie-conformance';
 import { probe } from './probe';
-import { runReadProbes, skipReadProbes } from './read';
+import { runReadProbes, skipReadProbes, type BoardSeoSnapshot } from './read';
 
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -110,6 +110,38 @@ async function checkBoardResolves(
   return STATIC_BOARD('pass', 'publishable key resolves the board');
 }
 
+/**
+ * Dashboard SEO snapshot for tier-2 file probes. Same key-in-path fetch as
+ * checkBoardResolves — GET /v1/boards/:key/seo is anonymous. Parse failure
+ * (or a non-200) returns null so the file probes skip loudly.
+ */
+async function fetchBoardSeo(
+  fetchImpl: typeof fetch,
+  env: DoctorEnv,
+): Promise<BoardSeoSnapshot | null> {
+  const result = await probe(
+    fetchImpl,
+    `${apiBase(env.apiUrl!)}/v1/boards/${encodeURIComponent(env.boardKey!)}/seo`,
+  );
+  if (!result.ok) return null;
+  try {
+    const parsed = JSON.parse(result.body) as unknown;
+    if (typeof parsed !== 'object' || parsed === null) return null;
+    const rec = parsed as Record<string, unknown>;
+    if (typeof rec.canonicalBase !== 'string') return null;
+    const asNullableString = (value: unknown): string | null =>
+      value === null || typeof value === 'string' ? value : null;
+    return {
+      canonicalBase: rec.canonicalBase,
+      adsTxt: asNullableString(rec.adsTxt),
+      indexNowKey: asNullableString(rec.indexNowKey),
+      googleSiteVerification: asNullableString(rec.googleSiteVerification),
+    };
+  } catch {
+    return null;
+  }
+}
+
 const SKILL_ROOTS = [
   '.claude/skills',
   '.agents/skills',
@@ -187,8 +219,13 @@ export async function runDoctor(options: RunDoctorOptions): Promise<DoctorRun> {
   } else {
     results.push(STATIC_API('skip', 'PUBLIC_CAVUNO_API_URL not set'));
   }
+  let seo: BoardSeoSnapshot | null = null;
   if (envOk) {
-    results.push(await checkBoardResolves(fetchImpl, env));
+    const boardResult = await checkBoardResolves(fetchImpl, env);
+    results.push(boardResult);
+    if (boardResult.status === 'pass') {
+      seo = await fetchBoardSeo(fetchImpl, env);
+    }
   } else {
     results.push(STATIC_BOARD('skip', 'env checks failed — fix them first'));
   }
@@ -202,7 +239,7 @@ export async function runDoctor(options: RunDoctorOptions): Promise<DoctorRun> {
   // ── : read probes against the tenant's frontend ────────────────
   results.push(
     ...(options.frontendUrl
-      ? await runReadProbes(fetchImpl, options.frontendUrl)
+      ? await runReadProbes(fetchImpl, options.frontendUrl, seo)
       : skipReadProbes('no --frontend <url> given')),
   );
 
