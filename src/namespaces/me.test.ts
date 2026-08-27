@@ -764,6 +764,30 @@ describe('board.me', () => {
     );
   });
 
+  it('companies.billingPortal.create POSTs /me/companies/:slug/billing-portal', async () => {
+    const spy = stubFetch(
+      jsonResponse({
+        object: 'portal_session',
+        url: 'https://billing.stripe.com/p/session/test',
+      }),
+    );
+    const board = await makeAuthedBoard();
+    const session = await board.me.companies.billingPortal.create('acme', {
+      returnPath: '/employers/billing',
+    });
+    expect(spy.mock.calls[0]![0]).toBe(
+      `${BASE}/me/companies/acme/billing-portal`,
+    );
+    expect(spy.mock.calls[0]![1]!.method).toBe('POST');
+    expect(spy.mock.calls[0]![1]!.body).toBe(
+      '{"returnPath":"/employers/billing"}',
+    );
+    const headers = spy.mock.calls[0]![1]!.headers as Headers;
+    expect(headers.get('authorization')).toBe('Bearer jwt');
+    expect(session.object).toBe('portal_session');
+    expect(session.url).toBe('https://billing.stripe.com/p/session/test');
+  });
+
   it('companies.jobStats.retrieve GETs /me/companies/:slug/job-stats', async () => {
     const spy = stubFetch(jsonResponse({ object: 'list', data: [] }));
     const board = await makeAuthedBoard();
@@ -855,6 +879,109 @@ describe('board.me', () => {
     const headers = spy.mock.calls[0]![1]!.headers as Headers;
     expect(headers.get('authorization')).toBe('Bearer jwt');
     expect(access.hasTalentAccess).toBe(true);
+  });
+
+  it('talentAccess.retrieveCandidate GETs the encoded candidate route', async () => {
+    const spy = stubFetch(
+      jsonResponse({
+        object: 'talent_candidate_access',
+        candidateId: 'bu/1',
+        alreadyUnlocked: false,
+      }),
+    );
+    const board = await makeAuthedBoard();
+    const gate = await board.me.talentAccess.retrieveCandidate('bu/1');
+    expect(spy.mock.calls[0]![0]).toBe(
+      `${BASE}/me/talent-access/candidates/bu%2F1`,
+    );
+    expect(spy.mock.calls[0]![1]!.method).toBe('GET');
+    const headers = spy.mock.calls[0]![1]!.headers as Headers;
+    expect(headers.get('authorization')).toBe('Bearer jwt');
+    expect(gate.object).toBe('talent_candidate_access');
+    expect(gate.alreadyUnlocked).toBe(false);
+  });
+
+  it('talentAccess.checkout POSTs the plan body to /me/talent-access/checkout', async () => {
+    const spy = stubFetch(
+      jsonResponse({
+        object: 'checkout_session',
+        sessionId: 'cs_test_1',
+      }),
+    );
+    const board = await makeAuthedBoard();
+    const kit = await board.me.talentAccess.checkout({
+      planId: 'plan_1',
+      returnPath: '/employers',
+      colorMode: 'light',
+      companyId: 'co_1',
+    });
+    expect(spy.mock.calls[0]![0]).toBe(`${BASE}/me/talent-access/checkout`);
+    expect(spy.mock.calls[0]![1]!.method).toBe('POST');
+    expect(spy.mock.calls[0]![1]!.body).toBe(
+      '{"planId":"plan_1","returnPath":"/employers","colorMode":"light","companyId":"co_1"}',
+    );
+    const headers = spy.mock.calls[0]![1]!.headers as Headers;
+    expect(headers.get('authorization')).toBe('Bearer jwt');
+    expect(kit.object).toBe('checkout_session');
+    expect(kit.sessionId).toBe('cs_test_1');
+  });
+
+  it('talentAccess.retrieveCheckout GETs the session-scoped state route (encoded)', async () => {
+    const spy = stubFetch(
+      jsonResponse({ object: 'checkout_session_state', status: 'complete' }),
+    );
+    const board = await makeAuthedBoard();
+    const state = await board.me.talentAccess.retrieveCheckout('cs_test/123');
+    expect(spy.mock.calls[0]![0]).toBe(
+      `${BASE}/me/talent-access/checkout/cs_test%2F123`,
+    );
+    expect(spy.mock.calls[0]![1]!.method).toBe('GET');
+    const headers = spy.mock.calls[0]![1]!.headers as Headers;
+    expect(headers.get('authorization')).toBe('Bearer jwt');
+    expect(state.object).toBe('checkout_session_state');
+    expect(state.status).toBe('complete');
+  });
+
+  it('talentAccess.unlock POSTs /me/talent-access/unlocks with the candidate body', async () => {
+    const spy = stubFetch(
+      jsonResponse({
+        object: 'talent_unlock',
+        alreadyUnlocked: true,
+        unlockCreditsRemaining: 11,
+      }),
+    );
+    const board = await makeAuthedBoard();
+    const unlock = await board.me.talentAccess.unlock({
+      candidateId: 'bu_1',
+      companyId: 'co_1',
+    });
+    expect(spy.mock.calls[0]![0]).toBe(`${BASE}/me/talent-access/unlocks`);
+    expect(spy.mock.calls[0]![1]!.method).toBe('POST');
+    expect(spy.mock.calls[0]![1]!.body).toBe(
+      '{"candidateId":"bu_1","companyId":"co_1"}',
+    );
+    const headers = spy.mock.calls[0]![1]!.headers as Headers;
+    expect(headers.get('authorization')).toBe('Bearer jwt');
+    expect(unlock.object).toBe('talent_unlock');
+    expect(unlock.alreadyUnlocked).toBe(true);
+  });
+
+  it('talentAccess.upgrade POSTs /me/talent-access/upgrade with the plan body', async () => {
+    const spy = stubFetch(jsonResponse({ object: 'talent_upgrade', ok: true }));
+    const board = await makeAuthedBoard();
+    const result = await board.me.talentAccess.upgrade({
+      planId: 'plan_pro',
+      companyId: 'co_1',
+    });
+    expect(spy.mock.calls[0]![0]).toBe(`${BASE}/me/talent-access/upgrade`);
+    expect(spy.mock.calls[0]![1]!.method).toBe('POST');
+    expect(spy.mock.calls[0]![1]!.body).toBe(
+      '{"planId":"plan_pro","companyId":"co_1"}',
+    );
+    const headers = spy.mock.calls[0]![1]!.headers as Headers;
+    expect(headers.get('authorization')).toBe('Bearer jwt');
+    expect(result.object).toBe('talent_upgrade');
+    expect(result.ok).toBe(true);
   });
 });
 

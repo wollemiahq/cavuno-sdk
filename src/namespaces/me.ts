@@ -23,6 +23,8 @@ import type {
   CandidateProfile,
   CandidateSkill,
   ClaimableCompany,
+  CompanyBillingPortalBody,
+  CompanyBillingPortalSession,
   CompanyMembership,
   CompanyMember,
   CompanyMemberInvite,
@@ -82,6 +84,14 @@ import type {
   StartAboutApplicationBody,
   StartConversationBody,
   TalentAccess,
+  TalentAccessCheckoutBody,
+  TalentAccessCheckoutSession,
+  TalentAccessCheckoutSessionState,
+  TalentAccessUpgrade,
+  TalentAccessUpgradeBody,
+  TalentCandidateAccess,
+  TalentUnlock,
+  TalentUnlockBody,
   ThreadMessagesQuery,
   UnreadCount,
   UnsubscribeBody,
@@ -856,6 +866,34 @@ export function meNamespace(client: BoardClient) {
       },
 
       /**
+       * Stripe Customer Portal for a company I am an approved member of.
+       * Surfaces every subscription on the company's Stripe customer (job
+       * posting + talent access). Not a talent-access portal — candidate
+       * `me.access.portal` is a different buyer.
+       */
+      billingPortal: {
+        /**
+         * Mint a Stripe Customer Portal session. Optional `returnPath` is
+         * resolved against the board origin.
+         *
+         * @example
+         * const { url } = await board.me.companies.billingPortal.create('acme', {
+         *   returnPath: '/employers/billing',
+         * });
+         */
+        create(
+          slug: string,
+          body?: CompanyBillingPortalBody,
+          options?: FetchOptions,
+        ) {
+          return client.fetch<CompanyBillingPortalSession>(
+            `/me/companies/${encodeURIComponent(slug)}/billing-portal`,
+            { ...options, method: 'POST', body },
+          );
+        },
+      },
+
+      /**
        * The read-only reporting funnel that backs the hosted employer jobs
        * table: per-job views / apply clicks / native applications,
        * plus a daily views+apply-clicks time-series for a chart. Membership-
@@ -1180,9 +1218,11 @@ export function meNamespace(client: BoardClient) {
     },
 
     /**
-     * The viewer's talent entitlement on this board — "does this
-     * employer have talent access?" for gating a Message-vs-upsell CTA.
-     * Candidates and unaffiliated viewers get `hasTalentAccess: false`.
+     * The employer talent-access paywall — "does this employer have
+     * talent access?" plus remaining company-scoped unlock/message credits
+     * and the charging model. Candidates and unaffiliated viewers get
+     * `hasTalentAccess: false`. Message credits spend inline on
+     * `conversations.start` (no separate spend endpoint).
      *
      * @example
      * const { hasTalentAccess } = await board.me.talentAccess.retrieve();
@@ -1190,12 +1230,99 @@ export function meNamespace(client: BoardClient) {
     talentAccess: {
       /**
        * Retrieve the viewer's talent entitlement. Never cache — per-user.
+       * Credits are company-scoped; `companyId` is set when the viewer has
+       * exactly one approved membership, otherwise `null` (pass `companyId`
+       * on writes — `company_required` with more than one).
        *
        * @example
        * const access = await board.me.talentAccess.retrieve();
        */
       retrieve(options?: FetchOptions) {
         return client.fetch<TalentAccess>('/me/talent-access', options);
+      },
+
+      /**
+       * Per-candidate unlock and credit state for the opaque `/p/{id}`
+       * profile route. Named `/p/{handle}` is the share bypass.
+       *
+       * @example
+       * const gate = await board.me.talentAccess.retrieveCandidate(candidateId);
+       */
+      retrieveCandidate(candidateId: string, options?: FetchOptions) {
+        return client.fetch<TalentCandidateAccess>(
+          `/me/talent-access/candidates/${encodeURIComponent(candidateId)}`,
+          options,
+        );
+      },
+
+      /**
+       * Start embedded checkout for a public `talent_access` plan and return
+       * a connected-account mount kit. Same shape as candidate-access
+       * checkout; session metadata is `origin: talent_access`. `companyId`
+       * is required when the viewer has more than one approved membership
+       * (`company_required`).
+       *
+       * @example
+       * const kit = await board.me.talentAccess.checkout({
+       *   planId,
+       *   returnPath: '/employers',
+       *   colorMode: 'light',
+       * });
+       */
+      checkout(body: TalentAccessCheckoutBody, options?: FetchOptions) {
+        return client.fetch<TalentAccessCheckoutSession>(
+          '/me/talent-access/checkout',
+          { ...options, method: 'POST', body },
+        );
+      },
+
+      /**
+       * Poll a talent-access checkout session: `open` (re-mountable via
+       * `clientSecret`), `complete`, or `expired`. The session must be
+       * `origin: talent_access` for this board user.
+       *
+       * @example
+       * const s = await board.me.talentAccess.retrieveCheckout(kit.sessionId);
+       */
+      retrieveCheckout(sessionId: string, options?: FetchOptions) {
+        return client.fetch<TalentAccessCheckoutSessionState>(
+          `/me/talent-access/checkout/${encodeURIComponent(sessionId)}`,
+          options,
+        );
+      },
+
+      /**
+       * Spend one profile-unlock credit. Idempotent: already-unlocked
+       * returns `{ alreadyUnlocked: true }` with no decrement. Credits are
+       * company-scoped; `companyId` is required with multiple approved
+       * memberships (`company_required`).
+       *
+       * @example
+       * const unlock = await board.me.talentAccess.unlock({ candidateId });
+       */
+      unlock(body: TalentUnlockBody, options?: FetchOptions) {
+        return client.fetch<TalentUnlock>('/me/talent-access/unlocks', {
+          ...options,
+          method: 'POST',
+          body,
+        });
+      },
+
+      /**
+       * Swap the company's primary talent_access subscription to `planId`
+       * in place (prorated). Never a second checkout — Checkout would mint
+       * a parallel subscription. Requires an existing talent_access sub.
+       * `companyId` is required with multiple approved memberships.
+       *
+       * @example
+       * await board.me.talentAccess.upgrade({ planId });
+       */
+      upgrade(body: TalentAccessUpgradeBody, options?: FetchOptions) {
+        return client.fetch<TalentAccessUpgrade>('/me/talent-access/upgrade', {
+          ...options,
+          method: 'POST',
+          body,
+        });
       },
     },
 
