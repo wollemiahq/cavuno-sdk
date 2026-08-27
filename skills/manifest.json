@@ -1,5 +1,5 @@
 {
-  "version": "4.9.0",
+  "version": "4.10.0",
   "skills": [
     {
       "name": "cavuno-board-account",
@@ -152,6 +152,13 @@
       "name": "cavuno-board-smoke-test",
       "description": "Prove a Cavuno board integration at runtime. Use after initial setup, an @cavuno/board upgrade, a board-key rotation, or when rendered board data is unexpectedly missing.",
       "path": "skills/cavuno-board-smoke-test/SKILL.md",
+      "framework": null,
+      "category": "core"
+    },
+    {
+      "name": "cavuno-board-talent-access",
+      "description": "Employer talent-access paywall with @cavuno/board. Use for charging models, remaining credits, per-candidate unlock gates, embedded checkout, in-place upgrades, or the company billing portal.",
+      "path": "skills/cavuno-board-talent-access/SKILL.md",
       "framework": null,
       "category": "core"
     }

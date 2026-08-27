@@ -3,6 +3,30 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.10.0 — 2026-08-28
+
+- **Employer talent-access paywall** (a different buyer from the candidate
+  paywall): `board.me.talentAccess` gains `retrieveCandidate`, `checkout`
+  (connected-account embedded mount kit, `origin: talent_access`),
+  `retrieveCheckout`, `unlock` (idempotent credit spend), and `upgrade`
+  (in-place plan swap; never a second checkout). `retrieve()` now also
+  returns `accessModel`, `companyId`, `unlockCreditsRemaining`,
+  `messageCreditsRemaining`, and `hasUnlimitedMessages`.
+- **Company billing portal**: `board.me.companies.billingPortal.create(slug)`
+  mints a Stripe Customer Portal session covering every subscription on the
+  company's Stripe customer (job posting + talent access).
+- **Public talent reads**: `TalentDirectoryEntry` and `TalentProfile` gain
+  `id` (the board-user id, the opaque `/p/{id}` route key). When a board
+  sells profile unlocks, list and retrieve-by-id responses are redacted for
+  viewers without entitlement; retrieve-by-handle stays the named-route
+  share bypass.
+- **Error codes**: `talent_access_unavailable`, `company_required`,
+  `already_on_plan`, `talent_access_required`,
+  `messaging_talent_access_required`, and `stripe_not_connected` join
+  `BOARD_API_ERROR_CODES`.
+- **New skill** `cavuno-board-talent-access` covering the full employer
+  flow (CTA gating, checkout, unlock, upgrade, portal, message credits).
+
 ## 4.9.0 — 2026-08-27
 
 - **`@cavuno/board/seo-files`**: new dependency-free subpath with

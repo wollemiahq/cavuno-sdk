@@ -64,6 +64,7 @@ Route each enabled capability to its focused skill:
 | Saved jobs and applications | `cavuno-board-applications` |
 | Messaging | `cavuno-board-messaging` |
 | Candidate paywall | `cavuno-board-paywall` |
+| Employer talent access | `cavuno-board-talent-access` |
 | Public job posting | `cavuno-board-post-a-job` |
 | Localized chrome | `cavuno-board-i18n` |
 | Metadata and structured data | `cavuno-board-seo` |

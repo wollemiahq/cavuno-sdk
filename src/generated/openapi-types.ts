@@ -1627,6 +1627,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/me/companies/{slug}/billing-portal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Open the company's Stripe billing portal
+         * @description Mint a Stripe Customer Portal session for the company. Job-posting and talent-access subscriptions share one Stripe customer, so this is the single manage-billing surface. Optional `returnPath` is resolved against the caller’s registered board origin.
+         */
+        post: operations["createBoardMeCompanyBillingPortal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/boards/{identifier}/me/companies/{slug}/claim": {
         parameters: {
             query?: never;
@@ -2818,11 +2838,108 @@ export interface paths {
         };
         /**
          * Retrieve the viewer's talent entitlement
-         * @description Whether the authenticated board user, as an employer, currently has talent access on this board. The signal a talent-surface CTA needs to choose between "Message" and an upsell. Sourced from the same subscription/credit-pack truth the talent paywall enforces. Candidates and unaffiliated viewers get `hasTalentAccess: false`; anonymous callers get 401. Never cached.
+         * @description Whether the authenticated board user, as an employer, currently has talent access on this board. The signal a talent-surface CTA needs to choose between "Message" and an upsell. Also returns the charging model and remaining unlock/message credits. Sourced from the same subscription/credit-pack truth the talent paywall enforces. Candidates and unaffiliated viewers get `hasTalentAccess: false`; anonymous callers get 401. Never cached.
          */
         get: operations["listBoardMeTalentAccess"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/me/talent-access/candidates/{candidateId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieve the viewer's talent gate for one candidate
+         * @description Per-candidate unlock and credit state for the opaque profile route. Wraps the hosted `getGateContextForProfile` oracle. Never cached.
+         */
+        get: operations["getBoardMeTalentAccessCandidate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/me/talent-access/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start talent-access embedded checkout
+         * @description Mint a connected-account embedded Checkout session for a public talent_access plan. Same mount-kit shape as candidate-access checkout.
+         */
+        post: operations["createBoardMeTalentAccessCheckout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/me/talent-access/checkout/{sessionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Poll a talent-access checkout session */
+        get: operations["getBoardMeTalentAccessCheckout"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/me/talent-access/unlocks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Unlock a candidate profile
+         * @description Spend one profile-unlock credit for the given candidate. Idempotent: a second call for the same company/candidate pair returns `alreadyUnlocked: true` with no decrement.
+         */
+        post: operations["createBoardMeTalentAccessUnlock"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/me/talent-access/upgrade": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upgrade the talent-access subscription in place
+         * @description Swap the company’s primary talent_access Stripe subscription to `planId` with proration. Does not create a parallel Checkout session.
+         */
+        post: operations["createBoardMeTalentAccessUpgrade"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3338,7 +3455,7 @@ export interface paths {
         };
         /**
          * List a public board's talent directory
-         * @description The board's public candidate profiles, ranked by job-search status then most-recently-updated — the same ordering the hosted `/talent` directory renders. Only `public` profiles appear. The response carries the total `count` and the `limit`/`offset` page window; iterate forward with the opaque `nextCursor` or page in parallel with `offset`. Returns 404 when the directory is disabled, and 403 (`talent_directory_restricted`) when the board restricts the directory to employers.
+         * @description The board's public candidate profiles, ranked by job-search status then most-recently-updated — the same ordering the hosted `/talent` directory renders. Only `public` profiles appear. When the board sells profile unlocks, cards redact for viewers who are not unlimited (first name + last initial, current role only) so a headless client cannot bypass the hosted paywall. The response carries the total `count` and the `limit`/`offset` page window; iterate forward with the opaque `nextCursor` or page in parallel with `offset`. Returns 404 when the directory is disabled, and 403 (`talent_directory_restricted`) when the board restricts the directory to employers.
          */
         get: operations["listBoardTalent"];
         put?: never;
@@ -3358,7 +3475,7 @@ export interface paths {
         };
         /**
          * Retrieve a candidate's public profile
-         * @description A candidate's public profile on the named public board: header (name, headline, location, bio, avatar, job-search status) plus their experiences, education, skills, and languages. Only `public` profiles are returned; a non-public or unknown handle is 404. `jobSearchStatus` is `null` when the candidate set it to employers-only.
+         * @description A candidate's public profile on the named public board: header (name, headline, location, bio, avatar, job-search status) plus their experiences, education, skills, and languages. Only `public` profiles are returned; a non-public or unknown handle is 404. `jobSearchStatus` is `null` when the candidate set it to employers-only. When the board sells profile unlocks, retrieve-by-id (`/p/{id}`) redacts the same fields the hosted opaque route hides until the viewer is unlimited or has unlocked; retrieve-by-handle is the named-share bypass and stays full.
          */
         get: operations["getBoardTalent"];
         put?: never;
@@ -3753,6 +3870,14 @@ export interface components {
             name: string;
             slug: string;
             website: string | null;
+        };
+        CompanyBillingPortalBody: {
+            returnPath?: string;
+        };
+        CompanyBillingPortalSession: {
+            /** @enum {string} */
+            object: "portal_session";
+            url: string;
         };
         CompanyCategorySalary: {
             /** @enum {string} */
@@ -5936,14 +6061,52 @@ export interface components {
             isEmployer: boolean;
             /** @description Whether this board sells talent access (a public `talent_access` plan exists). When `false` the talent surfaces are not credit-gated for employers. */
             paywallActive: boolean;
-            /** @description The CTA answer: the viewer is an approved employer AND either the board has no talent paywall or one of their companies holds an active talent_access subscription or a succeeded credit pack. Always `false` for candidates; anonymous viewers get 401. */
+            /** @description The CTA answer: the viewer is an approved employer AND either the board has no talent paywall or one of their companies holds an active talent_access subscription or a succeeded credit pack. Always `false` for candidates; anonymous viewers get 401. Never cached. */
             hasTalentAccess: boolean;
             /** @description True when any active talent_access subscription carries the unlimited profile-unlock sentinel on its feature snapshot. */
             hasUnlimitedUnlocks: boolean;
+            /**
+             * @description `none` when the paywall is off. Otherwise the board charging model: paid messaging only, or paid unlocks and messaging. Inferred from public plan unlock credits when the stored config is unset.
+             * @enum {string}
+             */
+            accessModel: "none" | "paid_messaging" | "paid_unlocks_and_messaging";
+            /** @description The approved company to charge checkout/unlock against when the viewer has exactly one membership. `null` when they have none or more than one (pass `companyId` on write). */
+            companyId: string | null;
+            /** @description Summed finite remaining profile-unlock credits across the viewer’s companies. `0` when unlimited or when they hold no spendable credits. */
+            unlockCreditsRemaining: number;
+            /** @description Summed finite remaining first-message credits. `0` when unlimited or when they hold no spendable credits. */
+            messageCreditsRemaining: number;
+            /** @description True when any active talent_access subscription carries the unlimited message-credit sentinel. */
+            hasUnlimitedMessages: boolean;
+        };
+        TalentAccessCheckoutBody: {
+            planId: string;
+            returnPath: string;
+            /** @enum {string} */
+            colorMode: "light" | "dark";
+            companyId?: string;
+        };
+        TalentAccessUpgradeBody: {
+            planId: string;
+            companyId?: string;
+        };
+        TalentCandidateAccess: {
+            /** @enum {string} */
+            object: "talent_candidate_access";
+            candidateId: string;
+            companyId: string | null;
+            alreadyUnlocked: boolean;
+            unlockCreditsRemaining: number;
+            messageCreditsRemaining: number;
+            hasUnlimitedUnlocks: boolean;
+            hasUnlimitedMessages: boolean;
+            hasActiveTalentSubscription: boolean;
         };
         TalentDirectoryEntry: {
             /** @enum {string} */
             object: "talent_directory_entry";
+            /** @description The candidate’s board-user id. When a public talent_access plan exists, directory cards link to the opaque `/p/{id}` route so profile unlocks can apply. The named `/p/{handle}` route is the share bypass. */
+            id: string;
             handle: string | null;
             displayName: string | null;
             headline: string | null;
@@ -5973,6 +6136,8 @@ export interface components {
         TalentProfile: {
             /** @enum {string} */
             object: "talent_profile";
+            /** @description The candidate’s board-user id. The opaque talent-paywall route key (`/p/{id}`); `handle` is the named-share bypass. */
+            id: string;
             handle: string | null;
             displayName: string | null;
             headline: string | null;
@@ -6021,6 +6186,22 @@ export interface components {
                 name: string;
                 proficiency: string;
             }[];
+        };
+        TalentUnlock: {
+            /** @enum {string} */
+            object: "talent_unlock";
+            alreadyUnlocked: boolean;
+            unlockCreditsRemaining: number | null;
+        };
+        TalentUnlockBody: {
+            candidateId: string;
+            companyId?: string;
+        };
+        TalentUpgrade: {
+            /** @enum {string} */
+            object: "talent_upgrade";
+            /** @enum {boolean} */
+            ok: true;
         };
         /** @description Geo for place resolutions; `null` for category/skill. */
         TaxonomyGeo: {
@@ -11446,6 +11627,61 @@ export interface operations {
             };
         };
     };
+    createBoardMeCompanyBillingPortal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CompanyBillingPortalBody"];
+            };
+        };
+        responses: {
+            /** @description Portal session URL. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyBillingPortalSession"];
+                };
+            };
+            /** @description Unauthenticated. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not an approved member of this company. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Company, Stripe customer, or Connect account not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     createBoardMeCompanyClaim: {
         parameters: {
             query?: never;
@@ -16665,6 +16901,252 @@ export interface operations {
             };
             /** @description Rate limited (`rate_limited`): 100 requests per minute per board user. */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getBoardMeTalentAccessCandidate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                candidateId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Per-candidate talent gate context. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TalentCandidateAccess"];
+                };
+            };
+            /** @description Missing/invalid (`board_auth_invalid_token`) or expired (`board_auth_token_expired`) access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Token was issued for a different board. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createBoardMeTalentAccessCheckout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["TalentAccessCheckoutBody"];
+            };
+        };
+        responses: {
+            /** @description Checkout session mount kit. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessCheckoutSession"];
+                };
+            };
+            /** @description `company_required` or `stripe_not_connected`. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Unauthenticated. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Plan or talent access unavailable. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getBoardMeTalentAccessCheckout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Session state (`open` / `complete` / `expired`). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessCheckoutSessionState"];
+                };
+            };
+            /** @description Unknown or foreign checkout session. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createBoardMeTalentAccessUnlock: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["TalentUnlockBody"];
+            };
+        };
+        responses: {
+            /** @description Unlock result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TalentUnlock"];
+                };
+            };
+            /** @description `company_required` when the viewer has multiple companies and omitted `companyId`. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Unauthenticated. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description `talent_access_required` (no credits) or `employer_not_member`. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board or candidate not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createBoardMeTalentAccessUpgrade: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["TalentAccessUpgradeBody"];
+            };
+        };
+        responses: {
+            /** @description Upgrade accepted; webhook reconciles entitlement. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TalentUpgrade"];
+                };
+            };
+            /** @description `company_required`. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description `already_on_plan`. */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
