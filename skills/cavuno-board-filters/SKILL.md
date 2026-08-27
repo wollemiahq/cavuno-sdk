@@ -67,7 +67,9 @@ application's copy (message catalog or hard-coded board language).
 
 Category and skill collections contain terms backed by published jobs. Each
 term already carries a board-language `displayName`, immutable English
-`sourceSlug` for filtering, and board-language `canonicalSlug` for links.
+`sourceSlug` for filtering, board-language `canonicalSlug` for links, and
+a live `jobCount` (published jobs on the board — not a tally of the current
+list page).
 
 ```ts snippet
 const categories = await board.taxonomy.categories.list({ limit: 50 });
@@ -77,11 +79,23 @@ const categoryOptions = categories.data.map((term) => ({
   label: term.displayName,
   filterValue: term.sourceSlug,
   href: `/jobs/${term.canonicalSlug}`,
+  jobCount: term.jobCount,
 }));
 ```
 
-Category and skill lists accept `q`, `limit` (1–100), and opaque `cursor`.
-Pass `nextCursor` unchanged to the next request.
+For homepage "browse by category" tiles, ask for the busiest terms rather
+than the first page of the name-sorted collection:
+
+```ts snippet
+const top = await board.taxonomy.categories.list({
+  limit: 8,
+  sort: 'jobCount',
+});
+```
+
+Category and skill lists accept `q`, `limit` (1–100), `sort` (`name` or
+`jobCount`), and opaque `cursor`. Pass `nextCursor` unchanged to the next
+request. The cursor is bound to `q`, `limit`, and `sort`.
 
 ```ts snippet
 const first = await board.taxonomy.categories.list({ limit: 50 });

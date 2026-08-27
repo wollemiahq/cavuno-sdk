@@ -42,6 +42,8 @@ const BOARD = {
   showCavunoBranding: true,
   features: {
     jobAlerts: true,
+    jobRecommendationsEnabled: true,
+    recommendedTalentEnabled: false,
     candidates: true,
     employers: true,
     blog: true,
@@ -61,7 +63,17 @@ const BOARD = {
     linkedInPartnerId: null,
     cookieConsentRequired: false,
   },
+  ads: {
+    enabled: false,
+    clientId: null,
+  },
   customFields: { job: [] },
+  jobForm: {
+    salary: { visible: true },
+    seniority: { visible: true },
+    location: { visible: true },
+    sponsorship: { visible: true },
+  },
   contact: {
     email: null,
     websiteUrl: null,
