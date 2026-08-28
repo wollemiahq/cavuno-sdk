@@ -9,9 +9,6 @@
  *
  * Named exclusions (hosted behaviours with no wire twin, recorded in the
  * public API contract):
- *   - `board.companyLegalName` — hosted falls back to it for the
- *     organization name between `company.name` and `board.name`; the wire
- *     board context does not expose it.
  *   - `board.companyWebsiteUrl` — hosted falls back to it for `sameAs` when
  *     the company has no website; not on the wire.
  *   - the hosted `job.place`/`locationLabel` jobLocation fallback (used when
@@ -24,7 +21,31 @@ import type { PublicJob } from '../types/jobs';
 export type JsonLdObject = Record<string, unknown>;
 
 /** The only board fields JSON-LD needs — keeps callers' shapes flexible. */
-export type JsonLdBoard = Pick<PublicBoard, 'name' | 'logoUrl'>;
+export type JsonLdBoard = Pick<PublicBoard, 'name' | 'logoUrl'> & {
+  /**
+   * The operating company's registered name, used as the organization name
+   * for a job with no company of its own — ahead of the board's display
+   * name, matching the hosted board.
+   *
+   * Read from `contact.legalName`, which is where `board.context()` puts it,
+   * so passing the context object straight through (the documented call
+   * shape) just works. `legalName` at the top level is accepted too, for
+   * callers that flatten the board into their own view model.
+   */
+  contact?: { legalName?: string | null } | null;
+  legalName?: string | null;
+};
+
+/** Organization name precedence, shared by both JSON-LD blocks. */
+function organizationName(job: PublicJob, board: JsonLdBoard): string | null {
+  return (
+    job.company?.name ??
+    board.legalName ??
+    board.contact?.legalName ??
+    board.name ??
+    null
+  );
+}
 
 /** Google's credentialCategory uses space-form values. `no_requirements` is handled upstream. */
 const EDUCATION_TO_CREDENTIAL: Record<string, string> = {
@@ -136,9 +157,11 @@ export function createJobPostingJsonLd({
 }
 
 function createIdentifier(job: PublicJob, board: JsonLdBoard): JsonLdObject {
-  const organizationName = job.company?.name ?? board.name ?? null;
+  // Hosted uses the SAME precedence here as for hiringOrganization
+  // (job-posting-json-ld.ts:126 and :158), so both blocks must agree.
+  const name = organizationName(job, board);
   const identifier: JsonLdObject = { '@type': 'PropertyValue', value: job.id };
-  if (organizationName) identifier.name = organizationName;
+  if (name) identifier.name = name;
   return identifier;
 }
 
@@ -146,7 +169,7 @@ function createHiringOrganization(
   job: PublicJob,
   board: JsonLdBoard,
 ): JsonLdObject | null {
-  const name = job.company?.name ?? board.name ?? null;
+  const name = organizationName(job, board);
   if (!name) return null;
 
   const organization: JsonLdObject = { '@type': 'Organization', name };
