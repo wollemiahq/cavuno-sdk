@@ -88,10 +88,18 @@ describe('board.context()', () => {
       // model, so the consumer can resolve a job's `customFieldValues` via
       // `customFields.job`.
       jobForm: {
-        salary: { visible: true },
-        seniority: { visible: true },
-        location: { visible: true },
+        salary: {
+          visible: true,
+          required: false,
+          minBound: null,
+          maxBound: null,
+          allowedCurrencies: null,
+        },
+        seniority: { visible: true, required: false, allowedOptions: [] },
+        location: { visible: true, allowedCountries: null },
         sponsorship: { visible: true },
+        workArrangement: { allowedOptions: [] },
+        employmentType: { allowedOptions: [] },
       },
       customFields: {
         job: [

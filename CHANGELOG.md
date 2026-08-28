@@ -3,6 +3,34 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.12.0 — 2026-08-28
+
+- **`resolveApplyDecision`**: the apply-decision ladder now takes the board's
+  `features.registrationWall`. On a walled board an anonymous visitor gets
+  `{ kind: 'sign-in' }` on every path, including the external employer
+  `applicationUrl` — previously that link was returned to any viewer. Sign-in,
+  not email verification, is the bar: a signed-in-but-unverified candidate
+  still gets the external link.
+- **New `guest` apply action**: with the wall off, `POST /jobs/:jobSlug/apply`
+  accepts an unauthenticated caller supplying `name`/`email`, so the ladder can
+  return `{ kind: 'guest', jobSlug }` instead of forcing sign-in and losing the
+  application. Opt in with `allowGuestApply: true`; a client with no guest form
+  keeps receiving `{ kind: 'sign-in' }`.
+- **`sign-in` gains an optional `reason`** (`'registration-wall' | 'native-apply'`)
+  so a client can tell a wall prompt from a native-ladder one.
+- **`resolveApplyAction` is deprecated** in favour of `resolveApplyDecision`. It
+  still behaves exactly as before (the wall and guest inputs are pinned off),
+  so pinned callers are unaffected.
+- **`board.context().jobForm` gains the job-form constraints** the platform
+  enforces when a job is created: `salary.required` / `minBound` / `maxBound` /
+  `allowedCurrencies`, `seniority.required` / `allowedOptions`,
+  `location.allowedCountries`, and `workArrangement` / `employmentType`
+  `allowedOptions`. Posting forms can now offer only what the board accepts
+  instead of surfacing a 400 after submit. Closed enums arrive fully resolved
+  (an unrestricted board gets the complete platform list); the open sets
+  (`allowedCurrencies`, `allowedCountries`) use `null` for "no restriction" and
+  are never empty. Salary bounds are present only when `salary.required`.
+
 ## 4.11.0 — 2026-08-28
 
 - **`BoardAuthSession.isNewUser`**: optional boolean on OAuth exchange and
