@@ -74,6 +74,7 @@ const BOARD = {
     location: { visible: true },
     sponsorship: { visible: true },
   },
+  talentAccessModel: null,
   contact: {
     email: null,
     websiteUrl: null,
