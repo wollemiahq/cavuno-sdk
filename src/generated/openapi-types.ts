@@ -5383,6 +5383,8 @@ export interface components {
             contact: {
                 /** @description Public contact email (render as `mailto:`). Operator-set in settings › Contact & company details. */
                 email: string | null;
+                /** @description The operating company's registered legal name, or `null` when unset. Use it as the JobPosting `hiringOrganization` name when a job has no company of its own, ahead of the board name — that is the order the hosted board emits, so a headless board produces identical structured data. */
+                legalName: string | null;
                 /** @description Company website URL, sanitized to absolute http(s). Null when unset or non-http(s). */
                 websiteUrl: string | null;
                 /** @description X (Twitter) profile URL, normalized from the stored handle. */

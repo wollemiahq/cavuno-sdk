@@ -85,6 +85,7 @@ const BOARD = {
   talentAccessModel: null,
   contact: {
     email: null,
+    legalName: null,
     websiteUrl: null,
     xUrl: null,
     facebookUrl: null,
@@ -1248,5 +1249,72 @@ describe('listingJsonLd', () => {
         jobs: [{ slug: 'orphan', company: null }],
       }),
     ).toHaveLength(1);
+  });
+});
+
+describe('createJobPostingJsonLd — organization-name precedence', () => {
+  // Hosted emits `job.company?.name ?? board.companyLegalName ?? board.name`
+  // in BOTH hiringOrganization (job-posting-json-ld.ts:126) and identifier
+  // (:158). The legal name arrives at `contact.legalName` — the shape
+  // `board.context()` returns and the docs tell callers to pass straight
+  // through — so these fixtures use that, not a flattened field the wire
+  // does not have.
+  const withLegalName = {
+    ...BOARD,
+    contact: { ...BOARD.contact, legalName: 'Acme Holdings Pty Ltd' },
+  };
+
+  it('prefers the legal name over the display name when a job has no company', () => {
+    const ld = createJobPostingJsonLd({
+      job: { ...JOB, company: null },
+      board: withLegalName,
+      shareUrl: SHARE_URL,
+    })!;
+    expect((ld.hiringOrganization as { name: string }).name).toBe(
+      'Acme Holdings Pty Ltd',
+    );
+  });
+
+  it('applies the same precedence to identifier.name', () => {
+    const ld = createJobPostingJsonLd({
+      job: { ...JOB, company: null },
+      board: withLegalName,
+      shareUrl: SHARE_URL,
+    })!;
+    expect((ld.identifier as { name: string }).name).toBe(
+      'Acme Holdings Pty Ltd',
+    );
+  });
+
+  it("still prefers the job's own company over the legal name", () => {
+    const ld = createJobPostingJsonLd({
+      job: JOB,
+      board: withLegalName,
+      shareUrl: SHARE_URL,
+    })!;
+    expect((ld.hiringOrganization as { name: string }).name).toBe(
+      'Acme Robotics',
+    );
+  });
+
+  it('falls back to the board display name when no legal name is set', () => {
+    const ld = createJobPostingJsonLd({
+      job: { ...JOB, company: null },
+      board: BOARD,
+      shareUrl: SHARE_URL,
+    })!;
+    expect((ld.hiringOrganization as { name: string }).name).toBe('Acme Jobs');
+    expect((ld.identifier as { name: string }).name).toBe('Acme Jobs');
+  });
+
+  it('accepts a flattened legalName for callers with their own view model', () => {
+    const ld = createJobPostingJsonLd({
+      job: { ...JOB, company: null },
+      board: { ...BOARD, legalName: 'Acme Holdings Pty Ltd' },
+      shareUrl: SHARE_URL,
+    })!;
+    expect((ld.hiringOrganization as { name: string }).name).toBe(
+      'Acme Holdings Pty Ltd',
+    );
   });
 });
