@@ -118,6 +118,7 @@ describe('board.context()', () => {
       talentAccessModel: null,
       contact: {
         email: null,
+        legalName: null,
         websiteUrl: null,
         xUrl: null,
         facebookUrl: null,

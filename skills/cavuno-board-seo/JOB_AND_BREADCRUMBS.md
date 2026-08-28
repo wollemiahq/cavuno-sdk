@@ -12,12 +12,15 @@ Google requires a location signal alongside `TELECOMMUTE`.
 ```ts snippet
 import { createJobPostingJsonLd } from '@cavuno/board/seo';
 
-const { name, logoUrl } = await board.context();
+// Pass the context straight through: it carries `contact.legalName`, which
+// names the organization for a job with no company of its own. Destructuring
+// to `{ name, logoUrl }` silently drops that.
+const context = await board.context();
 const job = await board.jobs.retrieve('senior-chef');
 
 const jsonLd = createJobPostingJsonLd({
   job,
-  board: { name, logoUrl },
+  board: context,
   shareUrl:
     `https://jobs.example.com/companies/${job.company?.slug}/jobs/${job.slug}`,
 });
