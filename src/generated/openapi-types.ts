@@ -114,7 +114,7 @@ export interface paths {
         put?: never;
         /**
          * Consume a magic-link token
-         * @description Consume a 15-minute magic-link token and receive the bearer pair. Existing users are marked email-verified if pending. Tokens without an existing board user create a verified candidate when candidate registration is enabled. Every token rejection is the opaque 401 `board_auth_invalid_token`; rejected consumes do not burn the token.
+         * @description Consume a 15-minute magic-link token and receive the bearer pair. Existing users are marked email-verified if pending. Tokens without an existing board user create a verified candidate when candidate registration is enabled. Every token rejection is the opaque 401 `board_auth_invalid_token`; rejected consumes do not burn the token. The response includes `isNewUser`: true when this consume created the account, false when it signed into an existing one.
          */
         post: operations["createBoardAuthMagicLinkConsume"];
         delete?: never;
@@ -134,7 +134,7 @@ export interface paths {
         put?: never;
         /**
          * Exchange an OAuth one-time token
-         * @description Consume the provider callback one-time token from `/auth/oauth-complete` and receive the bearer pair. Tokens are single-use and scoped to the issuing board.
+         * @description Consume the provider callback one-time token from `/auth/oauth-complete` and receive the bearer pair. Tokens are single-use and scoped to the issuing board. The response includes `isNewUser`: true when the OAuth callback created the account, false when it linked or signed into an existing one.
          */
         post: operations["createBoardAuthOauthExchange"];
         delete?: never;
@@ -3751,6 +3751,8 @@ export interface components {
             /** @description Access-token expiry, epoch milliseconds. */
             expiresAt: number;
             boardUser: components["schemas"]["BoardUser"];
+            /** @description Present on OAuth exchange and magic-link consume. True when this exchange created the board user account (candidate or employer); false when it authenticated an existing account. */
+            isNewUser?: boolean;
         };
         BoardAuthVerifyEmailBody: {
             token: string;
@@ -5312,6 +5314,11 @@ export interface components {
                 /** @description Whether applicant↔employer messaging is enabled on the board. `false` means the `me/conversations` route family rejects with `messaging_disabled` (403). Hide inbox/dock/Message CTAs. */
                 messaging: boolean;
             };
+            /**
+             * @description How the operator charges employers for the candidate directory. `paid_messaging` leaves profiles fully visible and spends a credit on a first cold message; `paid_unlocks_and_messaging` also redacts directory cards and gates the opaque `/p/{id}` profile route behind an unlock credit. `null` means the operator has not chosen explicitly, in which case infer it from the published `talent_access` plans: any plan granting profile unlocks means `paid_unlocks_and_messaging`, otherwise `paid_messaging`. The paywall is inert regardless when the board publishes no talent plan. An anonymous viewer has no entitlement read to derive this from, so it ships here rather than only on `me/talent-access`.
+             * @enum {string|null}
+             */
+            talentAccessModel: "paid_messaging" | "paid_unlocks_and_messaging" | null;
             analytics: {
                 ga4MeasurementId: string | null;
                 gtmId: string | null;
