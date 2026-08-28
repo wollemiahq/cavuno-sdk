@@ -3,6 +3,18 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.13.0 — 2026-08-28
+
+- **`board.context().contact.legalName`**: the operating company's registered
+  legal name, or `null` when unset. Use it as the JobPosting
+  `hiringOrganization` name when a job has no company of its own, ahead of the
+  board name — that is the order the hosted board emits, so a headless board
+  produces identical structured data. `buildJobPostingJsonLd` reads it from
+  `contact.legalName` automatically; a top-level `legalName` is also accepted.
+- **Candidate profile visibility default**: a board can set the visibility new
+  candidate profiles start with, rather than every profile defaulting the same
+  way.
+
 ## 4.12.0 — 2026-08-28
 
 - **`resolveApplyDecision`**: the apply-decision ladder now takes the board's
