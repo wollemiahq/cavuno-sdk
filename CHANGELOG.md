@@ -3,6 +3,13 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.11.0 — 2026-08-28
+
+- **`BoardAuthSession.isNewUser`**: optional boolean on OAuth exchange and
+  magic-link consume. True when the exchange created the board user account
+  (candidate or employer); false when it authenticated an existing account.
+  Login, register, and refresh omit the field.
+
 ## 4.10.0 — 2026-08-28
 
 - **Employer talent-access paywall** (a different buyer from the candidate
