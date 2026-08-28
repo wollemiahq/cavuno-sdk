@@ -149,8 +149,12 @@ export { SDK_VERSION } from './version';
 export { isColdRule, isOwnMessage, lastOwnMessageId } from './messaging-derive';
 // Apply-flow derivations — pure
 // exports on the core entry, next to the `jobs` surface they derive from.
-export { isSafeApplicationUrl, resolveApplyAction } from './apply-derive';
-export type { ApplyAction } from './apply-derive';
+export {
+  isSafeApplicationUrl,
+  resolveApplyAction,
+  resolveApplyDecision,
+} from './apply-derive';
+export type { ApplyAction, ApplyDecisionState } from './apply-derive';
 
 export type {
   BoardAuthSession,

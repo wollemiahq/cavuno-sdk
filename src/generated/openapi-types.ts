@@ -5338,23 +5338,45 @@ export interface components {
                 /** @description This model's custom-field definitions in display order. Empty when the board defines none for the model. */
                 job: components["schemas"]["CustomFieldDefinition"][];
             };
-            /** @description Built-in job-form field visibility from Settings → Job form. Does not include custom fields (`customFields.job`) or operator-only constraints (required, bounds, allowlists). */
+            /** @description Built-in job-form field configuration from Settings → Job form (custom fields live on `customFields.job`). The platform ENFORCES these constraints when a job is created — a violation is a 400 — so a posting form that ignores them offers options the server will reject and the employer only finds out on submit. */
             jobForm: {
                 salary: {
                     /** @description Whether salary is captured on posting forms and shown on public job cards. Absent board config defaults to `true`. */
                     visible: boolean;
+                    /** @description Whether a posting must carry a salary. Absent board config defaults to `false`. */
+                    required: boolean;
+                    /** @description Salary floor a submitted value must be >= . `null` when unset, and always `null` unless `required` is `true` — a floor is toothless on an optional field, matching hosted. */
+                    minBound: number | null;
+                    /** @description Salary ceiling a submitted value must be <= . `null` when unset, and always `null` unless `required` is `true`. */
+                    maxBound: number | null;
+                    /** @description ISO 4217 subset the board accepts. `null` means no restriction — render the full currency list. Never an empty array. */
+                    allowedCurrencies: string[] | null;
                 };
                 seniority: {
                     /** @description Whether seniority is captured on posting forms. Absent board config defaults to `true`. */
                     visible: boolean;
+                    /** @description Whether a posting must carry a seniority level. Absent board config defaults to `false`. */
+                    required: boolean;
+                    /** @description Seniority levels the board accepts, in platform order. Always fully resolved — an operator who set no subset gets the complete platform list, so a picker can render straight from this. */
+                    allowedOptions: string[];
                 };
                 location: {
                     /** @description Whether office location is captured on posting forms. Absent board config defaults to `true`. */
                     visible: boolean;
+                    /** @description ISO country codes office locations are locked to. `null` means any country. Never an empty array. */
+                    allowedCountries: string[] | null;
                 };
                 sponsorship: {
                     /** @description Whether visa sponsorship is captured on posting forms. Absent board config defaults to `true`. */
                     visible: boolean;
+                };
+                workArrangement: {
+                    /** @description Work arrangements the board accepts, fully resolved like `seniority.allowedOptions`. A single entry means the form must collapse the field and pin every submission to that value. */
+                    allowedOptions: string[];
+                };
+                employmentType: {
+                    /** @description Employment types the board accepts, fully resolved like `seniority.allowedOptions`. A single entry means the form must collapse the field. */
+                    allowedOptions: string[];
                 };
             };
             /** @description Operator-authored contact and social identity (settings › Contact & company details). Extracted from the former `footer` group in 4.0.0: contact is identity data, not layout. Brand/social URLs are sanitized to absolute http(s). */
