@@ -152,7 +152,7 @@ export interface paths {
         };
         /**
          * Build an OAuth provider authorization URL
-         * @description Return a Google or LinkedIn authorization URL for candidate OAuth. `pk_...` Board API requests complete back to the publishable key registered origin at `/auth/oauth-complete`; slug/`boards_...` requests keep the hosted-board fallback. Request-provided origins are never trusted.
+         * @description Return a Google or LinkedIn authorization URL for candidate or employer OAuth. `pk_...` Board API requests complete back to the publishable key registered origin at `/auth/oauth-complete`; slug/`boards_...` requests keep the hosted-board fallback. Request-provided origins are never trusted.
          */
         get: operations["getBoardAuthOauth"];
         put?: never;
@@ -6874,6 +6874,8 @@ export interface operations {
             query?: {
                 /** @description Optional same-origin path carried through the provider round trip. */
                 returnTo?: string;
+                /** @description Role profile to create when the handshake signs up a new user; defaults to `candidate`. Gated on that role being enabled for the board, and fixed at authorize time. */
+                role?: "candidate" | "employer";
             };
             header?: never;
             path: {
@@ -6894,7 +6896,7 @@ export interface operations {
                     "application/json": components["schemas"]["BoardAuthOAuthAuthorizationUrl"];
                 };
             };
-            /** @description Unsupported provider (`validation_bad_request`). */
+            /** @description Unsupported provider or role (`validation_bad_request`). */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -6903,7 +6905,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Candidate registration/sign-in is disabled for this board (`board_auth_registration_disabled`). */
+            /** @description Sign-ups for the requested role are disabled on this board (`board_auth_registration_disabled`). */
             403: {
                 headers: {
                     [name: string]: unknown;
