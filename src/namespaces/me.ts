@@ -683,6 +683,10 @@ export function meNamespace(client: BoardClient) {
          * required, the token IS the authorization. Returns the membership in
          * its new state.
          *
+         * @deprecated Use `board.auth.verifyWorkEmail({ token })`. `slug` is
+         * ignored by the server — the token alone identifies the membership,
+         * and a caller following an email link has no slug to supply.
+         *
          * @example
          * await board.me.companies.workEmail.confirm('acme', { token });
          */

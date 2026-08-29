@@ -17,6 +17,7 @@ import type {
   ResetPasswordBody,
   VerifyEmailBody,
 } from '../types/auth';
+import type { CompanyMembership, ConfirmWorkEmailBody } from '../types/me';
 
 export function authNamespace(client: BoardClient) {
   async function persist(session: BoardAuthSession): Promise<BoardAuthSession> {
@@ -132,6 +133,24 @@ export function authNamespace(client: BoardClient) {
      */
     verifyEmail(body: VerifyEmailBody, options?: FetchOptions) {
       return client.fetch<void>('/auth/verify-email', {
+        ...options,
+        method: 'POST',
+        body,
+      });
+    },
+
+    /**
+     * Confirm an employer work-email verification token (from the link in the
+     * work-email verification email) and promote the pending company claim —
+     * approved on domain match, otherwise `awaiting_admin`. No session needed:
+     * the single-use token IS the authorization, and it alone identifies the
+     * membership. Returns the membership in its new state.
+     *
+     * @example
+     * const membership = await board.auth.verifyWorkEmail({ token });
+     */
+    verifyWorkEmail(body: ConfirmWorkEmailBody, options?: FetchOptions) {
+      return client.fetch<CompanyMembership>('/auth/verify-work-email', {
         ...options,
         method: 'POST',
         body,
