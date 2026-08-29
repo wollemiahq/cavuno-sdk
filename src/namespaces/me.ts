@@ -73,6 +73,12 @@ import type {
   RecommendedJobsListQuery,
   RecommendedTalent,
   RecommendedTalentListQuery,
+  AddSourcedCandidateBody,
+  ConvertSourcedCandidateBody,
+  CreateTalentListBody,
+  SourcedCandidate,
+  TalentList,
+  UpdateTalentListBody,
   RequestEmailChangeBody,
   ReportBody,
   Resume,
@@ -683,6 +689,10 @@ export function meNamespace(client: BoardClient) {
          * required, the token IS the authorization. Returns the membership in
          * its new state.
          *
+         * @deprecated Use `board.auth.verifyWorkEmail({ token })`. `slug` is
+         * ignored by the server — the token alone identifies the membership,
+         * and a caller following an email link has no slug to supply.
+         *
          * @example
          * await board.me.companies.workEmail.confirm('acme', { token });
          */
@@ -1017,6 +1027,153 @@ export function meNamespace(client: BoardClient) {
           return client.fetch<ListEnvelope<RecommendedTalent>>(
             `/me/companies/${encodeURIComponent(slug)}/recommended-talent`,
             { ...options, query },
+          );
+        },
+      },
+
+      /**
+       * Company-owned saved predicates over the talent directory.
+       * Approved members share the same lists. Optional `job` binds a list
+       * to one company job; pass `job: null` on update to unbind.
+       */
+      talentLists: {
+        /**
+         * List talent lists for a company I am an approved member of.
+         *
+         * @example
+         * const { data } = await board.me.companies.talentLists.list('acme');
+         */
+        list(slug: string, options?: FetchOptions) {
+          return client.fetch<ListEnvelope<TalentList>>(
+            `/me/companies/${encodeURIComponent(slug)}/talent-lists`,
+            options,
+          );
+        },
+        /**
+         * Create a talent list. `filters` reuse the frozen `/talent` query.
+         *
+         * @example
+         * const list = await board.me.companies.talentLists.create('acme', {
+         *   name: 'Berlin React',
+         *   filters: { skill: 'react', sort: 'newest' },
+         *   job: jobId,
+         * });
+         */
+        create(
+          slug: string,
+          body: CreateTalentListBody,
+          options?: FetchOptions,
+        ) {
+          return client.fetch<TalentList>(
+            `/me/companies/${encodeURIComponent(slug)}/talent-lists`,
+            { ...options, method: 'POST', body },
+          );
+        },
+        /**
+         * Merge-patch a talent list. Pass `job: null` to unbind it from a job.
+         */
+        update(
+          slug: string,
+          listId: string,
+          body: UpdateTalentListBody,
+          options?: FetchOptions,
+        ) {
+          return client.fetch<TalentList>(
+            `/me/companies/${encodeURIComponent(slug)}/talent-lists/${encodeURIComponent(listId)}`,
+            { ...options, method: 'PATCH', body },
+          );
+        },
+        /** Delete a talent list. Sourced membership is unaffected. */
+        remove(slug: string, listId: string, options?: FetchOptions) {
+          return client.fetch<void>(
+            `/me/companies/${encodeURIComponent(slug)}/talent-lists/${encodeURIComponent(listId)}`,
+            { ...options, method: 'DELETE' },
+          );
+        },
+      },
+
+      /**
+       * Per-job sourced membership — the unstaged kanban rail.
+       * Saving a candidate always writes here. Convert-on-drop creates a
+       * pipeline application with source `sourced` (hidden from the
+       * candidate until they apply themselves).
+       */
+      sourcedCandidates: {
+        /**
+         * List sourced candidates still on the rail for a job. Anyone who
+         * already has a pipeline application for that job is omitted.
+         *
+         * @example
+         * const { data } = await board.me.companies.sourcedCandidates.list(
+         *   'acme',
+         *   { job: jobId },
+         * );
+         */
+        list(slug: string, query: { job: string }, options?: FetchOptions) {
+          return client.fetch<ListEnvelope<SourcedCandidate>>(
+            `/me/companies/${encodeURIComponent(slug)}/sourced-candidates`,
+            { ...options, query },
+          );
+        },
+        /**
+         * Save a candidate onto a job's sourced rail. Idempotent: a second
+         * add for the same pair returns `created: false`.
+         *
+         * @example
+         * const saved = await board.me.companies.sourcedCandidates.add(
+         *   'acme',
+         *   { job: jobId, candidateBoardUserId: candidateId },
+         * );
+         */
+        add(
+          slug: string,
+          body: AddSourcedCandidateBody,
+          options?: FetchOptions,
+        ) {
+          return client.fetch<{
+            id: string;
+            object: 'sourced_candidate';
+            created: boolean;
+          }>(`/me/companies/${encodeURIComponent(slug)}/sourced-candidates`, {
+            ...options,
+            method: 'POST',
+            body,
+          });
+        },
+        /** Remove a sourced membership. Does not touch pipeline applications. */
+        remove(slug: string, sourcedId: string, options?: FetchOptions) {
+          return client.fetch<void>(
+            `/me/companies/${encodeURIComponent(slug)}/sourced-candidates/${encodeURIComponent(sourcedId)}`,
+            { ...options, method: 'DELETE' },
+          );
+        },
+        /**
+         * Convert a sourced candidate into the job pipeline. Writes
+         * `source: 'sourced'` so the candidate does not see the application
+         * until they apply themselves. `stage: 'applied'` aliases to
+         * `review`. A board without a native pipeline raises
+         * `sourced_convert_unavailable` (409).
+         *
+         * @example
+         * const result = await board.me.companies.sourcedCandidates.convert(
+         *   'acme',
+         *   sourcedId,
+         *   { stage: 'review' },
+         * );
+         */
+        convert(
+          slug: string,
+          sourcedId: string,
+          body: ConvertSourcedCandidateBody,
+          options?: FetchOptions,
+        ) {
+          return client.fetch<{
+            id: string;
+            object: 'application';
+            created: boolean;
+          }>(
+            `/me/companies/${encodeURIComponent(slug)}/sourced-candidates/${encodeURIComponent(sourcedId)}/convert`,
+            { ...options, method: 'POST', body },
           );
         },
       },

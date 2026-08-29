@@ -161,6 +161,26 @@ describe('auth.logout', () => {
 });
 
 describe('token-action endpoints', () => {
+  it('verifyWorkEmail POSTs the token to /auth/verify-work-email with no slug', async () => {
+    // The whole point of the flat path: an employer following an email link
+    // has only a token, so nothing in the request may name a company.
+    const spy = stubFetch(
+      () =>
+        new Response(
+          JSON.stringify({ id: 'cm_1', object: 'company_membership' }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        ),
+    );
+    const { board } = makeBoard();
+
+    await expect(
+      board.auth.verifyWorkEmail({ token: 't3' }),
+    ).resolves.toMatchObject({ id: 'cm_1' });
+    expect(spy.mock.calls[0]![0]).toContain('/auth/verify-work-email');
+    expect(spy.mock.calls[0]![0]).not.toContain('/companies/');
+    expect(spy.mock.calls[0]![1]!.method).toBe('POST');
+  });
+
   it('verifyEmail, forgotPassword, and resetPassword POST their bodies and resolve void on 204', async () => {
     const spy = stubFetch(() => new Response(null, { status: 204 }));
     const { board } = makeBoard();

@@ -152,7 +152,7 @@ export interface paths {
         };
         /**
          * Build an OAuth provider authorization URL
-         * @description Return a Google or LinkedIn authorization URL for candidate OAuth. `pk_...` Board API requests complete back to the publishable key registered origin at `/auth/oauth-complete`; slug/`boards_...` requests keep the hosted-board fallback. Request-provided origins are never trusted.
+         * @description Return a Google or LinkedIn authorization URL for candidate or employer OAuth. `pk_...` Board API requests complete back to the publishable key registered origin at `/auth/oauth-complete`; slug/`boards_...` requests keep the hosted-board fallback. Request-provided origins are never trusted.
          */
         get: operations["getBoardAuthOauth"];
         put?: never;
@@ -277,6 +277,26 @@ export interface paths {
          * @description Re-send the verification email (a fresh 6-digit code + magic link) to the authenticated board user. Resolves void (204). Rate limited.
          */
         post: operations["createBoardAuthVerifyEmailResend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/auth/verify-work-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify an employer work email
+         * @description Consume the work-email verification token from the employer’s email link (24-hour TTL) and promote the pending company claim: auto-approved on domain match, otherwise `awaiting_admin`. Token-action — no session, the single-use token IS the authorization (like the candidate unsubscribe link), and it alone identifies the membership. Every rejection (unknown, expired, already used, wrong-type, or cross-board token) is the single opaque 401 `board_auth_invalid_token`; request a fresh verification email to recover.
+         */
+        post: operations["createBoardAuthVerifyWorkEmail"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2075,6 +2095,97 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/me/companies/{slug}/sourced-candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List sourced candidates for a job */
+        get: operations["listBoardMeCompanySourcedCandidates"];
+        put?: never;
+        /** Save a candidate to a job sourced set */
+        post: operations["createBoardMeCompanySourcedCandidate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/me/companies/{slug}/sourced-candidates/{sourcedId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a sourced candidate */
+        delete: operations["deleteBoardMeCompanySourcedCandidate"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/me/companies/{slug}/sourced-candidates/{sourcedId}/convert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Convert a sourced candidate into the job pipeline */
+        post: operations["createBoardMeCompanySourcedCandidateConvert"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/me/companies/{slug}/talent-lists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List talent lists for a company
+         * @description Company-owned saved predicates over the talent directory. Approved members see the same lists.
+         */
+        get: operations["listBoardMeCompanyTalentLists"];
+        put?: never;
+        /** Create a talent list */
+        post: operations["createBoardMeCompanyTalentList"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/me/companies/{slug}/talent-lists/{listId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a talent list */
+        delete: operations["deleteBoardMeCompanyTalentList"];
+        options?: never;
+        head?: never;
+        /** Update a talent list */
+        patch: operations["updateBoardMeCompanyTalentList"];
+        trace?: never;
+    };
     "/boards/{identifier}/me/companies/{slug}/work-email/confirm": {
         parameters: {
             query?: never;
@@ -2085,8 +2196,9 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Confirm a work-email verification token
-         * @description Token-action (no session: the HMAC-grade token from the verification email IS the authorization, like the candidate unsubscribe link). Records the verification and auto-approves the membership on domain match. Returns the membership with its new status.
+         * Confirm a work-email verification token (deprecated)
+         * @deprecated
+         * @description Deprecated — use `POST /boards/{identifier}/auth/verify-work-email`, which is identical minus the `{slug}` path parameter. `:slug` is accepted and ignored here: the handler never read it, so it could not affect the result, and a caller following an email link has no slug to supply. Kept working for already-shipped SDK builds and in-flight links.
          */
         post: operations["confirmBoardMeCompanyWorkEmail"];
         delete?: never;
@@ -3553,6 +3665,10 @@ export interface components {
             /** @description The note text. */
             body: string;
         };
+        AddSourcedCandidateBody: {
+            job: string;
+            candidateBoardUserId: string;
+        };
         Alert: {
             /** @description Job-alert preference ID. Also the path key. */
             id: string;
@@ -4164,6 +4280,9 @@ export interface components {
             object: "conversation_ref";
             conversationId: string | null;
         };
+        ConvertSourcedCandidateBody: {
+            stage: string;
+        };
         CreateApplyApprovalBody: {
             sessionKey: string;
         };
@@ -4308,6 +4427,11 @@ export interface components {
             jobId: string;
             /** @description The stage label. */
             label: string;
+        };
+        CreateTalentListBody: {
+            name: string;
+            filters?: components["schemas"]["TalentListFilters"];
+            job?: string;
         };
         CustomFieldDefinition: {
             /** @description Immutable per-board slug used as the key in a job’s `customFieldValues`. */
@@ -6050,6 +6174,14 @@ export interface components {
             boardMedianMax: number | null;
             currency: string;
         };
+        SourcedCandidate: {
+            id: string;
+            /** @enum {string} */
+            object: "sourced_candidate";
+            candidate: components["schemas"]["TalentDirectoryEntry"];
+            sourcedAt: number;
+            sourcedBy: string;
+        };
         StartAboutApplicationBody: {
             applicationId: string;
             body: string;
@@ -6163,6 +6295,31 @@ export interface components {
                 startDate: string | null;
                 endDate: string | null;
             }[];
+        };
+        TalentList: {
+            id: string;
+            /** @enum {string} */
+            object: "talent_list";
+            name: string;
+            filters: components["schemas"]["TalentListFilters"];
+            jobId: string | null;
+            createdBy: string;
+            createdAt: number;
+            updatedAt: number;
+        };
+        TalentListFilters: {
+            q?: string;
+            skill?: string;
+            /** @enum {string} */
+            jobSearchStatus?: "actively_looking" | "open_to_offers" | "not_looking";
+            languages?: string[];
+            openToRelocate?: boolean;
+            place?: string;
+            /** @enum {string} */
+            sort?: "relevance" | "newest";
+            seniority?: string;
+            permitCountry?: string;
+            interestedRole?: string;
         };
         TalentProfile: {
             /** @enum {string} */
@@ -6506,6 +6663,11 @@ export interface components {
         };
         UpdateSkillsBody: {
             skills: string[];
+        };
+        UpdateTalentListBody: {
+            name?: string;
+            filters?: components["schemas"]["TalentListFilters"];
+            job?: string | unknown | unknown;
         };
         VerifyEmailOtpBody: {
             code: string;
@@ -6874,6 +7036,8 @@ export interface operations {
             query?: {
                 /** @description Optional same-origin path carried through the provider round trip. */
                 returnTo?: string;
+                /** @description Role profile to create when the handshake signs up a new user; defaults to `candidate`. Gated on that role being enabled for the board, and fixed at authorize time. */
+                role?: "candidate" | "employer";
             };
             header?: never;
             path: {
@@ -6894,7 +7058,7 @@ export interface operations {
                     "application/json": components["schemas"]["BoardAuthOAuthAuthorizationUrl"];
                 };
             };
-            /** @description Unsupported provider (`validation_bad_request`). */
+            /** @description Unsupported provider or role (`validation_bad_request`). */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -6903,7 +7067,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Candidate registration/sign-in is disabled for this board (`board_auth_registration_disabled`). */
+            /** @description Sign-ups for the requested role are disabled on this board (`board_auth_registration_disabled`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -7243,6 +7407,60 @@ export interface operations {
                 };
             };
             /** @description Rate limited (`rate_limited`). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createBoardAuthVerifyWorkEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmWorkEmailBody"];
+            };
+        };
+        responses: {
+            /** @description The membership, in its new state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyMembership"];
+                };
+            };
+            /** @description Invalid or expired token (`board_auth_invalid_token`). */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board not found, or no pending claim remains to approve (`employer_company_not_found`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited. */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -13608,6 +13826,313 @@ export interface operations {
             };
         };
     };
+    listBoardMeCompanySourcedCandidates: {
+        parameters: {
+            query: {
+                /** @description Required. Job that owns this sourced set. */
+                job: string;
+            };
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sourced candidates still on the rail. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        object: "list";
+                        url: string;
+                        hasMore: boolean;
+                        nextCursor: string | null;
+                        data: components["schemas"]["SourcedCandidate"][];
+                    };
+                };
+            };
+            /** @description An error. Every non-2xx response uses the same envelope; see the Errors section of the introduction. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createBoardMeCompanySourcedCandidate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AddSourcedCandidateBody"];
+            };
+        };
+        responses: {
+            /** @description Sourced membership id. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        /** @enum {string} */
+                        object: "sourced_candidate";
+                        created: boolean;
+                    };
+                };
+            };
+            /** @description An error. Every non-2xx response uses the same envelope; see the Errors section of the introduction. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    deleteBoardMeCompanySourcedCandidate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                slug: string;
+                sourcedId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description An error. Every non-2xx response uses the same envelope; see the Errors section of the introduction. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createBoardMeCompanySourcedCandidateConvert: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                slug: string;
+                sourcedId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ConvertSourcedCandidateBody"];
+            };
+        };
+        responses: {
+            /** @description Pipeline application id. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        /** @enum {string} */
+                        object: "application";
+                        created: boolean;
+                    };
+                };
+            };
+            /** @description An error. Every non-2xx response uses the same envelope; see the Errors section of the introduction. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listBoardMeCompanyTalentLists: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Talent lists. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        object: "list";
+                        url: string;
+                        hasMore: boolean;
+                        nextCursor: string | null;
+                        data: components["schemas"]["TalentList"][];
+                    };
+                };
+            };
+            /** @description An error. Every non-2xx response uses the same envelope; see the Errors section of the introduction. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createBoardMeCompanyTalentList: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CreateTalentListBody"];
+            };
+        };
+        responses: {
+            /** @description Created list. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TalentList"];
+                };
+            };
+            /** @description An error. Every non-2xx response uses the same envelope; see the Errors section of the introduction. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    deleteBoardMeCompanyTalentList: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                slug: string;
+                listId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description An error. Every non-2xx response uses the same envelope; see the Errors section of the introduction. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateBoardMeCompanyTalentList: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                slug: string;
+                listId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["UpdateTalentListBody"];
+            };
+        };
+        responses: {
+            /** @description Updated list. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TalentList"];
+                };
+            };
+            /** @description An error. Every non-2xx response uses the same envelope; see the Errors section of the introduction. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     confirmBoardMeCompanyWorkEmail: {
         parameters: {
             query?: never;
@@ -18191,6 +18716,22 @@ export interface operations {
                  * @example 0
                  */
                 offset?: number | null;
+                /** @description Filter by the candidate job-search status. */
+                jobSearchStatus?: "actively_looking" | "open_to_offers" | "not_looking";
+                /** @description Comma-separated language names. Candidates must list every name. */
+                languages?: string;
+                /** @description Filter by open-to-relocate. */
+                openToRelocate?: "true" | "false";
+                /** @description English source place slug. Accepted in v1; filtering is a no-op until place ids are on the talent payload. */
+                place?: string;
+                /** @description `relevance` is Best Match (status then recency). `newest` is created_at descending. */
+                sort?: "relevance" | "newest";
+                /** @description Accepted; no-op until the talent payload carries seniority. */
+                seniority?: string;
+                /** @description ISO country code. Accepted; no-op until permit countries are on the talent payload. */
+                permitCountry?: string;
+                /** @description Accepted; no-op until interested roles are on the talent payload. */
+                interestedRole?: string;
             };
             header?: never;
             path: {

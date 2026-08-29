@@ -18,6 +18,12 @@ export type ConsumeMagicLinkBody = Schemas['BoardAuthConsumeMagicLinkBody'];
 export type OAuthProvider = 'google' | 'linkedin';
 export type OAuthAuthorizationQuery = {
   returnTo?: string;
+  /**
+   * Role profile to create when the handshake signs up a NEW user; defaults
+   * to `candidate`. Pass `employer` from an employer sign-up surface — the
+   * role is fixed at authorize time and cannot be changed on the callback.
+   */
+  role?: 'candidate' | 'employer';
 };
 export type OAuthAuthorizationUrl = Schemas['BoardAuthOAuthAuthorizationUrl'];
 export type OAuthExchangeBody = Schemas['BoardAuthOAuthExchangeBody'];
