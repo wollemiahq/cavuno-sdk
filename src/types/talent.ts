@@ -27,6 +27,16 @@ export type TalentDirectoryQuery = {
    * `cursor`. Pair with the response `count` to page in parallel.
    */
   offset?: number;
+  jobSearchStatus?: 'actively_looking' | 'open_to_offers' | 'not_looking';
+  /** Comma-separated language names. */
+  languages?: string;
+  openToRelocate?: 'true' | 'false';
+  /** English source place slug. No-op until place ids ship. */
+  place?: string;
+  sort?: 'relevance' | 'newest';
+  seniority?: string;
+  permitCountry?: string;
+  interestedRole?: string;
 };
 
 export type TalentDirectoryListEnvelope = ListEnvelope<TalentDirectoryEntry>;

@@ -3,6 +3,33 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.14.0 — 2026-08-29
+
+- **Talent lists**: `board.me.companies.talentLists` (`list` / `create` /
+  `update` / `remove`). Company-owned saved predicates over the talent
+  directory. `filters` reuse the frozen `/talent` query (`q`, `skill`,
+  `jobSearchStatus`, `languages`, `openToRelocate`, `place`, `sort`,
+  `seniority`, `permitCountry`, `interestedRole`). Optional `job` binds a
+  list to one company job; pass `job: null` on update to unbind. Approved
+  members share the same lists.
+- **Sourced candidates**: `board.me.companies.sourcedCandidates` (`list` /
+  `add` / `remove` / `convert`). Per-job membership rail. Saving a candidate
+  always writes here. `convert` creates a pipeline application with source
+  `sourced` (hidden from the candidate until they apply themselves).
+  `stage: 'applied'` aliases to `review`. A board without a native pipeline
+  raises `sourced_convert_unavailable` (409). `add` is idempotent
+  (`created: false` on a second save).
+- **Error codes**: `talent_list_not_found`, `sourced_candidate_not_found`,
+  and `sourced_convert_unavailable` join `BOARD_API_ERROR_CODES`.
+- **`board.auth.verifyWorkEmail({ token })`**: confirm an employer
+  work-email token without a session (`POST /auth/verify-work-email`).
+  `board.me.companies.workEmail.confirm(slug, { token })` is deprecated —
+  `slug` is ignored; the token alone identifies the membership.
+- **OAuth employer sign-up**: `getOAuthAuthorizationUrl(provider, { role:
+  'employer' })` creates an employer profile for a new user. The role is
+  fixed at authorize time and cannot be changed on the callback. Defaults
+  to `candidate`.
+
 ## 4.13.0 — 2026-08-28
 
 - **`board.context().contact.legalName`**: the operating company's registered
