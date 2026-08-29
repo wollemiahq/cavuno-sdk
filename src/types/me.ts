@@ -41,6 +41,59 @@ export type RecommendedTalentListQuery = {
   limit?: number;
 };
 
+export type TalentListFilters = {
+  q?: string;
+  skill?: string;
+  jobSearchStatus?: 'actively_looking' | 'open_to_offers' | 'not_looking';
+  languages?: string[];
+  openToRelocate?: boolean;
+  place?: string;
+  sort?: 'relevance' | 'newest';
+  seniority?: string;
+  permitCountry?: string;
+  interestedRole?: string;
+};
+
+export type TalentList = {
+  id: string;
+  object: 'talent_list';
+  name: string;
+  filters: TalentListFilters;
+  jobId: string | null;
+  createdBy: string;
+  createdAt: number;
+  updatedAt: number;
+};
+
+export type CreateTalentListBody = {
+  name: string;
+  filters?: TalentListFilters;
+  job?: string;
+};
+
+export type UpdateTalentListBody = {
+  name?: string;
+  filters?: TalentListFilters;
+  job?: string | null;
+};
+
+export type SourcedCandidate = {
+  id: string;
+  object: 'sourced_candidate';
+  candidate: Schemas['TalentDirectoryEntry'];
+  sourcedAt: number;
+  sourcedBy: string;
+};
+
+export type AddSourcedCandidateBody = {
+  job: string;
+  candidateBoardUserId: string;
+};
+
+export type ConvertSourcedCandidateBody = {
+  stage: string;
+};
+
 export type SaveJobBody = Schemas['SaveJobBody'];
 
 /** The authenticated user's lean candidate profile singleton. */

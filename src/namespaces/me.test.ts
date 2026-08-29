@@ -260,6 +260,32 @@ describe('board.me', () => {
     );
   });
 
+  it('talentLists.list GETs the company-scoped collection', async () => {
+    const spy = stubFetch(jsonResponse({ object: 'list', data: [] }));
+    const board = await makeAuthedBoard();
+    await board.me.companies.talentLists.list('acme');
+    expect(spy.mock.calls[0]![0]).toBe(
+      `${BASE}/me/companies/acme/talent-lists`,
+    );
+  });
+
+  it('sourcedCandidates.convert POSTs { stage }', async () => {
+    const spy = stubFetch(
+      jsonResponse({ id: 'apps_1', object: 'application', created: true }),
+    );
+    const board = await makeAuthedBoard();
+    await board.me.companies.sourcedCandidates.convert('acme', 'src_1', {
+      stage: 'applied',
+    });
+    expect(spy.mock.calls[0]![0]).toBe(
+      `${BASE}/me/companies/acme/sourced-candidates/src_1/convert`,
+    );
+    expect(spy.mock.calls[0]![1]!.method).toBe('POST');
+    expect(JSON.parse(String(spy.mock.calls[0]![1]!.body))).toEqual({
+      stage: 'applied',
+    });
+  });
+
   it('recommendedTalent.list GETs the company-scoped path with ?job=', async () => {
     const spy = stubFetch(jsonResponse({ object: 'list', data: [] }));
     const board = await makeAuthedBoard();
