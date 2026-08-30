@@ -5448,6 +5448,16 @@ export interface components {
                 gtmId: string | null;
                 metaPixelId: string | null;
                 linkedInPartnerId: string | null;
+                /** @description LinkedIn Campaign Manager conversion ID for account creation (`sign_up`). Null when unset. Used with a direct Insight Tag install (`linkedInPartnerId`); leave null when LinkedIn conversions are fired only via GTM. */
+                linkedInConversionSignUpId: string | null;
+                /** @description LinkedIn Campaign Manager conversion ID for successful sign-in (`login`). Null when unset. */
+                linkedInConversionLoginId: string | null;
+                /** @description LinkedIn Campaign Manager conversion ID for opening the apply flow (`apply_click`). Null when unset. */
+                linkedInConversionApplyClickId: string | null;
+                /** @description LinkedIn Campaign Manager conversion ID for a successful native application (`apply_submit`). Null when unset. */
+                linkedInConversionApplySubmitId: string | null;
+                /** @description LinkedIn Campaign Manager conversion ID for job-alert subscription (`job_alert_subscribe`). Null when unset. */
+                linkedInConversionJobAlertSubscribeId: string | null;
                 cookieConsentRequired: boolean;
             };
             /** @description Public AdSense switch + publisher id from board advertising settings. Not the slot map (Puck/Cavuno placements) and not `ads.txt` (`board.seo()`). */
@@ -6667,7 +6677,7 @@ export interface components {
         UpdateTalentListBody: {
             name?: string;
             filters?: components["schemas"]["TalentListFilters"];
-            job?: string | unknown | unknown;
+            job?: string | unknown;
         };
         VerifyEmailOtpBody: {
             code: string;
@@ -11106,10 +11116,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateCompanyBody"] & {
-                    name?: string;
-                    website?: string;
-                };
+                "application/json": components["schemas"]["CreateCompanyBody"];
             };
         };
         responses: {
@@ -14264,7 +14271,7 @@ export interface operations {
     listBoardMeConversations: {
         parameters: {
             query?: {
-                archived?: "true" | "false" | "1" | "0";
+                archived?: "0" | "1" | "true" | "false";
                 cursor?: string;
                 limit?: number;
             };

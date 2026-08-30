@@ -61,6 +61,11 @@ const BOARD = {
     gtmId: null,
     metaPixelId: null,
     linkedInPartnerId: null,
+    linkedInConversionSignUpId: null,
+    linkedInConversionLoginId: null,
+    linkedInConversionApplyClickId: null,
+    linkedInConversionApplySubmitId: null,
+    linkedInConversionJobAlertSubscribeId: null,
     cookieConsentRequired: false,
   },
   ads: {

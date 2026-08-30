@@ -3,6 +3,17 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.15.0 — 2026-08-30
+
+- **LinkedIn conversion IDs on `board.context().analytics`**: five nullable
+  Campaign Manager conversion IDs for direct Insight Tag installs (without
+  GTM): `linkedInConversionSignUpId`, `linkedInConversionLoginId`,
+  `linkedInConversionApplyClickId`, `linkedInConversionApplySubmitId`,
+  `linkedInConversionJobAlertSubscribeId`. Use with `linkedInPartnerId` to
+  fire `lintrk('track', { conversion_id })` for the same moments as the
+  hosted board. Leave null when LinkedIn conversions are fired only via GTM.
+  Meta still needs only `metaPixelId`; GTM still needs only `gtmId`.
+
 ## 4.14.0 — 2026-08-29
 
 - **Talent lists**: `board.me.companies.talentLists` (`list` / `create` /
