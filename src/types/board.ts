@@ -1,6 +1,13 @@
 // Generated from the v1 OpenAPI spec (`components.schemas`) — see
 // scripts/gen-types.ts. `PublicBoard` aliases the generated board-context
 // component; the nested feature and analytics shapes are derived from it.
+//
+// `PublicBoardAnalytics` includes Meta (`metaPixelId`) plus LinkedIn Insight
+// Tag (`linkedInPartnerId`) and per-event Campaign Manager conversion IDs
+// (`linkedInConversionSignUpId`, `linkedInConversionLoginId`,
+// `linkedInConversionApplyClickId`, `linkedInConversionApplySubmitId`,
+// `linkedInConversionJobAlertSubscribeId`) for headless dual-path conversion
+// tracking.
 import type { Schemas } from './_spec';
 
 export type PublicBoard = Schemas['PublicBoardContext'];
