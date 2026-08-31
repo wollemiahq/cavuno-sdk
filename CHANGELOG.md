@@ -3,6 +3,17 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.16.0 — 2026-08-31
+
+- **`@cavuno/board/analytics`**: new subpath with `install({ publishableKey })`
+  and `track(action, payload?)`. Uses the board publishable key (`pk_…`) only.
+  Default collect URL is Cavuno central collect; pass a first-party
+  `/.well-known/cavuno/collect` URL when the board host serves those handlers.
+- **Stable analytics tenant**: events are keyed by the immutable public board
+  id (`boards_<accountId>`), not the mutable board slug.
+- **Doctor**: `npx @cavuno/board doctor` includes an analytics-surface scan that
+  flags legacy third-party tracker credentials in app source.
+
 ## 4.15.0 — 2026-08-30
 
 - **LinkedIn conversion IDs on `board.context().analytics`**: five nullable

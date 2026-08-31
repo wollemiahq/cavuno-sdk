@@ -17,6 +17,7 @@ async function doctor(argv: string[]): Promise<void> {
       boardKey: process.env.PUBLIC_CAVUNO_BOARD,
     },
     frontendUrl,
+    projectRoot: process.cwd(),
   });
 
   console.log('\n@cavuno/board doctor');
