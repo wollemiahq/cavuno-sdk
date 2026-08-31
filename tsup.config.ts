@@ -11,6 +11,7 @@ const isomorphicEntries = {
   go: 'src/go/index.ts',
   'route-contract': 'src/route-contract/index.ts',
   'well-known': 'src/well-known/index.ts',
+  analytics: 'src/analytics/index.ts',
   'seo-files': 'src/seo-files/index.ts',
   server: 'src/server/index.ts',
 } as const;

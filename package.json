@@ -154,6 +154,16 @@
         "default": "./dist/well-known.js"
       }
     },
+    "./analytics": {
+      "import": {
+        "types": "./dist/analytics.d.mts",
+        "default": "./dist/analytics.mjs"
+      },
+      "require": {
+        "types": "./dist/analytics.d.ts",
+        "default": "./dist/analytics.js"
+      }
+    },
     "./seo-files": {
       "import": {
         "types": "./dist/seo-files.d.mts",

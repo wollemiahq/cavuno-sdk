@@ -1,5 +1,6 @@
 import { DEFAULT_CAVUNO_API_URL } from '../constants';
 import { loadSkillCorpus } from '../skills';
+import { checkAnalyticsSurface } from './analytics-surface';
 import {
   apiBase,
   checkEnv,
@@ -229,12 +230,12 @@ export async function runDoctor(options: RunDoctorOptions): Promise<DoctorRun> {
   } else {
     results.push(STATIC_BOARD('skip', 'env checks failed — fix them first'));
   }
-  results.push(checkSkillsFreshness(options.projectRoot ?? process.cwd()));
+  const projectRoot = options.projectRoot ?? process.cwd();
+  results.push(checkSkillsFreshness(projectRoot));
   // starter code sets cookies only
   // through the SDK server cookie codec (accountability, not a boundary).
-  results.push(
-    ...checkCookieCodecConformance(options.projectRoot ?? process.cwd()),
-  );
+  results.push(...checkCookieCodecConformance(projectRoot));
+  results.push(checkAnalyticsSurface(projectRoot));
 
   // ── : read probes against the tenant's frontend ────────────────
   results.push(
