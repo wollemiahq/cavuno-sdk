@@ -347,6 +347,53 @@ describe('static.cookie-codec wiring', () => {
   });
 });
 
+describe('static.analytics-surface wiring', () => {
+  it('fails tier 1 when projectRoot contains a legacy analytics API', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'doctor-analytics-run-'));
+    mkdirSync(join(root, 'app'));
+    writeFileSync(
+      join(root, 'app', 'analytics.ts'),
+      'window.Tinybird?.trackEvent("page_view");\n',
+    );
+    const fetchImpl = fetchStub({
+      '/openapi.json': { body: '{"openapi":"3.1.0"}' },
+      '/v1/boards/': { body: '{"board":{}}' },
+    });
+
+    const { results, summary } = await runDoctor({
+      env: ENV,
+      projectRoot: root,
+      fetchImpl,
+    });
+
+    expect(
+      results.find((result) => result.id === 'static.analytics-surface'),
+    ).toMatchObject({ tier: 1, status: 'fail' });
+    expect(summary.exitCode).toBe(1);
+  });
+
+  it('defaults the source scan to cwd when projectRoot is omitted', async () => {
+    const fetchImpl = fetchStub({
+      '/openapi.json': { body: '{"openapi":"3.1.0"}' },
+      '/v1/boards/': { body: '{"board":{}}' },
+    });
+    const previousCwd = process.cwd();
+    process.chdir(EMPTY_ROOT);
+    try {
+      const { results } = await runDoctor({ env: ENV, fetchImpl });
+
+      const analytics = results.find(
+        (result) => result.id === 'static.analytics-surface',
+      );
+      expect(analytics).toBeDefined();
+      expect(analytics?.tier).toBe(1);
+      expect(analytics?.status).toBe('skip');
+    } finally {
+      process.chdir(previousCwd);
+    }
+  });
+});
+
 describe('tier-2 SEO snapshot fetch', () => {
   it('probes /v1/boards/:key/seo after the board resolves and matches file bodies', async () => {
     const seo = {
