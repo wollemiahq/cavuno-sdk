@@ -4656,7 +4656,7 @@ export interface components {
             inOfficePeriod?: "per_week" | "per_month" | "per_year";
             /** @description How often the candidate must be in-office over `inOfficePeriod`. */
             inOfficeFrequency?: number;
-            /** @description Physical office locations associated with the job. Each entry is forward-geocoded server-side; a country mismatch returns `400 jobs_unresolvable_location`. */
+            /** @description Physical office locations associated with the job. Prefer `{query: "City, Country"}` for free-form input; `{city, country, region?, locality?}` is also accepted when you already have structured fields. Each entry is resolved server-side; a country mismatch returns `400 jobs_unresolvable_location`. */
             officeLocations?: components["schemas"]["JobOfficeLocationInput"][];
             /** @description The job title. */
             title: string;
@@ -4813,8 +4813,11 @@ export interface components {
             object: "employer_pipeline_stage";
             jobId: string;
             label: string;
-            /** @description The stable system meaning (`review`/`offer`/`hired`/`rejected`), or `null` for a custom employer stage. */
-            systemStage: string | null;
+            /**
+             * @description The stable system meaning, or `null` for a custom employer stage.
+             * @enum {string|null}
+             */
+            systemStage: "shortlisted" | "contacted" | "replied" | "review" | "offer" | "hired" | "rejected" | null;
             isProtected: boolean;
             hidden: boolean;
             position: number;
@@ -4901,7 +4904,7 @@ export interface components {
             inOfficePeriod?: "per_week" | "per_month" | "per_year";
             /** @description How often the candidate must be in-office over `inOfficePeriod`. */
             inOfficeFrequency?: number;
-            /** @description Physical office locations associated with the job. Each entry is forward-geocoded server-side; a country mismatch returns `400 jobs_unresolvable_location`. */
+            /** @description Physical office locations associated with the job. Prefer `{query: "City, Country"}` for free-form input; `{city, country, region?, locality?}` is also accepted when you already have structured fields. Each entry is resolved server-side; a country mismatch returns `400 jobs_unresolvable_location`. */
             officeLocations?: components["schemas"]["JobOfficeLocationInput"][];
             /** @description The job title. */
             title?: string;
@@ -4957,6 +4960,9 @@ export interface components {
             displayName: string | null;
         };
         JobOfficeLocationInput: {
+            /** @description Free-form location string (e.g. `"Berlin, Germany"`, `"Utrecht, Netherlands"`, `"Mountain View, California, USA"`). Resolved server-side; rejected when no high-confidence match is found. */
+            query: string;
+        } | {
             /** @description Neighborhood or sub-locality. */
             locality?: string;
             /** @description City. */
@@ -4965,9 +4971,6 @@ export interface components {
             region?: string;
             /** @description ISO 3166-1 alpha-2 country code OR recognized country name/alias. Aliases are normalized to canonical alpha-2 server-side (e.g. `US`, `USA`, `United States` → `US`; `UK`, `GB`, `United Kingdom` → `GB`). */
             country: string;
-        } | {
-            /** @description Free-form location string (e.g. `"Berlin, Germany"`, `"Mountain View, California, USA"`). Mapbox parses + ranks candidates server-side; rejects on low confidence. */
-            query: string;
         };
         JobPostingBillingOptions: {
             /** @enum {string} */
@@ -6199,9 +6202,13 @@ export interface components {
         StartConversationBody: {
             candidateBoardUserId: string;
             body: string;
+            /** @description Optional job id. When set, this send is from that job pipeline and may auto-advance Shortlisted to Contacted. */
+            job?: string;
         } | {
             candidateHandle: string;
             body: string;
+            /** @description Optional job id. When set, this send is from that job pipeline and may auto-advance Shortlisted to Contacted. */
+            job?: string;
         };
         SuggestResult: {
             /** @enum {string} */
