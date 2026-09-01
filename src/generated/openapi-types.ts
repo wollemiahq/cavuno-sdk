@@ -4813,8 +4813,11 @@ export interface components {
             object: "employer_pipeline_stage";
             jobId: string;
             label: string;
-            /** @description The stable system meaning (`review`/`offer`/`hired`/`rejected`), or `null` for a custom employer stage. */
-            systemStage: string | null;
+            /**
+             * @description The stable system meaning, or `null` for a custom employer stage.
+             * @enum {string|null}
+             */
+            systemStage: "shortlisted" | "contacted" | "replied" | "review" | "offer" | "hired" | "rejected" | null;
             isProtected: boolean;
             hidden: boolean;
             position: number;
@@ -6199,9 +6202,13 @@ export interface components {
         StartConversationBody: {
             candidateBoardUserId: string;
             body: string;
+            /** @description Optional job id. When set, this send is from that job pipeline and may auto-advance Shortlisted to Contacted. */
+            job?: string;
         } | {
             candidateHandle: string;
             body: string;
+            /** @description Optional job id. When set, this send is from that job pipeline and may auto-advance Shortlisted to Contacted. */
+            job?: string;
         };
         SuggestResult: {
             /** @enum {string} */
