@@ -28,6 +28,7 @@ export const BOARD_API_ERROR_CODES = [
   'boards_not_found',
   'board_page_not_found',
   // Board-user auth
+  'board_auth_account_not_found',
   'board_auth_email_taken',
   'board_auth_invalid_credentials',
   'board_auth_invalid_token',

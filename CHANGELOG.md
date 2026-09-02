@@ -3,6 +3,13 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.17.0 — 2026-08-31
+
+- **`EmployerPipelineStage.systemStage`**: a closed set of pipeline literals —
+  `shortlisted`, `contacted`, `replied`, `review`, `offer`, `hired`,
+  `rejected`, or `null` — instead of an open string. `applied` remains a
+  list-query alias for `review`, not a `systemStage` value.
+
 ## 4.16.0 — 2026-08-31
 
 - **`@cavuno/board/analytics`**: new subpath with `install({ publishableKey })`
