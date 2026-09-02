@@ -1,6 +1,6 @@
 {
   "name": "@cavuno/board",
-  "version": "4.16.0",
+  "version": "4.18.0",
   "description": "Build custom job boards and careers pages with Cavuno’s TypeScript SDK.",
   "keywords": [
     "api-client",
