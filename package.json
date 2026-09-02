@@ -1,6 +1,6 @@
 {
   "name": "@cavuno/board",
-  "version": "4.19.0",
+  "version": "4.20.0",
   "description": "Build custom job boards and careers pages with Cavuno’s TypeScript SDK.",
   "keywords": [
     "api-client",
@@ -221,7 +221,7 @@
     "provenance": true
   },
   "scripts": {
-    "build": "rm -rf dist && tsup",
+    "build": "rm -rf dist && tsup && node scripts/sanitize-dist-chunk-names.mjs",
     "clean": "git clean -xdf .turbo dist node_modules src/generated",
     "typecheck": "tsgo --noEmit && tsgo --noEmit -p tsconfig.node.json",
     "test": "vitest run",
