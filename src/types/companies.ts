@@ -68,8 +68,15 @@ export type CompanySimilarQuery = {
 export type CompanyMarket = Schemas['CompanyMarket'];
 
 export type CompanyMarketsListQuery = {
-  /** 1–200, default 100 (a top-by-company-count preview). */
+  /** Page size, 1–200 (default 100). */
   limit?: number;
+  /**
+   * Opaque forward cursor from a previous response's `nextCursor`. The
+   * unsearched list is fully paginated (walk it with `paginate` to enumerate
+   * every market); a `search` call returns one preview page with
+   * `hasMore: false`, so the cursor does not apply there.
+   */
+  cursor?: string;
   search?: string;
 };
 
