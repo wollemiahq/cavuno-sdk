@@ -229,6 +229,7 @@ export type {
   CompanySimilarQuery,
   PublicCompany,
   PublicCompanyDetail,
+  PublicCompanyMembership,
 } from './types/companies';
 export type {
   TalentDirectoryEntry,

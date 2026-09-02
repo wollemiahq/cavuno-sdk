@@ -3,6 +3,25 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.20.0 — 2026-09-03
+
+- **Memberships as public identity.** `PublicCompanyMembership` (`planId` +
+  display name) is exported, and `board.companies.list({ membershipPlanId })`
+  scopes the roster to the companies holding an active membership on that
+  published plan. Combines with `marketSlug` by intersection; `count` then
+  describes the members.
+- **`board.plans.list({ purpose })`** accepts every plan purpose:
+  `job_posting`, `talent_access`, `membership`, `job_seeker`,
+  `employer_service`, `job_seeker_service`. Plans carry `pricingMode`; a
+  `contact` plan is quote-only, so render `priceText` and the CTA fields
+  instead of `price`.
+- **`board.plans.listSalesLed()` is deprecated.** Use
+  `plans.list({ purpose: 'employer_service' })` and keep the rows whose
+  `pricingMode` is `contact`. The helper keeps working as a compatibility
+  read.
+- **`BOARD_API_ERROR_CODES`**: adds `membership_required`, returned when a
+  board requires an approved membership to post and the caller has none.
+
 ## 4.19.0 — 2026-09-02
 
 - **`board.sitemap()` / `board.sitemap.entries(bucket, { limit, cursor })`**:
