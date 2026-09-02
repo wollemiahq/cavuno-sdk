@@ -552,7 +552,7 @@ export interface paths {
         };
         /**
          * List a public board's company markets
-         * @description The board's company markets (the sectors companies are tagged with), ranked by company count: the data behind the hosted companies index's market filter. A top-N preview, not full pagination; pass `search` to filter by name.
+         * @description The board's company markets (the sectors companies are tagged with), ranked by company count: the data behind the hosted companies index's market filter. Fully paginated — follow `nextCursor` to enumerate every market (the sitemap slug source). Pass `search` to filter by name; a searched call returns a single top-N preview page with `hasMore: false`.
          */
         get: operations["listBoardCompaniesMarkets"];
         put?: never;
@@ -3518,6 +3518,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/sitemap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List a public board's sitemap buckets
+         * @description The buckets the board's sitemap is split into, with an entry count and last-modified stamp each. Together with `GET /boards/:identifier/sitemap/{bucket}` this is the complete slug source for a headless frontend's sitemap: mirroring it reproduces the hosted sitemap exactly, with no per-family enumeration. A password-protected board requires the same `X-Board-Access` grant as every other board read (401 `board_password_required` without it); the platform sandbox board returns an empty `buckets` array.
+         */
+        get: operations["getBoardSitemap"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/sitemap/{bucket}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the entries in one sitemap bucket
+         * @description One page of board-relative paths in a sitemap bucket, in the order the hosted sitemap emits them. Follow `nextCursor` to walk the bucket to exhaustion; prefix each `path` with your own origin. An unknown bucket returns 404.
+         */
+        get: operations["listBoardSitemapEntries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/boards/{identifier}/skills": {
         parameters: {
             query?: never;
@@ -3896,6 +3936,20 @@ export interface components {
             manifest: {
                 name: string;
             };
+        };
+        BoardSitemap: {
+            /** @enum {string} */
+            object: "board_sitemap";
+            /** @description The buckets the board publishes, in the canonical bucket order. Empty buckets are omitted — exactly the set the hosted `/sitemap.xml` index lists. */
+            buckets: components["schemas"]["BoardSitemapBucketSummary"][];
+        };
+        BoardSitemapBucketSummary: {
+            /** @description Bucket name — pass it to `GET /boards/:identifier/sitemap/{bucket}` to read its entries. */
+            bucket: string;
+            /** @description Number of entries in the bucket. */
+            count: number;
+            /** @description ISO 8601 timestamp of the newest content in the bucket, when the board tracks one. */
+            lastModified?: string;
         };
         BoardUser: {
             /** @description Board user ID. */
@@ -6053,6 +6107,14 @@ export interface components {
             /** Format: email */
             workEmail: string;
         };
+        SitemapEntry: {
+            /** @enum {string} */
+            object: "sitemap_entry";
+            /** @description Board-relative path, always starting with `/`. Prefix it with your own origin to build the absolute URL — the API never returns the hosted origin. */
+            path: string;
+            /** @description ISO 8601 timestamp of the entry, when one is known. */
+            lastModified?: string;
+        };
         SkillLocationSalary: {
             /** @enum {string} */
             object: "skill_location_salary";
@@ -8110,12 +8172,14 @@ export interface operations {
     listBoardCompaniesMarkets: {
         parameters: {
             query?: {
+                /** @description An opaque pagination cursor returned in the `nextCursor` field of a previous response. Pass it back to fetch the next page of markets. Pagination applies to the UNSEARCHED list only — passing `search` returns a single top-N preview page with `hasMore: false`. */
+                cursor?: string;
                 /**
-                 * @description Max markets to return (1–200, default 100). The list is a top-by-company-count preview, not full pagination.
+                 * @description Max markets to return per page (1–200, default 100). Without `search` the list is fully paginated by company count (follow `nextCursor` for the rest); with `search` it is a top-by-company-count preview capped at this limit.
                  * @example 100
                  */
                 limit?: number;
-                /** @description Filter markets by name (full-text match). */
+                /** @description Filter markets by name (full-text match). Returns a single preview page — pagination applies to the unsearched list. */
                 search?: string;
             };
             header?: never;
@@ -18626,6 +18690,95 @@ export interface operations {
                 };
             };
             /** @description Public board not found (nonexistent or private board). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getBoardSitemap: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BoardSitemap"];
+                };
+            };
+            /** @description Public board not found, or the board is private. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listBoardSitemapEntries: {
+        parameters: {
+            query?: {
+                /** @description An opaque pagination cursor returned in the `nextCursor` field of a previous response. Pass it back to fetch the next page of entries. */
+                cursor?: string;
+                /**
+                 * @description A limit on the number of entries to be returned. Limit can range between 1 and 1000 (default 1000).
+                 * @example 1000
+                 */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                /** @description Name of a sitemap bucket, exactly as listed by `GET /boards/:identifier/sitemap` (e.g. `jobs-details`). */
+                bucket: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        object: "list";
+                        url: string;
+                        hasMore: boolean;
+                        nextCursor: string | null;
+                        data: components["schemas"]["SitemapEntry"][];
+                        /** @description Total number of results matching the query. */
+                        count?: number;
+                        /** @description The page size used for this response. */
+                        limit?: number;
+                        /** @description The number of results skipped before this page. */
+                        offset?: number;
+                        /** @description Jobs hidden behind the candidate paywall for the current viewer; absent or 0 for an entitled viewer. */
+                        gatedCount?: number;
+                    };
+                };
+            };
+            /** @description Public board not found, the board is private, or the bucket does not exist (`sitemap_bucket_not_found`). */
             404: {
                 headers: {
                     [name: string]: unknown;

@@ -19,6 +19,7 @@ import { plansNamespace } from './namespaces/plans';
 import { redirectsNamespace } from './namespaces/redirects';
 import { salariesNamespace } from './namespaces/salaries';
 import { searchNamespace } from './namespaces/search';
+import { sitemapNamespace } from './namespaces/sitemap';
 import { talentNamespace } from './namespaces/talent';
 import { taxonomyNamespace } from './namespaces/taxonomy';
 import { type Awaitable, type StorageMode, resolveStorage } from './storage';
@@ -115,6 +116,7 @@ export function createBoardClient(options: CreateBoardClientOptions) {
     talent: talentNamespace(client),
     plans: plansNamespace(client),
     paywall: paywallNamespace(client),
+    sitemap: sitemapNamespace(client),
   };
 }
 
@@ -434,6 +436,13 @@ export type {
   SuggestionItem,
   TermSuggestion,
 } from './types/search';
+export type {
+  BoardSitemapBucketSummary,
+  BoardSitemapIndex,
+  SitemapEntriesEnvelope,
+  SitemapEntriesQuery,
+  SitemapEntry,
+} from './types/sitemap';
 export type {
   LocationSalaryDetail,
   LocationSkillsIndex,

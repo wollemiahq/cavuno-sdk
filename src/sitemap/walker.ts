@@ -11,14 +11,27 @@
  * walker passes `context().language`, so emitted salary URLs are
  * board-language canonical too.
  *
- * What the v1 API can enumerate cleanly is emitted in full; two families it
- * exposes only per-slug are deliberately NOT emitted (documented inline):
- *  - cross-axis salary pages (title×location, skill×location, company×category)
- *  - jobs place×category / place×skill combinations
- * Both need a bulk-pairs endpoint; per-slug N+1 (~1k+ calls/build) is wrong
- * for a cache-less Worker. They stay reachable
- * via internal links until that endpoint lands.
+ * Two paths, in priority order:
+ *
+ *  1. MIRROR (preferred). `board.sitemap()` lists the buckets the board
+ *     publishes and `board.sitemap.entries(bucket)` pages their board-relative
+ *     paths — the board's own sitemap, served from its build cache. Mirroring
+ *     it makes the generated sitemap equal to the board's by construction, and
+ *     closes the cross-axis gap the legacy path could not: the cross-axis
+ *     salary pages (title×location, skill×location, company×category, plus the
+ *     per-entity `/locations` · `/titles` · `/skills` index pages) and the jobs
+ *     place×category / place×skill combinations. It is also far cheaper —
+ *     a handful of cached reads instead of ~25 catalog calls per build.
+ *
+ *  2. LEGACY (fallback). Against an API that predates the sitemap endpoints
+ *     (404), the walker re-derives each bucket from the catalog endpoints as
+ *     before, thin-content floors and all. That path still cannot emit the
+ *     cross-axis families — they are reachable via internal links only.
+ *
+ * Any error other than a 404 propagates: a 500 or a timeout must fail the
+ * build loudly, not silently downgrade to a smaller sitemap.
  */
+import { isNotFound } from '../errors';
 import { paginate } from '../pagination';
 import {
   BOARD_PATHS,
@@ -38,12 +51,16 @@ import {
 } from '../paths';
 import { SITEMAP_BUCKETS, type SitemapBucket } from './xml';
 
+import type { FetchOptions } from '../client';
 import type {
   BoardSdk,
+  CompanyMarket,
+  CompanyMarketsListQuery,
   PublicBlogPostSummary,
   PublicCompany,
   PublicJobCard,
   SalaryLocation,
+  SitemapEntriesQuery,
 } from '../index';
 
 /** Matches the hosted thin-content floor: a listing page needs ≥5 jobs to index. */
@@ -132,13 +149,67 @@ function enumerateCompanies(board: BoardSdk): Promise<PublicCompany[]> {
   );
 }
 
-/** Which buckets the index lists. Blog is gated by its feature; the rest emit an empty urlset when a board lacks that content (valid, just zero URLs). */
+/** Page size for the mirror walk — the sitemap entries endpoint's maximum. */
+const MIRROR_PAGE = 1000;
+
+/**
+ * Which buckets the index lists.
+ *
+ * Mirror path: exactly the buckets the board publishes, in the canonical
+ * `SITEMAP_BUCKETS` order (the board omits empty ones).
+ *
+ * Legacy fallback (404): blog is gated by its feature; the rest emit an empty
+ * urlset when a board lacks that content (valid, just zero URLs).
+ */
 export async function listedBuckets(board: BoardSdk): Promise<SitemapBucket[]> {
-  const { features } = await board.context();
-  return SITEMAP_BUCKETS.filter((b) => b !== 'blog' || features.blog);
+  try {
+    const index = await board.sitemap();
+    const published = new Set(index.buckets.map((entry) => entry.bucket));
+    return SITEMAP_BUCKETS.filter((bucket) => published.has(bucket));
+  } catch (error) {
+    if (!isNotFound(error)) throw error;
+    const { features } = await board.context();
+    return SITEMAP_BUCKETS.filter((b) => b !== 'blog' || features.blog);
+  }
 }
 
 export async function buildBucketUrls(
+  board: BoardSdk,
+  origin: string,
+  bucket: SitemapBucket,
+): Promise<string[]> {
+  try {
+    return await mirrorBucketUrls(board, origin, bucket);
+  } catch (error) {
+    if (!isNotFound(error)) throw error;
+    return legacyBucketUrls(board, origin, bucket);
+  }
+}
+
+/**
+ * The mirror path: page the board's own entries for the bucket and prefix each
+ * board-relative path with the caller's origin. Order is preserved — it is the
+ * order the board emits, so the two corpora line up entry for entry.
+ */
+async function mirrorBucketUrls(
+  board: BoardSdk,
+  origin: string,
+  bucket: SitemapBucket,
+): Promise<string[]> {
+  const pages = paginate(
+    (query?: SitemapEntriesQuery, options?: FetchOptions) =>
+      board.sitemap.entries(bucket, query, options),
+    { limit: MIRROR_PAGE },
+  ).pages();
+
+  const urls: string[] = [];
+  for await (const page of pages) {
+    for (const entry of page.data) urls.push(`${origin}${entry.path}`);
+  }
+  return urls;
+}
+
+async function legacyBucketUrls(
   board: BoardSdk,
   origin: string,
   bucket: SitemapBucket,
@@ -240,15 +311,28 @@ async function jobDetails(board: BoardSdk, origin: string): Promise<string[]> {
   return [...seen].sort();
 }
 
+/** Markets page size — the list endpoint's maximum. */
+const MARKETS_PAGE = 200;
+
 async function companies(board: BoardSdk, origin: string): Promise<string[]> {
   const [list, markets] = await Promise.all([
     enumerateCompanies(board),
-    board.companies.markets(),
+    // Paginate: the unsearched market list is a full cursor walk, and a single
+    // call used to stop at the first page — silently dropping every market
+    // page past it on a board with many sectors. An older API that ignores the
+    // cursor answers `hasMore: false`, so this degrades to one call there.
+    drainPages<CompanyMarket>(
+      paginate(
+        (query?: CompanyMarketsListQuery, options?: FetchOptions) =>
+          board.companies.markets(query, options),
+        { limit: MARKETS_PAGE },
+      ).pages(),
+    ),
   ]);
   const urls = [`${origin}${BOARD_PATHS.companies}`];
   for (const company of list)
     urls.push(`${origin}${companyPath(company.slug)}`);
-  for (const market of markets.data) {
+  for (const market of markets) {
     urls.push(`${origin}${companyMarketPath(market.slug)}`);
   }
   return urls;
@@ -297,7 +381,8 @@ async function salaries(board: BoardSdk, origin: string): Promise<string[]> {
   }
   // Cross-axis salary pages (title×location, skill×location, company×category,
   // and the per-entity /locations · /titles · /skills index pages) are NOT
-  // emitted — see the file header. Tracked as a named future release.
+  // emitted on this legacy path — the API exposes them only per-slug. The
+  // mirror path above covers them; see the file header.
   return urls;
 }
 
