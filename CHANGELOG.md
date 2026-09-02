@@ -3,6 +3,22 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.18.0 — 2026-09-02
+
+- **`board.auth.requestMagicLink({ intent: 'sign_in' })`**: new optional
+  `intent` on `POST /auth/magic-link`. Pass `'sign_in'` from a sign-in form so
+  an unknown email is refused with 404 `board_auth_account_not_found` instead
+  of silently minting a candidate sign-up token. Omit it to keep the previous
+  sign-in-or-sign-up behaviour. Any other value is a 400.
+- **`BOARD_API_ERROR_CODES`**: adds `board_auth_account_not_found`.
+
+## 4.17.0 — 2026-08-31
+
+- **`EmployerPipelineStage.systemStage`**: a closed set of pipeline literals —
+  `shortlisted`, `contacted`, `replied`, `review`, `offer`, `hired`,
+  `rejected`, or `null` — instead of an open string. `applied` remains a
+  list-query alias for `review`, not a `systemStage` value.
+
 ## 4.16.0 — 2026-08-31
 
 - **`@cavuno/board/analytics`**: new subpath with `install({ publishableKey })`

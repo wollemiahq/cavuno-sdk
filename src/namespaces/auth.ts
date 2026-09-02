@@ -221,12 +221,15 @@ export function authNamespace(client: BoardClient) {
     /**
      * Request a passwordless magic link. The API always resolves 204
      * when the request is accepted; the email link lands on the
-     * board/starter `/auth/magic-link` route.
+     * board/starter `/auth/magic-link` route. Pass `intent: 'sign_in'`
+     * from a sign-in form so an unknown email is 404 instead of a
+     * silent sign-up.
      *
      * @example
      * await board.auth.requestMagicLink({
      *   email: 'a@b.com',
      *   returnTo: '/account',
+     *   intent: 'sign_in',
      * });
      */
     requestMagicLink(body: RequestMagicLinkBody, options?: FetchOptions) {
