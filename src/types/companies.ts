@@ -41,10 +41,24 @@ export type CompanyListEnvelope = ListEnvelope<PublicCompany> & {
   relatedSearches?: RelatedSearch[];
 };
 
+/**
+ * A company's membership on the board, as public identity: the plan's `id`
+ * and its current display name. `planId` is the stable key — join it against
+ * `board.plans` for price, benefits, and description.
+ */
+export type PublicCompanyMembership = Schemas['PublicCompanyMembership'];
+
 export type CompaniesListQuery = {
   cursor?: string;
   /** Scope to a single market (sector) by slug. Unknown slugs 404. */
   marketSlug?: string;
+  /**
+   * Scope to the companies holding an active membership on this plan, by the
+   * plan's `id`. Only published membership plans match — any other id returns
+   * an empty list. Combines with `marketSlug` by intersection, and the roster
+   * becomes the whole result set, so `count` describes the members.
+   */
+  membershipPlanId?: string;
   /** 1–100. */
   limit?: number;
   /**

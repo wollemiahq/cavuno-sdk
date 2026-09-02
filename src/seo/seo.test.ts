@@ -88,6 +88,7 @@ const BOARD = {
     employmentType: { allowedOptions: [] },
   },
   talentAccessModel: null,
+  posting: { requiresMembership: false },
   contact: {
     email: null,
     legalName: null,

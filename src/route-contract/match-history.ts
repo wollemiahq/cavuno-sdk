@@ -1,5 +1,6 @@
 /**
- *  — pure history path matching for hosted rename 301s.
+ *  — pure history path matching for hosted rename 301s
+ *.
  *
  * Segment-wise matcher (no RegExp construction from templates). Templates
  * are validated at write time but stay defensive here: any segment that

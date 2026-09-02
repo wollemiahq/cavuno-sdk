@@ -532,7 +532,7 @@ export interface paths {
         };
         /**
          * List a public board's companies
-         * @description Returns a list of companies on the named public board, ranked by the hosted search core (companies with more open roles first). The same ranking the hosted board renders.
+         * @description Returns a list of companies on the named public board, ranked by the hosted search core (companies with more open roles first). The same ranking the hosted board renders. Passing `membershipPlanId` browses one membership roster instead: the members become the whole result set, so `count` and the offset window describe the roster, still ordered by open roles.
          */
         get: operations["listBoardCompanies"];
         put?: never;
@@ -3147,7 +3147,7 @@ export interface paths {
         };
         /**
          * List a public board's plans
-         * @description The board's public plans (employer pricing): job-posting and talent-access plans as a flat list, each with its `purpose`, price, and a feature summary (talent-access plans add a `talent` allowance block). Filter with `?purpose=`. Sales-led plans are a separate resource (`GET …/sales-led-plans`).
+         * @description The board's public plans as a flat catalogue: job-posting, talent-access, membership, job-seeker, and the two service purposes (`employer_service`, `job_seeker_service`), each with its `purpose`, `pricingMode`, price, and a feature summary (talent-access plans add a `talent` allowance block). Filter with `?purpose=`. A `pricingMode: contact` plan is quote-only — render `priceText` and the CTA fields instead of a price. The deprecated sales-led resource (`GET …/sales-led-plans`) remains for compatibility only.
          */
         get: operations["listBoardPlans"];
         put?: never;
@@ -3467,7 +3467,8 @@ export interface paths {
         };
         /**
          * List a public board's sales-led plans
-         * @description The board's sales-led ("contact us") employer plans: custom marketing tiers with a CTA destination and no programmatic price. A bounded list (up to 50), ranked by display order.
+         * @deprecated
+         * @description Deprecated. Use public plans with `purpose: employer_service` and `pricingMode: contact`. This compatibility resource returns the board's sales-led ("contact us") employer plans as a bounded list (up to 50), ranked by display order.
          */
         get: operations["listBoardSalesLedPlans"];
         put?: never;
@@ -4189,6 +4190,7 @@ export interface components {
             publishedJobCount: number;
             /** @description Number of jobs that contribute to this company's salary aggregates on the board (the salary sample size). `0` when there is no usable salary data — prefer this over fetching the full company-salary document just to decide whether to show a Salaries tab. Not the same as `publishedJobCount` (open roles without pay data stay at 0 here). */
             salarySampleCount: number;
+            membership: components["schemas"]["PublicCompanyMembership"];
             links: components["schemas"]["PublicCompanyLinks"];
         };
         CompanyPublicDetail: components["schemas"]["CompanyPublic"] & {
@@ -4562,7 +4564,9 @@ export interface components {
             /** @enum {string} */
             object: "employer_billing_option";
             /** @enum {string} */
-            type: "subscription" | "order";
+            type: "subscription" | "order" | "plan_assignment";
+            /** @enum {string} */
+            kind?: "member_post";
             planId: string;
             planName: string;
             /** @enum {string} */
@@ -4571,6 +4575,10 @@ export interface components {
             jobsTotal: number;
             featuredRemaining: number;
             featuredTotal: number;
+            /** @description True when this option grants unlimited job posts; jobsRemaining/jobsTotal are then not meaningful. */
+            jobsUnlimited?: boolean;
+            /** @description True when this option grants unlimited featured posts. */
+            featuredUnlimited?: boolean;
             /**
              * Format: date-time
              * @description When a subscription renews, or `null` for one-time orders.
@@ -4602,6 +4610,11 @@ export interface components {
                 type: "subscription";
                 planId: string;
                 id: string;
+            } | {
+                /** @enum {string} */
+                type: "plan_assignment";
+                planId?: string;
+                id?: string;
             };
             invoiceBilling?: {
                 billingName?: string;
@@ -4880,6 +4893,16 @@ export interface components {
             isProtected: boolean;
             hidden: boolean;
             position: number;
+        };
+        EmployerPostingCapabilities: {
+            canPost: boolean;
+            /** @enum {string} */
+            reason?: "membership_required";
+            discountPercent: number;
+            freePostsRemaining: number;
+            /** @description True when an active membership grants unlimited posts. */
+            freePostsUnlimited?: boolean;
+            memberPlanName?: string;
         };
         EmployerProfileStats: {
             /** @enum {string} */
@@ -5334,13 +5357,26 @@ export interface components {
             /** @description Authoring default: the operator's prose description in the board's language. The localized public string lives in the board template — compose it from `featureSummary`, `billingInterval`, and `talent` rather than displaying this verbatim on localized surfaces. */
             description: string | null;
             /** @enum {string} */
-            purpose: "job_posting" | "talent_access";
+            purpose: "job_posting" | "talent_access" | "membership" | "job_seeker" | "employer_service" | "job_seeker_service";
             /** @enum {string} */
             kind: "free" | "subscription" | "one_time" | "bundle";
             /** @enum {string|null} */
-            billingInterval: "month" | "year" | null;
+            billingInterval: "day" | "week" | "month" | "year" | null;
+            /** @description Stripe recurring.interval_count. Null means 1. Quarterly is month × 3. */
+            billingIntervalCount: number | null;
             isRecommended: boolean;
             displayOrder: number;
+            /**
+             * @description How the plan is sold. `priced` is bought with `price.stripePriceId`; `contact` is quote-only and must render the CTA below instead of a price. Read this, never `price` — a contact plan can still carry a zeroed price row. Plans created before this field existed report `priced`.
+             * @enum {string}
+             */
+            pricingMode: "priced" | "contact";
+            /** @description Operator-authored display price for a contact plan, e.g. "From $2,000" or "15% of first-year salary". Null when unset. */
+            priceText: string | null;
+            /** @description Operator-authored CTA label for a contact plan. Null when unset; supply your own wording. */
+            ctaText: string | null;
+            /** @description The CTA target: an https, mailto:, or tel: URL. Null when unset, in which case render no CTA rather than a dead control. */
+            ctaDestination: string | null;
             invoiceOnly: boolean;
             /** @enum {string|null} */
             publishTiming: "on_issue" | "on_payment" | null;
@@ -5351,6 +5387,10 @@ export interface components {
                 /** @description The public Stripe Price id used to start checkout. */
                 stripePriceId: string | null;
             } | null;
+            /**
+             * @deprecated
+             * @description Job-posting feature summary. **Deprecated** — superseded by `features`, which carries the same benefits keyed by canonical feature key. Still serialized for compatibility.
+             */
             featureSummary: {
                 durationDays: number;
                 maxActiveJobs: number;
@@ -5358,10 +5398,22 @@ export interface components {
                 /** @enum {string} */
                 featureSelectionMode: "auto" | "manual";
             };
-            /** @description Talent-access allowances (per billing period). Present only when `purpose` is `talent_access`. `"unlimited"` is a sentinel value. */
+            /**
+             * @deprecated
+             * @description Talent-access allowances (per billing period). Present only when `purpose` is `talent_access`. `"unlimited"` is a sentinel value. **Deprecated** — superseded by `features`, which carries the same allowances keyed by canonical feature key. Still serialized for compatibility.
+             */
             talent?: {
                 unlocksPerPeriod: string;
                 messagesPerPeriod: string;
+            };
+            /** @description Self-describing map of every benefit the plan carries, keyed by the canonical feature key. Each entry includes the value and enough of the feature definition (name, dataType, and optional displayOrder) to render without a second call. Values are strings; the literal "unlimited" is a sentinel and must be kept as a string. New features, including operator-defined custom attributes, appear here with no schema change. The API returns no display copy. */
+            features: {
+                [key: string]: {
+                    value: string;
+                    name: string;
+                    dataType: string;
+                    displayOrder?: number;
+                };
             };
         };
         PostSuggestion: {
@@ -5505,6 +5557,11 @@ export interface components {
              * @enum {string|null}
              */
             talentAccessModel: "paid_messaging" | "paid_unlocks_and_messaging" | null;
+            /** @description Employer posting policy. Separate from `features.publicJobSubmission`, which says whether the board takes public submissions at all — this says who may complete one. */
+            posting: {
+                /** @description Whether posting a job on this board requires an active membership. When `true`, render the join gate in place of the anonymous post form: the platform rejects a create from a company with no contributing assignment (`membership_required`). Absent board config defaults to `false`. This flag is board policy and is safe to read anonymously; a signed-in employer's own standing rides their company billing options. */
+                requiresMembership: boolean;
+            };
             analytics: {
                 ga4MeasurementId: string | null;
                 gtmId: string | null;
@@ -5614,6 +5671,13 @@ export interface components {
              */
             public: string | null;
         };
+        /** @description The company's membership on this board, or `null` when it holds none that is public. Only an ACTIVE assignment on a PUBLISHED plan whose purpose is membership appears here: a company on a private (operator-only) plan reads as `null`, and non-membership purchases — job-posting packs, talent access, services — never appear. Identity only: entitlements, billing state, and expiry are not on the public wire. */
+        PublicCompanyMembership: {
+            /** @description The membership plan's `id`. Pass it to `GET /boards/{identifier}/companies?membershipPlanId=` to browse the roster, or join it against the board's plans to render the plan's own copy. */
+            planId: string;
+            /** @description The membership plan's current display name — the badge text. Operators rename plans, so treat `planId` as the stable key. */
+            planName: string;
+        } | null;
         PublicJob: {
             /** @description Unique identifier for the object. Use this value as the `{id}` path parameter for the job endpoints (e.g. `GET /v1/jobs/{id}`). */
             id: string;
@@ -6075,6 +6139,7 @@ export interface components {
             jobCount: number;
             currency: string;
         };
+        /** @description Deprecated. Prefer public plans with purpose employer_service and pricingMode contact. */
         SalesLedPlan: {
             /** @enum {string} */
             object: "sales_led_plan";
@@ -8097,6 +8162,8 @@ export interface operations {
                 cursor?: string;
                 /** @description Scope the results to companies in a single market (sector), by the market slug. Resolves a board-language or English slug; an unknown slug returns 404. Use `GET /boards/:identifier/companies/markets/:market` to resolve a slug to its canonical form first. */
                 marketSlug?: string;
+                /** @description Scope the results to companies holding an active membership on this plan, by the plan's `id`. Only published membership plans match: an id that is unknown, unpublished, or not a membership returns an empty list. Combine with `marketSlug` to intersect the two. Use `GET /boards/:identifier/plans` to find membership plan ids. */
+                membershipPlanId?: string;
                 /**
                  * @description A limit on the number of objects to be returned. Limit can range between 1 and 100.
                  * @example 20
@@ -11918,6 +11985,7 @@ export interface operations {
                         hasMore: boolean;
                         nextCursor: string | null;
                         data: components["schemas"]["EmployerBillingOption"][];
+                        capabilities: components["schemas"]["EmployerPostingCapabilities"];
                     };
                 };
             };
@@ -17975,8 +18043,8 @@ export interface operations {
     listBoardPlans: {
         parameters: {
             query?: {
-                /** @description Filter to plans of a single purpose. Omit to return all public plans (job-posting + talent-access). */
-                purpose?: "job_posting" | "talent_access";
+                /** @description Filter to plans of a single purpose. Omit to return all public plans. */
+                purpose?: "job_posting" | "talent_access" | "membership" | "job_seeker" | "employer_service" | "job_seeker_service";
             };
             header?: never;
             path: {

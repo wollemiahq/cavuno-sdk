@@ -121,6 +121,7 @@ describe('board.context()', () => {
         ],
       },
       talentAccessModel: null,
+      posting: { requiresMembership: false },
       contact: {
         email: null,
         legalName: null,
