@@ -3,6 +3,24 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.19.0 — 2026-09-02
+
+- **`board.sitemap()` / `board.sitemap.entries(bucket, { limit, cursor })`**:
+  new namespace over `GET /sitemap` and `GET /sitemap/{bucket}`. The board
+  publishes its complete sitemap — every bucket with an entry count, and each
+  bucket's board-relative `path` + `lastModified` entries, cursor-paged up to
+  1000 per page — so a headless frontend reproduces the hosted sitemap exactly
+  (cross-axis salary pages, jobs place × category / skill pages, markets)
+  without enumerating the catalog itself.
+- **`@cavuno/board/sitemap` walker**: `listedBuckets` and `buildBucketUrls`
+  now read the published sitemap first and fall back to the previous
+  per-family enumeration only when the API answers 404. A sitemap build drops
+  from ~25 catalog reads to a handful of cached reads. All existing exports
+  are unchanged.
+- **`board.companies.markets({ cursor })`**: the unsearched market list is
+  now paginated (`hasMore` / `nextCursor` are real; use `paginate()`). With
+  `search` it remains a top-N preview. `CompanyMarketsListQuery` gains `cursor`.
+
 ## 4.18.0 — 2026-09-02
 
 - **`board.auth.requestMagicLink({ intent: 'sign_in' })`**: new optional

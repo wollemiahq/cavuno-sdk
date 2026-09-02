@@ -21,12 +21,16 @@ import type { TaxonomyResolution } from '../types/taxonomy';
 export function companiesNamespace(client: BoardClient) {
   /**
    * List the board's company markets (sectors), ranked by company count — the
-   * data behind the hosted companies index's market filter (a top-N preview).
+   * data behind the hosted companies index's market filter. The unsearched
+   * list is fully paginated: follow `nextCursor` (or `paginate`) to enumerate
+   * every market. Passing `search` returns a single top-N preview page.
    * Call `.resolve(slug)` to resolve a market slug to its canonical/source
    * form (and the 308 `redirectTo`) for the market-scoped company browse.
    *
    * @example
    * const { data } = await board.companies.markets({ search: 'robotics' });
+   * const all = await paginate(board.companies.markets, { limit: 200 })
+   *   .toArray({ limit: 5000 });
    * const market = await board.companies.markets.resolve('cybersecurity');
    */
   const markets = Object.assign(
