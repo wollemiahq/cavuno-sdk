@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { BoardApiError } from '../errors';
 import {
   MIN_JOBS_PER_INDEXED_PAGE,
   buildBucketUrls,
@@ -166,6 +167,28 @@ interface StubOverrides {
   blogPosts?: unknown[];
   /** Full override of jobs.list for pagination-behavior tests. */
   jobsList?: (query?: Record<string, unknown>) => Promise<unknown>;
+  /** Full override of companies.markets for markets-pagination tests. */
+  marketsList?: (query?: Record<string, unknown>) => Promise<unknown>;
+  /**
+   * The mirror surface. Absent (the default) means an API without the sitemap
+   * endpoints: both calls 404 and the walker takes the legacy path, which is
+   * what every legacy-path assertion below relies on.
+   */
+  sitemapIndex?: () => Promise<unknown>;
+  sitemapEntries?: (
+    bucket: string,
+    query?: Record<string, unknown>,
+  ) => Promise<unknown>;
+}
+
+/** The 404 an API without the sitemap endpoints answers with. */
+function notFound() {
+  return new BoardApiError({
+    status: 404,
+    code: 'board_not_found',
+    message: 'Not found',
+    raw: null,
+  });
 }
 
 function envelope(data: unknown[], extra: Record<string, unknown> = {}) {
@@ -209,8 +232,23 @@ function stubBoard(overrides: StubOverrides = {}): BoardSdk {
     },
     companies: {
       list: async () => singlePage(overrides.companies ?? []),
-      markets: async () => envelope(overrides.markets ?? []),
+      markets:
+        overrides.marketsList ??
+        (async () => envelope(overrides.markets ?? [])),
     },
+    sitemap: Object.assign(
+      overrides.sitemapIndex ??
+        (async () => {
+          throw notFound();
+        }),
+      {
+        entries:
+          overrides.sitemapEntries ??
+          (async () => {
+            throw notFound();
+          }),
+      },
+    ),
     salaries: {
       companies: {
         list: async () => envelope(overrides.salaryCompanies ?? []),
@@ -583,5 +621,160 @@ describe('pagination behavior', () => {
     const urls = await buildBucketUrls(board, ORIGIN, 'jobs-details');
     expect(urls).toHaveLength(200);
     expect(warn).not.toHaveBeenCalled();
+  });
+});
+
+describe('mirror path (board.sitemap)', () => {
+  it('lists exactly the buckets the board publishes, in canonical order', async () => {
+    const board = stubBoard({
+      // Deliberately out of canonical order: the walker must re-order, not
+      // echo, so the generated index matches the board's own ordering.
+      sitemapIndex: async () => ({
+        object: 'board_sitemap',
+        buckets: [
+          { bucket: 'companies', count: 3 },
+          { bucket: 'marketing', count: 6 },
+          { bucket: 'jobs-details', count: 750 },
+        ],
+      }),
+    });
+
+    expect(await listedBuckets(board)).toEqual([
+      'marketing',
+      'jobs-details',
+      'companies',
+    ]);
+  });
+
+  it('drops a bucket the board does not publish, even when the feature is on', async () => {
+    const board = stubBoard({
+      features: { blog: true },
+      sitemapIndex: async () => ({
+        object: 'board_sitemap',
+        buckets: [{ bucket: 'marketing', count: 6 }],
+      }),
+    });
+
+    expect(await listedBuckets(board)).toEqual(['marketing']);
+  });
+
+  it('prefixes each board-relative path with the caller origin, preserving order', async () => {
+    const board = stubBoard({
+      sitemapEntries: async (bucket) => {
+        expect(bucket).toBe('salaries');
+        return envelope([
+          { object: 'sitemap_entry', path: '/salaries' },
+          { object: 'sitemap_entry', path: '/salaries/titles/chef/london-uk' },
+          { object: 'sitemap_entry', path: '/salaries/locations/adelaide' },
+        ]);
+      },
+    });
+
+    const urls = await buildBucketUrls(board, ORIGIN, 'salaries');
+
+    expect(urls).toEqual([
+      `${ORIGIN}/salaries`,
+      // A cross-axis page — unreachable on the legacy path, which is the
+      // whole point of the mirror.
+      `${ORIGIN}/salaries/titles/chef/london-uk`,
+      `${ORIGIN}/salaries/locations/adelaide`,
+    ]);
+  });
+
+  it('walks every page of a bucket, echoing the cursor forward', async () => {
+    const seenCursors: Array<string | undefined> = [];
+    const board = stubBoard({
+      sitemapEntries: async (_bucket, query) => {
+        seenCursors.push(query?.cursor as string | undefined);
+        if (query?.cursor === 'c1') {
+          return envelope([{ object: 'sitemap_entry', path: '/b' }]);
+        }
+        return envelope([{ object: 'sitemap_entry', path: '/a' }], {
+          hasMore: true,
+          nextCursor: 'c1',
+        });
+      },
+    });
+
+    const urls = await buildBucketUrls(board, ORIGIN, 'jobs-details');
+
+    expect(urls).toEqual([`${ORIGIN}/a`, `${ORIGIN}/b`]);
+    expect(seenCursors).toEqual([undefined, 'c1']);
+  });
+
+  it('never falls back on a non-404 — a failing mirror must break the build loudly', async () => {
+    const board = stubBoard({
+      sitemapEntries: async () => {
+        throw new BoardApiError({
+          status: 500,
+          code: 'internal_error',
+          message: 'boom',
+          raw: null,
+        });
+      },
+    });
+
+    await expect(buildBucketUrls(board, ORIGIN, 'companies')).rejects.toThrow(
+      'boom',
+    );
+  });
+
+  it('propagates a non-404 from the bucket index too', async () => {
+    const board = stubBoard({
+      sitemapIndex: async () => {
+        throw new BoardApiError({
+          status: 503,
+          code: 'search_unavailable',
+          message: 'down',
+          raw: null,
+        });
+      },
+    });
+
+    await expect(listedBuckets(board)).rejects.toThrow('down');
+  });
+});
+
+describe('404 fallback to the legacy path', () => {
+  it('falls back to the feature-flag bucket list when the API has no sitemap route', async () => {
+    // stubBoard's default `sitemap` 404s — i.e. an older API.
+    expect(
+      await listedBuckets(stubBoard({ features: { blog: false } })),
+    ).toEqual(SITEMAP_BUCKETS.filter((b) => b !== 'blog'));
+  });
+
+  it('falls back to per-family enumeration for a bucket', async () => {
+    const urls = await buildBucketUrls(
+      stubBoard({ companies: [{ slug: 'acme' }], markets: [] }),
+      ORIGIN,
+      'companies',
+    );
+
+    expect(urls).toEqual([`${ORIGIN}/companies`, `${ORIGIN}/companies/acme`]);
+  });
+
+  it('paginates markets on the legacy companies path instead of taking one page', async () => {
+    const seenCursors: Array<string | undefined> = [];
+    const board = stubBoard({
+      companies: [{ slug: 'acme' }],
+      marketsList: async (query) => {
+        seenCursors.push(query?.cursor as string | undefined);
+        if (query?.cursor === 'm1') return envelope([{ slug: 'biotech' }]);
+        return envelope([{ slug: 'robotics' }], {
+          hasMore: true,
+          nextCursor: 'm1',
+        });
+      },
+    });
+
+    const urls = await buildBucketUrls(board, ORIGIN, 'companies');
+
+    expect(urls).toEqual([
+      `${ORIGIN}/companies`,
+      `${ORIGIN}/companies/acme`,
+      `${ORIGIN}/companies/markets/robotics`,
+      `${ORIGIN}/companies/markets/biotech`,
+    ]);
+    expect(seenCursors).toEqual([undefined, 'm1']);
   });
 });
