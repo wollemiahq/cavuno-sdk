@@ -119,6 +119,7 @@ export const BOARD_API_ERROR_CODES = [
   'employer_job_not_found',
   'employer_job_slug_taken',
   'employer_jobs_quota_exceeded',
+  'membership_required',
   'employer_not_member',
   'employer_payment_required',
   'employer_pipeline_stage_not_found',

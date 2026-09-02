@@ -1,5 +1,6 @@
 /**
- * Build-plugin variant of the well-known manifest.
+ * Build-plugin variant of the well-known manifest
+ *.
  *
  * Pure function — no fs imports and no write callback: callers (vite
  * plugin, starter build hook) own the write of `contents` to `path` under
