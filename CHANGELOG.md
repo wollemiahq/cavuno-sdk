@@ -15,7 +15,7 @@ types, runtime behavior, or supported integration patterns.
   `employer_service`, `job_seeker_service`. Plans carry `pricingMode`; a
   `contact` plan is quote-only, so render `priceText` and the CTA fields
   instead of `price`.
-- **`board.plans.listSalesLed()` is deprecated.** Use
+- **`board.plans.salesLed()` is deprecated.** Use
   `plans.list({ purpose: 'employer_service' })` and keep the rows whose
   `pricingMode` is `contact`. The helper keeps working as a compatibility
   read.
