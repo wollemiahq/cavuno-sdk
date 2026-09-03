@@ -3,6 +3,16 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.21.0 — 2026-09-03
+
+- **`BOARD_API_ERROR_CODES`**: adds `candidate_paywall_access_required`, the
+  403 returned by `board.me.recommendedJobs.list()` and the `board.me.alerts`
+  reads and writes when the board's candidate paywall is active, the feature
+  is enabled on the board, and the signed-in candidate's job seeker plan does
+  not unlock it. Entitlements are per plan and are not published on the wire,
+  so make the call and render the paywall (`board.paywall.offers()`) on this
+  code instead of pre-gating from the board context.
+
 ## 4.20.0 — 2026-09-03
 
 - **Memberships as public identity.** `PublicCompanyMembership` (`planId` +
@@ -15,7 +25,7 @@ types, runtime behavior, or supported integration patterns.
   `employer_service`, `job_seeker_service`. Plans carry `pricingMode`; a
   `contact` plan is quote-only, so render `priceText` and the CTA fields
   instead of `price`.
-- **`board.plans.listSalesLed()` is deprecated.** Use
+- **`board.plans.salesLed()` is deprecated.** Use
   `plans.list({ purpose: 'employer_service' })` and keep the rows whose
   `pricingMode` is `contact`. The helper keeps working as a compatibility
   read.

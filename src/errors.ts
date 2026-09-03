@@ -142,6 +142,7 @@ export const BOARD_API_ERROR_CODES = [
   'sourced_candidate_not_found',
   'sourced_convert_unavailable',
   // Candidate job-access paywall
+  'candidate_paywall_access_required',
   'paywall_already_active',
   'paywall_disabled',
   'paywall_invalid_checkout_session',
