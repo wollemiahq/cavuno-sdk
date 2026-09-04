@@ -3,6 +3,14 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.21.1 — 2026-09-04
+
+- **`BOARD_API_ERROR_CODES`**: adds `employer_free_email_website`, the 422
+  returned when creating or updating a company with a free-email provider
+  domain (gmail.com, outlook.com, and similar) as the website. Also exports
+  `isFreeEmailWebsiteError()` so clients can show a field error instead of a
+  generic failure. Ask for a real company website, or omit the website.
+
 ## 4.21.0 — 2026-09-03
 
 - **`BOARD_API_ERROR_CODES`**: adds `candidate_paywall_access_required`, the

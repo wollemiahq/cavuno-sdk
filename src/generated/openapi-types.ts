@@ -1470,7 +1470,7 @@ export interface paths {
         put?: never;
         /**
          * Create a company as employer
-         * @description Create (or adopt an existing same-domain) company and open a membership. Auto-approves when the verified email domain matches the company website domain; otherwise the membership is pending. Returns the membership.
+         * @description Create (or adopt an existing same-domain) company and open a membership. Auto-approves when the verified email domain matches the company website domain and neither side is a free-email provider domain; otherwise the membership is pending. Free-email provider websites are rejected (`employer_free_email_website`). Returns the membership.
          */
         post: operations["createBoardMeCompany"];
         delete?: never;
@@ -1678,7 +1678,7 @@ export interface paths {
         put?: never;
         /**
          * Claim an existing company
-         * @description Open a membership for the company identified by `:slug`. Auto-approves on email-domain match; otherwise pending. Returns the membership with its computed status.
+         * @description Open a membership for the company identified by `:slug`. Auto-approves on email-domain match when neither side is a free-email provider domain; otherwise pending. Returns the membership with its computed status.
          */
         post: operations["createBoardMeCompanyClaim"];
         /**
@@ -11317,6 +11317,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description Company website is a free-email provider domain (`employer_free_email_website`). */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Rate limited. */
             429: {
                 headers: {
@@ -11579,6 +11588,15 @@ export interface operations {
             };
             /** @description Name already taken (`employer_company_name_taken`). */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Company website is a free-email provider domain (`employer_free_email_website`). */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
