@@ -1,9 +1,11 @@
 import {
+  apiBase,
   extractJobDetailLink,
   extractJobPostingJsonLd,
   parseSitemap,
   record,
   type CheckResult,
+  type DoctorEnv,
 } from './checks';
 import { probe } from './probe';
 
@@ -29,6 +31,7 @@ const READ = {
   home: record('read.home', 2),
   jobs: record('read.jobs', 2),
   jsonld: record('read.jsonld', 2),
+  boardIdentity: record('read.boardIdentity', 2),
   sitemap: record('read.sitemap', 2),
   robots: record('read.robots', 2),
   adsTxt: record('read.adsTxt', 2),
@@ -88,6 +91,87 @@ async function probeJobsAndJsonLd(
             : `job detail HTTP ${detail.status}`,
         ),
   ];
+}
+
+/**
+ *the frontend is serving THIS board, not another one.
+ *
+ * Every other read probe asks whether the deployment works. None asks
+ * WHICH board it is bound to. A frontend built with another tenant's
+ * publishable key renders a complete, healthy job board — listing, detail
+ * pages, JSON-LD, sitemap — and passes all of them. The key is the tenant
+ * boundary, so a deployment bound to the wrong one publishes another
+ * board's jobs, applications and branding under this domain.
+ *
+ * The signal: robots.txt's `Sitemap:` line carries the BOARD's canonical
+ * host, not the host it is served from (the same property `onFrontend`
+ * exists to work around). So a misbound deployment advertises the other
+ * board's domain, and `GET /v1/boards/{key}` — the one board endpoint
+ * that answers an anonymous publishable key, which is why tier 1 already
+ * uses it — says which domain this key should have produced.
+ *
+ * A mismatch WARNS rather than fails: the two fields can legitimately
+ * differ on a headless frontend, and a health check must not accuse a
+ * correct deployment of serving another tenant.
+ */
+async function probeBoardIdentity(
+  fetchImpl: typeof fetch,
+  robotsBody: string | null,
+  env: DoctorEnv | undefined,
+): Promise<CheckResult> {
+  if (!env?.apiUrl || !env.boardKey) {
+    return READ.boardIdentity(
+      'skip',
+      'not probed — env checks failed (see the env.* failures)',
+    );
+  }
+  const advertised = robotsBody?.match(/^Sitemap:\s*(\S+)/im)?.[1] ?? null;
+  if (advertised === null) {
+    return READ.boardIdentity(
+      'skip',
+      'not probed — robots.txt advertises no Sitemap: URL to compare (see read.robots)',
+    );
+  }
+  const board = await probe(
+    fetchImpl,
+    `${apiBase(env.apiUrl)}/v1/boards/${encodeURIComponent(env.boardKey)}`,
+  );
+  let expected: string | null = null;
+  try {
+    const parsed = JSON.parse(board.body) as Record<string, unknown>;
+    if (typeof parsed.primaryDomain === 'string')
+      expected = parsed.primaryDomain;
+  } catch {
+    // fall through to the skip below
+  }
+  if (expected === null) {
+    return READ.boardIdentity(
+      'skip',
+      `could not read this board's domain to compare (HTTP ${board.status})`,
+    );
+  }
+  let served: string;
+  try {
+    served = new URL(advertised).host;
+  } catch {
+    return READ.boardIdentity(
+      'skip',
+      `robots.txt Sitemap: is not an absolute URL (${advertised})`,
+    );
+  }
+  const bare = (host: string) => host.replace(/^www\./, '').toLowerCase();
+  if (bare(served) === bare(expected)) {
+    return READ.boardIdentity('pass', `serving this board (${expected})`);
+  }
+  // Warn, not fail. A mismatch is how a wrong-tenant deploy looks, but it
+  // is also how a headless frontend on its own host looks: `primaryDomain`
+  // is the active custom domain, while robots is built from the board's
+  // canonical base, and an operator may legitimately set those apart.
+  // Failing the run on that would accuse a correct deployment.
+  return READ.boardIdentity(
+    'warn',
+    `robots.txt advertises ${served}, but board ${env.boardKey} is ${expected} — either this deployment is bound to a DIFFERENT board (check CAVUNO_BOARD in the deployed environment) or this board's canonical base and custom domain differ.`,
+  );
 }
 
 /**
@@ -292,6 +376,7 @@ export async function runReadProbes(
   fetchImpl: typeof fetch,
   frontendUrl: string,
   seo?: BoardSeoSnapshot | null,
+  env?: DoctorEnv,
 ): Promise<CheckResult[]> {
   const base = frontendUrl.replace(/\/$/, '');
 
@@ -315,6 +400,12 @@ export async function runReadProbes(
     ),
   };
 
+  const boardIdentity = await probeBoardIdentity(
+    fetchImpl,
+    robots.ok ? robots.body : null,
+    env,
+  );
+
   return [
     home.ok && /<(html|body|div|main)[\s>]/i.test(home.body)
       ? READ.home('pass', 'home renders')
@@ -325,6 +416,7 @@ export async function runReadProbes(
             : `home HTTP ${home.status}`,
         ),
     ...jobsAndJsonLd,
+    boardIdentity,
     sitemap,
     scoreRobots(robots, seo),
     scoreOptionalTextFile({
