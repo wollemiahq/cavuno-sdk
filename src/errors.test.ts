@@ -5,6 +5,7 @@ import {
   isBoardApiError,
   isBoardPasswordRequired,
   isConflict,
+  isFreeEmailWebsiteError,
   isForbidden,
   isNotFound,
   isRateLimited,
@@ -67,6 +68,18 @@ describe('type guards', () => {
     ).toBe(true);
     expect(
       isBoardPasswordRequired(makeError(401, 'board_auth_invalid_token')),
+    ).toBe(false);
+  });
+
+  it('isFreeEmailWebsiteError matches the free-email website code at 422', () => {
+    expect(
+      isFreeEmailWebsiteError(makeError(422, 'employer_free_email_website')),
+    ).toBe(true);
+    expect(
+      isFreeEmailWebsiteError(makeError(409, 'employer_company_exists')),
+    ).toBe(false);
+    expect(
+      isFreeEmailWebsiteError(makeError(422, 'employer_ats_unprocessable')),
     ).toBe(false);
   });
 

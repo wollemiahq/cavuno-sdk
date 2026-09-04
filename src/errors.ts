@@ -114,6 +114,7 @@ export const BOARD_API_ERROR_CODES = [
   'employer_ats_unprocessable',
   'employer_checkout_failed',
   'employer_company_exists',
+  'employer_free_email_website',
   'employer_company_name_taken',
   'employer_company_not_found',
   'employer_job_not_found',
@@ -269,4 +270,18 @@ export function isRateLimited(e: unknown): e is BoardApiError {
 
 export function isConflict(e: unknown): e is BoardApiError {
   return isBoardApiError(e) && e.status === 409;
+}
+
+/**
+ * Create/update rejected because the company website is a free / consumer
+ * email provider domain (`employer_free_email_website`). Distinct from a
+ * generic 409 conflict — callers should prompt for a real company website
+ * (or omit website), not retry the same domain.
+ */
+export function isFreeEmailWebsiteError(e: unknown): e is BoardApiError {
+  return (
+    isBoardApiError(e) &&
+    e.status === 422 &&
+    e.code === 'employer_free_email_website'
+  );
 }

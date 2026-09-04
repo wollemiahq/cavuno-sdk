@@ -130,6 +130,7 @@ export {
   isBoardApiError,
   isBoardPasswordRequired,
   isConflict,
+  isFreeEmailWebsiteError,
   isForbidden,
   isNotFound,
   isRateLimited,
