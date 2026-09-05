@@ -30,6 +30,12 @@
  *
  * Any error other than a 404 propagates: a 500 or a timeout must fail the
  * build loudly, not silently downgrade to a smaller sitemap.
+ *
+ * Freshness: the mirror path publishes a `lastModified` per URL and per
+ * bucket. `buildBucketEntries` / `listedBucketEntries` carry it through to
+ * the serializers so each `<url>` and `<sitemap>` gets a `<lastmod>`; the
+ * older `buildBucketUrls` / `listedBuckets` return the bare names and stay
+ * exactly as they were.
  */
 import { isNotFound } from '../errors';
 import { paginate } from '../pagination';
@@ -49,7 +55,11 @@ import {
   salarySkillPath,
   salaryTitlePath,
 } from '../paths';
-import { SITEMAP_BUCKETS, type SitemapBucket } from './xml';
+import {
+  SITEMAP_BUCKETS,
+  type SitemapBucket,
+  type SitemapUrlEntry,
+} from './xml';
 
 import type { FetchOptions } from '../client';
 import type {
@@ -162,14 +172,51 @@ const MIRROR_PAGE = 1000;
  * urlset when a board lacks that content (valid, just zero URLs).
  */
 export async function listedBuckets(board: BoardSdk): Promise<SitemapBucket[]> {
+  const listed = await listedBucketEntries(board);
+  return listed.map((entry) => entry.bucket);
+}
+
+/**
+ * One listed bucket, with the freshness stamp the board publishes for it.
+ *
+ * `lastModified` is present only on the mirror path, and only for the buckets
+ * the board tracks one for — the legacy fallback has no such stamp, so it
+ * yields bucket names alone. Feed these straight to `renderSitemapIndex` and
+ * each `<sitemap>` gets a `<lastmod>`.
+ */
+export interface ListedSitemapBucket {
+  bucket: SitemapBucket;
+  /** ISO 8601 timestamp of the newest content in the bucket, when known. */
+  lastModified?: string;
+}
+
+/**
+ * Like `listedBuckets`, but keeps each bucket's `lastModified`. Same two
+ * paths, same ordering, same error rules — the only difference is that the
+ * freshness stamp survives.
+ */
+export async function listedBucketEntries(
+  board: BoardSdk,
+): Promise<ListedSitemapBucket[]> {
   try {
     const index = await board.sitemap();
-    const published = new Set(index.buckets.map((entry) => entry.bucket));
-    return SITEMAP_BUCKETS.filter((bucket) => published.has(bucket));
+    const published = new Map(
+      index.buckets.map((entry) => [entry.bucket, entry.lastModified]),
+    );
+    return SITEMAP_BUCKETS.filter((bucket) => published.has(bucket)).map(
+      (bucket) => {
+        const lastModified = published.get(bucket);
+        return lastModified === undefined
+          ? { bucket }
+          : { bucket, lastModified };
+      },
+    );
   } catch (error) {
     if (!isNotFound(error)) throw error;
     const { features } = await board.context();
-    return SITEMAP_BUCKETS.filter((b) => b !== 'blog' || features.blog);
+    return SITEMAP_BUCKETS.filter((b) => b !== 'blog' || features.blog).map(
+      (bucket) => ({ bucket }),
+    );
   }
 }
 
@@ -178,35 +225,63 @@ export async function buildBucketUrls(
   origin: string,
   bucket: SitemapBucket,
 ): Promise<string[]> {
+  const entries = await buildBucketEntries(board, origin, bucket);
+  return entries.map((entry) => entry.url);
+}
+
+/**
+ * Like `buildBucketUrls`, but keeps each URL's `lastModified` where the board
+ * publishes one. The result feeds `renderUrlset` directly, so every `<url>`
+ * that has a freshness stamp gets a `<lastmod>` — the signal crawlers use to
+ * prioritise recrawl across a large sitemap.
+ *
+ * On the legacy fallback path the catalog endpoints expose no per-URL stamp,
+ * so entries come back as `{ url }` only — identical output to
+ * `buildBucketUrls`, just in the wider shape.
+ */
+export async function buildBucketEntries(
+  board: BoardSdk,
+  origin: string,
+  bucket: SitemapBucket,
+): Promise<SitemapUrlEntry[]> {
   try {
-    return await mirrorBucketUrls(board, origin, bucket);
+    return await mirrorBucketEntries(board, origin, bucket);
   } catch (error) {
     if (!isNotFound(error)) throw error;
-    return legacyBucketUrls(board, origin, bucket);
+    const urls = await legacyBucketUrls(board, origin, bucket);
+    return urls.map((url) => ({ url }));
   }
 }
 
 /**
  * The mirror path: page the board's own entries for the bucket and prefix each
  * board-relative path with the caller's origin. Order is preserved — it is the
- * order the board emits, so the two corpora line up entry for entry.
+ * order the board emits, so the two corpora line up entry for entry. Each
+ * entry's `lastModified` is carried through when the board sends one.
  */
-async function mirrorBucketUrls(
+async function mirrorBucketEntries(
   board: BoardSdk,
   origin: string,
   bucket: SitemapBucket,
-): Promise<string[]> {
+): Promise<SitemapUrlEntry[]> {
   const pages = paginate(
     (query?: SitemapEntriesQuery, options?: FetchOptions) =>
       board.sitemap.entries(bucket, query, options),
     { limit: MIRROR_PAGE },
   ).pages();
 
-  const urls: string[] = [];
+  const entries: SitemapUrlEntry[] = [];
   for await (const page of pages) {
-    for (const entry of page.data) urls.push(`${origin}${entry.path}`);
+    for (const entry of page.data) {
+      const url = `${origin}${entry.path}`;
+      entries.push(
+        entry.lastModified === undefined
+          ? { url }
+          : { url, lastModified: entry.lastModified },
+      );
+    }
   }
-  return urls;
+  return entries;
 }
 
 async function legacyBucketUrls(

@@ -3,7 +3,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BoardApiError } from '../errors';
 import {
   MIN_JOBS_PER_INDEXED_PAGE,
+  buildBucketEntries,
   buildBucketUrls,
+  listedBucketEntries,
   listedBuckets,
 } from './walker';
 import {
@@ -732,6 +734,144 @@ describe('mirror path (board.sitemap)', () => {
     });
 
     await expect(listedBuckets(board)).rejects.toThrow('down');
+  });
+});
+
+describe('lastModified carried through the mirror path', () => {
+  const FRESH = '2026-08-29T03:15:23.828Z';
+
+  it("keeps each entry's lastModified, and omits the key when the board sends none", async () => {
+    const board = stubBoard({
+      sitemapEntries: async () =>
+        envelope([
+          {
+            object: 'sitemap_entry',
+            path: '/companies/acme/jobs/engineer',
+            lastModified: FRESH,
+          },
+          { object: 'sitemap_entry', path: '/companies/acme/jobs/designer' },
+        ]),
+    });
+
+    const entries = await buildBucketEntries(board, ORIGIN, 'jobs-details');
+
+    expect(entries).toEqual([
+      {
+        url: `${ORIGIN}/companies/acme/jobs/engineer`,
+        lastModified: FRESH,
+      },
+      { url: `${ORIGIN}/companies/acme/jobs/designer` },
+    ]);
+  });
+
+  it('renders a <lastmod> per URL when the entries feed renderUrlset', async () => {
+    const board = stubBoard({
+      sitemapEntries: async () =>
+        envelope([
+          { object: 'sitemap_entry', path: '/a', lastModified: FRESH },
+          { object: 'sitemap_entry', path: '/b' },
+        ]),
+    });
+
+    const xml = renderUrlset(
+      await buildBucketEntries(board, ORIGIN, 'jobs-details'),
+    );
+
+    expect(xml).toContain(
+      `<loc>${ORIGIN}/a</loc>\n<lastmod>${FRESH}</lastmod>`,
+    );
+    expect(xml).toContain(`<loc>${ORIGIN}/b</loc>\n</url>`);
+    expect(xml.match(/<lastmod>/g)).toHaveLength(1);
+  });
+
+  it("keeps each bucket's lastModified in canonical order, omitting the key when absent", async () => {
+    const board = stubBoard({
+      sitemapIndex: async () => ({
+        object: 'board_sitemap',
+        buckets: [
+          { bucket: 'companies', count: 3 },
+          { bucket: 'marketing', count: 6, lastModified: FRESH },
+        ],
+      }),
+    });
+
+    expect(await listedBucketEntries(board)).toEqual([
+      { bucket: 'marketing', lastModified: FRESH },
+      { bucket: 'companies' },
+    ]);
+  });
+
+  it('renders a <lastmod> per index bucket when the buckets feed renderSitemapIndex', async () => {
+    const board = stubBoard({
+      sitemapIndex: async () => ({
+        object: 'board_sitemap',
+        buckets: [{ bucket: 'blog', count: 4, lastModified: FRESH }],
+      }),
+    });
+
+    const listed = await listedBucketEntries(board);
+    const xml = renderSitemapIndex(
+      listed.map((entry) => ({
+        url: `${ORIGIN}/sitemap/${bucketFilename(entry.bucket)}`,
+        ...(entry.lastModified === undefined
+          ? {}
+          : { lastModified: entry.lastModified }),
+      })),
+    );
+
+    expect(xml).toContain(
+      `<loc>${ORIGIN}/sitemap/blog.xml</loc>\n<lastmod>${FRESH}</lastmod>`,
+    );
+  });
+
+  it('leaves the legacy string[] walkers unchanged (bare URLs, bare bucket names)', async () => {
+    const mirror = stubBoard({
+      sitemapEntries: async () =>
+        envelope([
+          { object: 'sitemap_entry', path: '/a', lastModified: FRESH },
+          { object: 'sitemap_entry', path: '/b' },
+        ]),
+      sitemapIndex: async () => ({
+        object: 'board_sitemap',
+        buckets: [{ bucket: 'marketing', count: 6, lastModified: FRESH }],
+      }),
+    });
+
+    expect(await buildBucketUrls(mirror, ORIGIN, 'jobs-details')).toEqual([
+      `${ORIGIN}/a`,
+      `${ORIGIN}/b`,
+    ]);
+    expect(await listedBuckets(mirror)).toEqual(['marketing']);
+  });
+
+  it('yields bare { url } entries on the legacy fallback, which has no per-URL stamp', async () => {
+    const entries = await buildBucketEntries(
+      stubBoard({ companies: [{ slug: 'acme' }], markets: [] }),
+      ORIGIN,
+      'companies',
+    );
+
+    expect(entries).toEqual([
+      { url: `${ORIGIN}/companies` },
+      { url: `${ORIGIN}/companies/acme` },
+    ]);
+  });
+
+  it('propagates a non-404 from the entries walker too', async () => {
+    const board = stubBoard({
+      sitemapEntries: async () => {
+        throw new BoardApiError({
+          status: 500,
+          code: 'internal_error',
+          message: 'boom',
+          raw: null,
+        });
+      },
+    });
+
+    await expect(
+      buildBucketEntries(board, ORIGIN, 'companies'),
+    ).rejects.toThrow('boom');
   });
 });
 
