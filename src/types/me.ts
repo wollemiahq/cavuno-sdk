@@ -276,6 +276,19 @@ export type TalentAccessCheckoutSession = Schemas['AccessCheckoutSession'];
 export type TalentAccessCheckoutSessionState =
   Schemas['AccessCheckoutSessionState'];
 
+/** Body for `board.me.companies.startMembershipCheckout`. */
+export type MembershipCheckoutBody = Schemas['MembershipCheckoutBody'];
+
+/**
+ * Connected-account mount kit from `board.me.companies.startMembershipCheckout`
+ * — same generated schema as talent-access checkout (`origin: membership`).
+ */
+export type MembershipCheckoutSession = Schemas['AccessCheckoutSession'];
+
+/** Polled state of a membership checkout session (`board.me.companies.retrieveMembershipCheckout`). */
+export type MembershipCheckoutSessionState =
+  Schemas['AccessCheckoutSessionState'];
+
 /** Result of `board.me.talentAccess.unlock`. */
 export type TalentUnlock = Schemas['TalentUnlock'];
 

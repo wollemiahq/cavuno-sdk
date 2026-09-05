@@ -1971,6 +1971,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/me/companies/{slug}/membership/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start membership embedded checkout
+         * @description Mint a connected-account embedded Checkout session that buys a public `membership` (or `employer_service`) plan for the company in the path. Requires an approved membership of that company. Same mount-kit shape as talent-access checkout: mount `clientSecret` with Stripe.js initialised against `stripeAccountId`. The plan is granted to the company by webhook once the session completes; poll `GET …/checkout/{sessionId}` and then re-read `GET /employers/memberships` or the company. Never cached.
+         */
+        post: operations["createBoardMeCompanyMembershipCheckout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/me/companies/{slug}/membership/checkout/{sessionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Poll a membership checkout session
+         * @description The state of a membership checkout session started for this company: `open` (re-mountable via `clientSecret`), `complete`, or `expired`. A session minted for another company or board is `paywall_invalid_checkout_session`. Never cached.
+         */
+        get: operations["getBoardMeCompanyMembershipCheckout"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/boards/{identifier}/me/companies/{slug}/pipeline-stages": {
         parameters: {
             query?: never;
@@ -5288,6 +5328,13 @@ export interface components {
             withdrawnAt: string | null;
             revision: number;
         } | null;
+        MembershipCheckoutBody: {
+            /** @description A public, priced `membership` or `employer_service` plan on this board (`GET /boards/{identifier}/plans`). */
+            planId: string;
+            returnPath: string;
+            /** @enum {string} */
+            colorMode: "light" | "dark";
+        };
         Message: {
             id: string;
             /** @enum {string} */
@@ -13471,6 +13518,158 @@ export interface operations {
             };
             /** @description Last admin (`last_admin`). */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createBoardMeCompanyMembershipCheckout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["MembershipCheckoutBody"];
+            };
+        };
+        responses: {
+            /** @description Checkout session mount kit. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessCheckoutSession"];
+                };
+            };
+            /** @description `stripe_not_connected`. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing/invalid/expired access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not an approved member (`employer_not_member`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description `employer_company_not_found`, or `membership_plan_not_found` (not a public priced membership plan, or a kind Checkout cannot carry). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description `membership_seat_taken` — the company already holds a membership, or has a membership invoice awaiting payment. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getBoardMeCompanyMembershipCheckout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                slug: string;
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Checkout session state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessCheckoutSessionState"];
+                };
+            };
+            /** @description `stripe_not_connected`. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing/invalid/expired access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not an approved member (`employer_not_member`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description `employer_company_not_found` or `paywall_invalid_checkout_session`. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
