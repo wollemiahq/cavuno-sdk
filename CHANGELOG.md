@@ -3,6 +3,17 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.22.0 — 2026-09-05
+
+- **`board.me.companies.startMembershipCheckout(slug, body)`** and
+  **`board.me.companies.retrieveMembershipCheckout(slug, sessionId)`**: sell a
+  public, priced membership (or employer service) plan to a company the signed-in
+  employer approved-manages, through the same embedded Stripe Checkout mount
+  kit talent-access checkout uses. The plan is granted to the company once the
+  session completes. New types `MembershipCheckoutBody`,
+  `MembershipCheckoutSession`, `MembershipCheckoutSessionState`; new error
+  codes `membership_plan_not_found` (404) and `membership_seat_taken` (409).
+
 ## 4.21.1 — 2026-09-04
 
 - **`BOARD_API_ERROR_CODES`**: adds `employer_free_email_website`, the 422

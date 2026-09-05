@@ -157,6 +157,9 @@ export const BOARD_API_ERROR_CODES = [
   'talent_access_required',
   'messaging_talent_access_required',
   'stripe_not_connected',
+  // Employer membership checkout
+  'membership_plan_not_found',
+  'membership_seat_taken',
   // Public job posting
   'job_posting_logo_lookup_unavailable',
   'job_posting_logo_not_found',

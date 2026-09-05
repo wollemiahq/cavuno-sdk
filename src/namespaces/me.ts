@@ -89,6 +89,9 @@ import type {
   SendWorkEmailBody,
   StartAboutApplicationBody,
   StartConversationBody,
+  MembershipCheckoutBody,
+  MembershipCheckoutSession,
+  MembershipCheckoutSessionState,
   TalentAccess,
   TalentAccessCheckoutBody,
   TalentAccessCheckoutSession,
@@ -599,6 +602,55 @@ export function meNamespace(client: BoardClient) {
         return client.fetch<void>(
           `/me/companies/${encodeURIComponent(slug)}/membership`,
           { ...options, method: 'DELETE' },
+        );
+      },
+
+      /**
+       * Start embedded Stripe checkout that buys a public membership (or
+       * employer_service) plan for a company I approved-manage. Returns the
+       * connected-account mount kit: initialise Stripe.js with
+       * `publishableKey` and `{ stripeAccount: stripeAccountId }`, then mount
+       * `clientSecret`. The plan is granted to the company by webhook once the
+       * session completes — poll `retrieveMembershipCheckout`, then re-read
+       * the company or `board.employers.memberships.list()`. 404
+       * `membership_plan_not_found` for a plan that is not a public priced
+       * membership on this board; 409 `membership_seat_taken` when the company
+       * already holds one (or has an invoice pending).
+       *
+       * @example
+       * const kit = await board.me.companies.startMembershipCheckout('acme', {
+       *   planId,
+       *   returnPath: '/memberships',
+       *   colorMode: 'light',
+       * });
+       */
+      startMembershipCheckout(
+        slug: string,
+        body: MembershipCheckoutBody,
+        options?: FetchOptions,
+      ) {
+        return client.fetch<MembershipCheckoutSession>(
+          `/me/companies/${encodeURIComponent(slug)}/membership/checkout`,
+          { ...options, method: 'POST', body },
+        );
+      },
+
+      /**
+       * Poll a membership checkout session started for this company: `open`
+       * (re-mountable via `clientSecret`), `complete`, or `expired`. A session
+       * minted for another company is 404 `paywall_invalid_checkout_session`.
+       *
+       * @example
+       * const s = await board.me.companies.retrieveMembershipCheckout('acme', kit.sessionId);
+       */
+      retrieveMembershipCheckout(
+        slug: string,
+        sessionId: string,
+        options?: FetchOptions,
+      ) {
+        return client.fetch<MembershipCheckoutSessionState>(
+          `/me/companies/${encodeURIComponent(slug)}/membership/checkout/${encodeURIComponent(sessionId)}`,
+          options,
         );
       },
 
