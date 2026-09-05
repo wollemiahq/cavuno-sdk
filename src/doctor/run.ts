@@ -240,7 +240,7 @@ export async function runDoctor(options: RunDoctorOptions): Promise<DoctorRun> {
   // ── : read probes against the tenant's frontend ────────────────
   results.push(
     ...(options.frontendUrl
-      ? await runReadProbes(fetchImpl, options.frontendUrl, seo)
+      ? await runReadProbes(fetchImpl, options.frontendUrl, seo, env)
       : skipReadProbes('no --frontend <url> given')),
   );
 

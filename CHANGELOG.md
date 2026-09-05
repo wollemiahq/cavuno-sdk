@@ -3,6 +3,22 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.22.0 — 2026-09-05
+
+- **`board.me.companies.startMembershipCheckout(slug, body)`** and
+  **`board.me.companies.retrieveMembershipCheckout(slug, sessionId)`**: sell a
+  public, priced membership (or employer service) plan to a company the signed-in
+  employer approved-manages, through the same embedded Stripe Checkout mount
+  kit talent-access checkout uses. The plan is granted to the company once the
+  session completes. New types `MembershipCheckoutBody`,
+  `MembershipCheckoutSession`, `MembershipCheckoutSessionState`; new error
+  codes `membership_plan_not_found` (404) and `membership_seat_taken` (409).
+- **`cavuno-board doctor`**: a new `read.boardIdentity` check compares the host
+  in the served `robots.txt` `Sitemap:` line with the board's `primaryDomain`
+  from `GET /v1/boards/{key}`, and warns when a frontend appears to be serving
+  a different board than the key it was built with. A mismatch is a warning,
+  not a failure, because headless frontends can legitimately differ.
+
 ## 4.21.1 — 2026-09-04
 
 - **`BOARD_API_ERROR_CODES`**: adds `employer_free_email_website`, the 422

@@ -18,6 +18,12 @@ Demoting, removing, or leaving as the last admin is `last_admin`. Admins
 invite by email; approved members can list pending invites; accept is
 session-gated on `board.me.acceptInvite`.
 
+An approved member can buy a public, priced membership plan for the company
+with `board.me.companies.startMembershipCheckout(slug, body)`. It returns the
+same embedded-checkout mount kit as talent access; poll
+`retrieveMembershipCheckout(slug, sessionId)` after the return redirect. A
+company that already holds a membership is `membership_seat_taken`.
+
 ```ts snippet
 await board.me.companies.delete('acme');
 const { data: members } = await board.me.companies.listMembers('acme');
