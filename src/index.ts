@@ -78,7 +78,7 @@ export function createBoardClient(options: CreateBoardClientOptions) {
 
     /**
      * Board context — identity, brand (`logoUrl` + favicon `icons`), language,
-     * features, analytics, and AdSense (`ads.enabled` + `ads.clientId`).
+     * features, analytics, and AdSense (`ads.enabled`, `ads.clientId`, and `ads.defaultSlotId`).
      * Per-placement slot ids are not on this resource.
      *
      * @example

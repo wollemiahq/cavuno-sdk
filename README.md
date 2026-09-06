@@ -129,3 +129,18 @@ for the review and verification workflow.
 - [TanStack Start + shadcn/ui job board template](https://github.com/wollemiahq/cavuno-tanstack-start-shadcn-job-board-template)
 
 MIT © Wollemia
+
+### Advertising defaults
+
+`board.context()` returns `ads.enabled`, `ads.clientId` (the AdSense publisher
+ID), and `ads.defaultSlotId` (a Google-issued ad unit ID). Render ads only when
+enabled with a valid publisher and unit. The default reuses the board's existing
+advertising setup: the enabled `jobs:list.footer` unit takes priority, otherwise
+the first enabled valid unit in alphabetical placement-key order is used. No
+configured unit, disabled advertising, or an invalid publisher yields a null
+default. Google approval and an existing ad unit are still required.
+
+Your frontend owns ad positions and sizes. Reuse the default across placements,
+or pass another Google-issued slot ID to an individual ad component; there is no
+SDK placement registry. Custom units should still respect `ads.enabled` and the
+board's consent requirements.

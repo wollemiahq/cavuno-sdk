@@ -3,6 +3,15 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.24.0 — 2026-09-06
+
+- **`board.context().ads.defaultSlotId`**: exposes a default Google ad unit for
+  headless frontends. It prefers the enabled `jobs:list.footer` unit, then the
+  first enabled valid unit in alphabetical placement-key order. The value is
+  `null` when advertising is disabled, the publisher ID is invalid, or no
+  enabled valid unit exists. Frontends still choose each ad's placement and
+  may supply another Google-issued slot ID.
+
 ## 4.23.0 — 2026-09-06
 
 - **`buildBucketEntries(board, origin, bucket)`** and
