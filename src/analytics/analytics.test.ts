@@ -248,6 +248,20 @@ describe('matchAnalyticsWellKnown', () => {
     expect(response!.headers.get('Access-Control-Allow-Origin')).toBe('*');
   });
 
+  it('keeps the ?token= query when proxying collect/v0/events', async () => {
+    await matchAnalyticsWellKnown(
+      new Request(
+        'https://board.example/.well-known/cavuno/collect/v0/events?name=analytics_events&token=pk_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        { method: 'POST', body: '{"action":"page_hit"}\n' },
+      ),
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url] = fetchMock.mock.calls[0] as [string];
+    expect(url).toBe(
+      `${DEFAULT_COLLECT_URL}/v0/events?name=analytics_events&token=pk_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
+    );
+  });
+
   it('proxies POST collect/v0/events to the central events URL', async () => {
     await matchAnalyticsWellKnown(
       new Request(
