@@ -3,6 +3,15 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.24.1 — 2026-09-06
+
+- **`matchAnalyticsWellKnown`**: the optional first-party
+  `/.well-known/cavuno/collect` handlers now forward the incoming query string
+  to the central collect endpoint. The hosted metrics script sends its
+  publishable key as `?token=pk_…` and sets no `Authorization` header, so
+  boards that mounted these handlers had every page view and web vital
+  rejected. Custom events sent through `track()` were unaffected.
+
 ## 4.24.0 — 2026-09-06
 
 - **`board.context().ads.defaultSlotId`**: exposes a default Google ad unit for
