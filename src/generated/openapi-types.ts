@@ -4516,6 +4516,16 @@ export interface components {
                     country?: string;
                 };
                 taxId?: string;
+                buyerAnswers?: {
+                    contactName?: string;
+                    custom: {
+                        [key: string]: string;
+                    };
+                };
+                /**
+                 * @deprecated
+                 * @description Deprecated — use buyerAnswers.
+                 */
                 detailFields?: {
                     name: string;
                     value: string;
@@ -4667,6 +4677,16 @@ export interface components {
                     country?: string;
                 };
                 taxId?: string;
+                buyerAnswers?: {
+                    contactName?: string;
+                    custom: {
+                        [key: string]: string;
+                    };
+                };
+                /**
+                 * @deprecated
+                 * @description Deprecated — use buyerAnswers.
+                 */
                 detailFields?: {
                     name: string;
                     value: string;

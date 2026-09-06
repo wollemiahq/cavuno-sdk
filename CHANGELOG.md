@@ -3,6 +3,19 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.25.0 — 2026-09-06
+
+- **`buyerAnswers` on invoice collection**: the public job-submission invoice
+  payload accepts policy-keyed buyer answers (`contactName` plus a `custom`
+  map), matching the employer path. The freeform `detailFields` array is
+  deprecated in favour of it and is no longer stamped onto invoices.
+- **`matchAnalyticsWellKnown`**: the optional first-party
+  `/.well-known/cavuno/collect` handlers now forward the incoming query string
+  to the central collect endpoint. The hosted metrics script sends its
+  publishable key as `?token=pk_…` and sets no `Authorization` header, so
+  boards that mounted these handlers had every page view and web vital
+  rejected. Custom events sent through `track()` were unaffected.
+
 ## 4.24.0 — 2026-09-06
 
 - **`board.context().ads.defaultSlotId`**: exposes a default Google ad unit for

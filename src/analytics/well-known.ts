@@ -67,8 +67,14 @@ async function proxyCollect(
   if (contentType) headers.set('Content-Type', contentType);
   if (accept) headers.set('Accept', accept);
 
+  // Carry the query string through: the metrics script sends its publishable
+  // key as `?token=pk_…` and sets no Authorization header, so dropping the
+  // query makes collect reject every page view.
+  const target = new URL(targetUrl);
+  target.search = new URL(request.url).search;
+
   const body = await request.arrayBuffer();
-  const upstream = await fetch(targetUrl, {
+  const upstream = await fetch(target.toString(), {
     method: 'POST',
     headers,
     body,
