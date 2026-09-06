@@ -86,8 +86,9 @@ describe('board.context()', () => {
         cookieConsentRequired: false,
       },
       ads: {
-        enabled: false,
-        clientId: null,
+        enabled: true,
+        clientId: 'ca-pub-1234567890123456',
+        defaultSlotId: '1234567890',
       },
       // Custom-field definitions pass through untouched, keyed by
       // model, so the consumer can resolve a job's `customFieldValues` via

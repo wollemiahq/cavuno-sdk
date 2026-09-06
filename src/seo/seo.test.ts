@@ -71,6 +71,7 @@ const BOARD = {
   ads: {
     enabled: false,
     clientId: null,
+    defaultSlotId: null,
   },
   customFields: { job: [] },
   jobForm: {
