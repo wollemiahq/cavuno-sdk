@@ -8,7 +8,9 @@
  *   `buildBucketUrls(board, origin, bucket)` taking the `BoardSdk`
  *   instance (pure logic, injected I/O), with the hosted rules built in —
  *   feature-flag bucket gating, the ≥5-job thin-content floor, and the
- *   pagination backstops.
+ *   pagination backstops. `listedBucketEntries` + `buildBucketEntries` are
+ *   the freshness-preserving siblings: same walk, but each bucket and URL
+ *   keeps its `lastModified` so the rendered XML carries `<lastmod>`.
  */
 export * from './xml';
 export * from './walker';

@@ -3,6 +3,15 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.23.0 — 2026-09-06
+
+- **`buildBucketEntries(board, origin, bucket)`** and
+  **`listedBucketEntries(board)`** in `@cavuno/board/sitemap`: the same walk as
+  `buildBucketUrls` / `listedBuckets`, keeping the `lastModified` the Board API
+  publishes per URL and per bucket so `renderUrlset` / `renderSitemapIndex`
+  emit `<lastmod>`. New type `ListedSitemapBucket`. The string-returning
+  walkers are unchanged.
+
 ## 4.22.0 — 2026-09-05
 
 - **`board.me.companies.startMembershipCheckout(slug, body)`** and

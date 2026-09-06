@@ -18,7 +18,10 @@ The pure XML tier exports `SITEMAP_BUCKETS`, `SITEMAP_CHUNK_SIZE` (45,000),
 `chunk`, `bucketFilename`, `parseBucketFilename`, `renderUrlset`, and
 `renderSitemapIndex`. The catalog tier exports `listedBuckets(board)` and
 `buildBucketUrls(board, origin, bucket)`; it walks the SDK and applies the
-hosted indexing policy.
+hosted indexing policy. `listedBucketEntries(board)` and
+`buildBucketEntries(board, origin, bucket)` are the freshness-preserving
+siblings: same walk and same policy, but each result keeps its
+`lastModified`.
 
 ## Serve the index
 
@@ -77,9 +80,55 @@ return xmlResponse(renderUrlset(page));
 serialize to ISO 8601. `renderSitemapIndex` accepts strings or
 `{ url, lastModified? }`. The hosted format omits `changefreq` and `priority`.
 
+## Emit `<lastmod>`
+
+Freshness is the strongest recrawl-priority signal on a large sitemap, so
+prefer the entries walkers. `buildBucketEntries` returns
+`{ url, lastModified? }[]` that feeds `renderUrlset` unchanged, and
+`listedBucketEntries` returns `{ bucket, lastModified? }[]` for the index.
+The board publishes a stamp per URL and per bucket wherever it tracks one;
+entries without one simply omit `<lastmod>`.
+
+```ts snippet
+import {
+  SITEMAP_CHUNK_SIZE,
+  buildBucketEntries,
+  bucketFilename,
+  chunk,
+  listedBucketEntries,
+  renderSitemapIndex,
+  renderUrlset,
+  type SitemapIndexEntry,
+} from '@cavuno/board/sitemap';
+
+// Index: one <sitemap> per chunk, each carrying its bucket's stamp. Buckets
+// over SITEMAP_CHUNK_SIZE produce -2, -3, … files; list every one.
+const sitemaps: SitemapIndexEntry[] = [];
+for (const { bucket, lastModified } of await listedBucketEntries(board)) {
+  const chunks = chunk(await buildBucketEntries(board, origin, bucket), SITEMAP_CHUNK_SIZE);
+  for (let i = 0; i < Math.max(chunks.length, 1); i += 1) {
+    sitemaps.push({
+      url: `${origin}/sitemap/${bucketFilename(bucket, i)}`,
+      ...(lastModified ? { lastModified } : {}),
+    });
+  }
+}
+const indexXml = renderSitemapIndex(sitemaps);
+
+// Bucket file: every <url> keeps its own stamp.
+const entries = await buildBucketEntries(board, origin, parsed.bucket);
+const page = chunk(entries, SITEMAP_CHUNK_SIZE)[parsed.chunkIndex] ?? [];
+const bucketXml = renderUrlset(page);
+```
+
+`buildBucketUrls` and `listedBuckets` still return plain strings and bucket
+names; they are unchanged, and a sitemap built from them carries no
+`<lastmod>`.
+
 ## Keep the walker policy intact
 
-`buildBucketUrls` is the policy boundary:
+`buildBucketEntries` is the policy boundary (`buildBucketUrls` is a map over
+it):
 
 - Taxonomy and location pages enter the sitemap at five distinct jobs,
   `MIN_JOBS_PER_INDEXED_PAGE`.
