@@ -5626,12 +5626,14 @@ export interface components {
                 linkedInConversionJobAlertSubscribeId: string | null;
                 cookieConsentRequired: boolean;
             };
-            /** @description Public AdSense switch + publisher id from board advertising settings. Not the slot map (Puck/Cavuno placements) and not `ads.txt` (`board.seo()`). */
+            /** @description Public AdSense switch, publisher id, and default ad unit from board advertising settings. Applications own placement and may supply bespoke slot ids. Not the hosted slot map or `ads.txt` (`board.seo()`). */
             ads: {
-                /** @description Whether AdSense is turned on for this board (Settings → Advertising). Headless frontends render their own placements only when this is true and `clientId` is a valid `ca-pub-` publisher id. Per-placement slot ids are not on this resource — applications own geometry. */
+                /** @description Whether AdSense is turned on for this board (Settings → Advertising). Headless frontends render their own placements only when this is true and `clientId` is a valid `ca-pub-` publisher id. Use `defaultSlotId` for a default ad unit or supply your own Google-issued slot id; applications own placement and geometry. */
                 enabled: boolean;
                 /** @description AdSense publisher id (`ca-pub-` + 16 digits), or null when ads are off or the stored value is malformed. Already public on hosted pages as `data-ad-client`. */
                 clientId: string | null;
+                /** @description Default Google-issued ad unit id (10 digits). Resolves the enabled jobs:list.footer slot first, then the first enabled valid slot in alphabetical placement-key order. Null when advertising is off, the publisher id is invalid, or no enabled valid slot exists. Frontends may override it per ad unit. */
+                defaultSlotId: string | null;
             };
             /** @description Operator-defined custom field definitions keyed by model (currently only `job`). Each key holds that model's definitions in display order. Company and talent keys are added when those models ship. The frontend uses these to render and localize each record's opaque `customFieldValues`. Display-only: not filterable or searchable in v1. */
             customFields: {
