@@ -3,6 +3,14 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.26.0 — 2026-09-07
+
+- **`board.me.talentAccess.claim()`** claims a public free `talent_access`
+  plan for an approved company without a Stripe checkout hop. The call is
+  idempotent: claiming a plan the company already holds returns the existing
+  grant and does not top the credit balance back up. Exports
+  `TalentAccessClaimBody` and `TalentAccessClaim`.
+
 ## 4.25.0 — 2026-09-06
 
 - **`buyerAnswers` on invoice collection**: the public job-submission invoice

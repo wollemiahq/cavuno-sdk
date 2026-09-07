@@ -388,6 +388,8 @@ export type {
   TalentAccessCheckoutBody,
   TalentAccessCheckoutSession,
   TalentAccessCheckoutSessionState,
+  TalentAccessClaim,
+  TalentAccessClaimBody,
   TalentAccessUpgrade,
   TalentAccessUpgradeBody,
   TalentCandidateAccess,
