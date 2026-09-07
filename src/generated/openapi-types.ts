@@ -3058,6 +3058,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/me/talent-access/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Claim a free talent-access plan
+         * @description Grant a public, active free talent_access plan to one of the authenticated employer’s approved companies. Idempotent for the same active plan and company. Never starts Stripe checkout.
+         */
+        post: operations["claimFreeTalentAccess"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/boards/{identifier}/me/talent-access/unlocks": {
         parameters: {
             query?: never;
@@ -6465,6 +6485,16 @@ export interface components {
             returnPath: string;
             /** @enum {string} */
             colorMode: "light" | "dark";
+            companyId?: string;
+        };
+        TalentAccessClaim: {
+            /** @enum {string} */
+            object: "talent_access_claim";
+            assignmentId: string;
+            alreadyClaimed: boolean;
+        };
+        TalentAccessClaimBody: {
+            planId: string;
             companyId?: string;
         };
         TalentAccessUpgradeBody: {
@@ -17985,6 +18015,78 @@ export interface operations {
             };
             /** @description Unknown or foreign checkout session. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    claimFreeTalentAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["TalentAccessClaimBody"];
+            };
+        };
+        responses: {
+            /** @description The free talent-access assignment. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TalentAccessClaim"];
+                };
+            };
+            /** @description `company_required`. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Unauthenticated. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description `employer_not_member`. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board or eligible plan not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A different talent-access plan is already active. */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
