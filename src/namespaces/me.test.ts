@@ -968,6 +968,27 @@ describe('board.me', () => {
     expect(state.status).toBe('complete');
   });
 
+  it('talentAccess.claim POSTs a free plan claim', async () => {
+    const spy = stubFetch(
+      jsonResponse({
+        object: 'talent_access_claim',
+        assignmentId: 'assignment_1',
+        alreadyClaimed: false,
+      }),
+    );
+    const board = await makeAuthedBoard();
+    const result = await board.me.talentAccess.claim({
+      planId: 'plan_free',
+      companyId: 'co_1',
+    });
+    expect(spy.mock.calls[0]![0]).toBe(`${BASE}/me/talent-access/claim`);
+    expect(spy.mock.calls[0]![1]!.method).toBe('POST');
+    expect(spy.mock.calls[0]![1]!.body).toBe(
+      '{"planId":"plan_free","companyId":"co_1"}',
+    );
+    expect(result.alreadyClaimed).toBe(false);
+  });
+
   it('talentAccess.unlock POSTs /me/talent-access/unlocks with the candidate body', async () => {
     const spy = stubFetch(
       jsonResponse({
