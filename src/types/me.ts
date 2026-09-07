@@ -266,6 +266,12 @@ export type TalentCandidateAccess = Schemas['TalentCandidateAccess'];
 /** Body for `board.me.talentAccess.checkout`. */
 export type TalentAccessCheckoutBody = Schemas['TalentAccessCheckoutBody'];
 
+/** Body for `board.me.talentAccess.claim`. */
+export type TalentAccessClaimBody = Schemas['TalentAccessClaimBody'];
+
+/** Idempotent result from `board.me.talentAccess.claim`. */
+export type TalentAccessClaim = Schemas['TalentAccessClaim'];
+
 /**
  * Connected-account mount kit from `board.me.talentAccess.checkout` — same
  * generated schema as candidate-access checkout (`origin: talent_access`).

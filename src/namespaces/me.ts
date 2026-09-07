@@ -96,6 +96,8 @@ import type {
   TalentAccessCheckoutBody,
   TalentAccessCheckoutSession,
   TalentAccessCheckoutSessionState,
+  TalentAccessClaim,
+  TalentAccessClaimBody,
   TalentAccessUpgrade,
   TalentAccessUpgradeBody,
   TalentCandidateAccess,
@@ -1483,6 +1485,15 @@ export function meNamespace(client: BoardClient) {
           '/me/talent-access/checkout',
           { ...options, method: 'POST', body },
         );
+      },
+
+      /** Claim a public free `talent_access` plan without Stripe checkout. */
+      claim(body: TalentAccessClaimBody, options?: FetchOptions) {
+        return client.fetch<TalentAccessClaim>('/me/talent-access/claim', {
+          ...options,
+          method: 'POST',
+          body,
+        });
       },
 
       /**
