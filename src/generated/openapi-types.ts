@@ -4938,7 +4938,7 @@ export interface components {
             isFeatured: boolean;
             /** @description Time at which the job was first published, or `null` if not yet published. ISO 8601 datetime. */
             publishedAt: string | null;
-            /** @description Time at which the job expires, or `null` if no expiry is set. ISO 8601 datetime. */
+            /** @description Time at which the job expires as an ISO 8601 datetime. `null` can appear when the expiry requirement does not apply, including for drafts and sponsored jobs; ordinary published jobs always have an expiry. */
             expiresAt: string | null;
             /** @description Time at which the job was created. ISO 8601 datetime. */
             createdAt: string;
@@ -5816,7 +5816,7 @@ export interface components {
             isFeatured: boolean;
             /** @description Time at which the job was first published, or `null` if not yet published. ISO 8601 datetime. */
             publishedAt: string | null;
-            /** @description Time at which the job expires, or `null` if no expiry is set. ISO 8601 datetime. */
+            /** @description Time at which the job expires as an ISO 8601 datetime. `null` can appear when the expiry requirement does not apply, including for drafts and sponsored jobs; ordinary published jobs always have an expiry. */
             expiresAt: string | null;
             /** @description Time at which the job was created. ISO 8601 datetime. */
             createdAt: string;
