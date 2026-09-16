@@ -45,13 +45,54 @@ export function skipReadProbes(reason: string): CheckResult[] {
   return Object.values(READ).map((make) => make('skip', reason));
 }
 
+/** Only an explicit, successful unfiltered API response can establish emptiness. */
+async function confirmsNoPublishedJobs(
+  fetchImpl: typeof fetch,
+  env: DoctorEnv | undefined,
+): Promise<boolean> {
+  if (!env?.apiUrl || !env.boardKey) return false;
+  const response = await probe(
+    fetchImpl,
+    `${apiBase(env.apiUrl)}/v1/boards/${encodeURIComponent(env.boardKey)}/jobs?limit=1`,
+  );
+  if (response.status !== 200) return false;
+  try {
+    const value: unknown = JSON.parse(response.body);
+    if (typeof value !== 'object' || value === null) return false;
+    const list = value as Record<string, unknown>;
+    return (
+      list.object === 'list' &&
+      list.count === 0 &&
+      Array.isArray(list.data) &&
+      list.data.length === 0 &&
+      list.hasMore === false &&
+      list.nextCursor === null
+    );
+  } catch {
+    return false;
+  }
+}
+
 /** : /jobs listing carries a job DETAIL link, then that page's JSON-LD. */
 async function probeJobsAndJsonLd(
   fetchImpl: typeof fetch,
   base: string,
+  env: DoctorEnv | undefined,
 ): Promise<CheckResult[]> {
   const jobs = await probe(fetchImpl, `${base}/jobs`);
   const jobLink = jobs.ok ? extractJobDetailLink(jobs.body) : null;
+
+  if (
+    jobs.status === 200 &&
+    !jobLink &&
+    /<(html|body|main)[\s>]/i.test(jobs.body) &&
+    (await confirmsNoPublishedJobs(fetchImpl, env))
+  ) {
+    return [
+      READ.jobs('pass', 'listing renders; API confirms zero published jobs'),
+      READ.jsonld('skip', 'not probed — API confirms zero published jobs'),
+    ];
+  }
 
   const jobsResult =
     jobs.ok && jobLink
@@ -384,7 +425,7 @@ export async function runReadProbes(
   // home+jobs+sitemap+robots 503 the first child sitemap. ads.txt and
   // indexnow-key.txt follow robots for the same reason.
   const home = await probe(fetchImpl, base);
-  const jobsAndJsonLd = await probeJobsAndJsonLd(fetchImpl, base);
+  const jobsAndJsonLd = await probeJobsAndJsonLd(fetchImpl, base, env);
   const sitemap = await probeSitemap(fetchImpl, base);
   const robots = await probe(fetchImpl, `${base}/robots.txt`);
   const adsTxt = await probe(fetchImpl, `${base}/ads.txt`);
