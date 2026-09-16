@@ -365,3 +365,131 @@ describe('read.oauthCallback', () => {
     expect(result?.detail).toContain('cavuno.com/api/board-auth');
   });
 });
+
+describe('empty board job probes', () => {
+  const env = { apiUrl: 'https://api.example', boardKey: 'pk_empty' };
+  const empty = {
+    object: 'list',
+    count: 0,
+    data: [],
+    hasMore: false,
+    nextCursor: null,
+  };
+  async function check(
+    body: string,
+    status = 200,
+    html = '<html><body><main>No jobs found</main></body></html>',
+  ) {
+    const fetchImpl = healthyRoutes({
+      '/jobs': { body: html },
+      '/v1/boards/pk_empty/jobs': { body, status },
+    });
+    const results = await runReadProbes(
+      fetchImpl,
+      'https://front.example',
+      SEO,
+      env,
+    );
+    return {
+      jobs: results.find((r) => r.id === 'read.jobs'),
+      jsonld: results.find((r) => r.id === 'read.jsonld'),
+      fetchImpl,
+    };
+  }
+  it('accepts an API-confirmed empty board and skips job detail checks', async () => {
+    const { jobs, jsonld, fetchImpl } = await check(JSON.stringify(empty));
+    expect(jobs?.status).toBe('pass');
+    expect(jsonld?.status).toBe('skip');
+    expect(jsonld?.detail).toContain('zero published jobs');
+    expect(
+      fetchImpl.mock.calls
+        .map(([url]) => String(url))
+        .filter((url) => url.includes('/v1/boards/pk_empty/jobs')),
+    ).toEqual(['https://api.example/v1/boards/pk_empty/jobs?limit=1']);
+  });
+  it.each([
+    ['outage', JSON.stringify(empty), 503],
+    ['null', 'null', 200],
+    ['array', '[]', 200],
+    [
+      'missing pagination',
+      JSON.stringify({ object: 'list', count: 0, data: [] }),
+      200,
+    ],
+    ['cursor present', JSON.stringify({ ...empty, nextCursor: 'next' }), 200],
+    ['invalid JSON', '<html>error</html>', 200],
+    ['missing count', JSON.stringify({ ...empty, count: undefined }), 200],
+    ['string count', JSON.stringify({ ...empty, count: '0' }), 200],
+    ['jobs exist', JSON.stringify({ ...empty, count: 1 }), 200],
+    [
+      'contradictory data',
+      JSON.stringify({ ...empty, data: [{ id: 'job' }] }),
+      200,
+    ],
+    ['more results', JSON.stringify({ ...empty, hasMore: true }), 200],
+    ['not a list', JSON.stringify({ ...empty, object: 'error' }), 200],
+  ])('fails closed for %s', async (_name, body, status) => {
+    expect((await check(body, status)).jobs?.status).toBe('fail');
+  });
+  it('fails closed on a jobs API timeout', async () => {
+    const healthy = healthyRoutes({
+      '/jobs': { body: '<html><body>No jobs</body></html>' },
+    });
+    const fetchImpl: typeof fetch = (input) => {
+      if (String(input).includes('/v1/boards/pk_empty/jobs'))
+        throw new DOMException('Timed out', 'TimeoutError');
+      return healthy(input);
+    };
+    const results = await runReadProbes(
+      fetchImpl,
+      'https://front.example',
+      SEO,
+      env,
+    );
+    expect(results.find((r) => r.id === 'read.jobs')?.status).toBe('fail');
+  });
+  it('fails without board API configuration', async () => {
+    const results = await runReadProbes(
+      healthyRoutes({ '/jobs': { body: '<html><body>No jobs</body></html>' } }),
+      'https://front.example',
+      SEO,
+    );
+    expect(results.find((r) => r.id === 'read.jobs')?.status).toBe('fail');
+  });
+  it('does not accept a blank frontend even when the API is empty', async () => {
+    expect((await check(JSON.stringify(empty), 200, '')).jobs?.status).toBe(
+      'fail',
+    );
+  });
+  it('does not accept a failed frontend when the API is empty', async () => {
+    const fetchImpl = healthyRoutes({
+      '/jobs': { status: 503, body: '<html><body>Unavailable</body></html>' },
+      '/v1/boards/pk_empty/jobs': { body: JSON.stringify(empty) },
+    });
+    const results = await runReadProbes(
+      fetchImpl,
+      'https://front.example',
+      SEO,
+      env,
+    );
+    expect(results.find((r) => r.id === 'read.jobs')?.status).toBe('fail');
+    expect(
+      fetchImpl.mock.calls.some(([url]) =>
+        String(url).includes('/v1/boards/pk_empty/jobs'),
+      ),
+    ).toBe(false);
+  });
+  it('does not query emptiness when a job link is present', async () => {
+    const { jobs, fetchImpl } = await check(
+      JSON.stringify(empty),
+      200,
+      JOB_HTML,
+    );
+    expect(jobs?.status).toBe('pass');
+    expect(
+      fetchImpl.mock.calls.some(([url]) =>
+        String(url).includes('/v1/boards/pk_empty/jobs'),
+      ),
+    ).toBe(false);
+  });
+});

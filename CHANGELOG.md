@@ -3,6 +3,27 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.27.0 — 2026-09-10
+
+- **Blocking a company can also remove it from the board.** `POST
+  /companies/{id}/block` accepts an optional `remove` flag. Left off, blocking
+  behaves as before: the public profile stays up and currently published jobs
+  are archived. Set to `true`, the company's jobs and its profile are taken off
+  the board — its directory, sitemap, and search entries go with them — while
+  the company stays on the blocklist, so automated sourcing cannot bring it
+  back. Sending `remove: true` for a company that is already blocked upgrades it
+  to that outcome.
+- **New fields on the block result**: `removed` reports the resulting state and
+  `removal_scheduled` reports whether this call started the removal.
+- **New field on the unblock result**: `was_removed` reports whether the company
+  had also been taken off the board. Unblocking such a company brings it back as
+  an empty profile; its jobs are not restored.
+- **Deleting a blocked company no longer unblocks it.** `DELETE
+  /companies/{id}` on a company that is on the blocklist keeps the block and
+  removes the company from the board instead of purging it. To purge one
+  completely, unblock it first and then delete it. Deleting a company that is
+  not blocked is unchanged, and the response is still `204`.
+
 ## 4.26.0 — 2026-09-07
 
 - **`board.me.talentAccess.claim()`** claims a public free `talent_access`
