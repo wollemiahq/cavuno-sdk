@@ -3167,7 +3167,7 @@ export interface paths {
         };
         /**
          * List a public board's places
-         * @description With no `q`: returns every place used by a published job on the board, with its live job count — the data the hosted `/jobs/locations/` index renders (bounded and unpaginated). With `q` (≥2 chars): returns the top name matches ranked, for a location search/autocomplete field.
+         * @description With no `q`: returns every place used by a published job on the board, with its live job count — the data the hosted `/jobs/locations/` index renders (bounded and unpaginated). With `q` (≥2 folded chars): returns the top diacritic-insensitive name substring and slug-prefix matches, ranked, for a location search/autocomplete field.
          */
         get: operations["listBoardPlaces"];
         put?: never;
@@ -4938,7 +4938,7 @@ export interface components {
             isFeatured: boolean;
             /** @description Time at which the job was first published, or `null` if not yet published. ISO 8601 datetime. */
             publishedAt: string | null;
-            /** @description Time at which the job expires, or `null` if no expiry is set. ISO 8601 datetime. */
+            /** @description Time at which the job expires as an ISO 8601 datetime. `null` can appear when the expiry requirement does not apply, including for drafts and sponsored jobs; ordinary published jobs always have an expiry. */
             expiresAt: string | null;
             /** @description Time at which the job was created. ISO 8601 datetime. */
             createdAt: string;
@@ -5816,7 +5816,7 @@ export interface components {
             isFeatured: boolean;
             /** @description Time at which the job was first published, or `null` if not yet published. ISO 8601 datetime. */
             publishedAt: string | null;
-            /** @description Time at which the job expires, or `null` if no expiry is set. ISO 8601 datetime. */
+            /** @description Time at which the job expires as an ISO 8601 datetime. `null` can appear when the expiry requirement does not apply, including for drafts and sponsored jobs; ordinary published jobs always have an expiry. */
             expiresAt: string | null;
             /** @description Time at which the job was created. ISO 8601 datetime. */
             createdAt: string;
@@ -18301,7 +18301,7 @@ export interface operations {
         parameters: {
             query?: {
                 /**
-                 * @description Location autocomplete query. When provided with ≥2 characters, returns the top name matches (prefix matches ranked first) instead of the full directory; under 2 characters returns an empty list.
+                 * @description Location autocomplete query. When provided with ≥2 characters after diacritic folding, returns the top matches against display name (substring) and slug (prefix), with prefix matches ranked first; under 2 folded characters returns an empty list.
                  * @example lon
                  */
                 q?: string;
