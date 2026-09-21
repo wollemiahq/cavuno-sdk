@@ -110,6 +110,8 @@ export default defineConfig([
   // verification port wraps runDoctor for structured results.
   {
     entry: { doctor: 'src/doctor/index.ts' },
+    // Bundle the build-time HTML parser; the published SDK has no runtime dependencies.
+    noExternal: ['parse5', 'entities'],
     format: ['esm', 'cjs'],
     dts: { resolve: true },
     tsconfig: './tsconfig.node.json',
@@ -125,6 +127,7 @@ export default defineConfig([
   // Node-only `setup` CLI bin (ESM, executable shebang).
   {
     entry: { bin: 'src/bin.ts' },
+    noExternal: ['parse5', 'entities'],
     format: ['esm'],
     platform: 'node',
     target: 'node20',
