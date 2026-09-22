@@ -26,7 +26,7 @@ for (const offer of offers) {
 }
 ```
 
-`offerType` is `'recurring' | 'lifetime'`; post the selected `offerKey` to checkout.
+`offerType` is `'recurring' | 'lifetime'`; post the selected `offerKey` to checkout unchanged. Treat it as opaque: newer offers use plan IDs, while older offers may use tier keys. Never derive it from the billing interval.
 
 Gated catalog reads expose withheld inventory as `gatedCount`. The same jobs endpoint returns the entitled view when called with the candidate bearer token.
 
@@ -44,8 +44,11 @@ if ((page.gatedCount ?? 0) > 0) {
 ```ts snippet
 import { loadStripe } from '@stripe/stripe-js';
 
+const { data: checkoutOffers } = await board.paywall.offers();
+const selectedOffer = checkoutOffers[0]; // Or the offer selected in your UI.
+if (!selectedOffer) throw new Error('No access offers available');
 const kit = await board.me.access.checkout({
-  offerKey: 'monthly',
+  offerKey: selectedOffer.offerKey,
   returnPath: '/account/access',
   colorMode: 'light',
 });
