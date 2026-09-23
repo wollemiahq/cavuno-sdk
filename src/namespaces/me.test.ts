@@ -1093,6 +1093,24 @@ describe('board.me.resume', () => {
 });
 
 describe('board.me.access (candidate paywall)', () => {
+  it('passes an opaque key from the offers response unchanged into checkout', async () => {
+    const offerKey = 'plan_candidate_monthly';
+    const spy = stubFetch(jsonResponse({ data: [{ offerKey }] }));
+    const board = await makeAuthedBoard();
+    const { data: offers } = await board.paywall.offers();
+    await board.me.access.checkout({
+      offerKey: offers[0]!.offerKey,
+      returnPath: '/account/access',
+      colorMode: 'light',
+    });
+    expect(spy.mock.calls[1]![0]).toBe(`${BASE}/me/access/checkout`);
+    expect(JSON.parse(spy.mock.calls[1]![1]!.body as string)).toEqual({
+      offerKey,
+      returnPath: '/account/access',
+      colorMode: 'light',
+    });
+  });
+
   it('checkout POSTs the offer body to /me/access/checkout with the bearer token', async () => {
     const spy = stubFetch(jsonResponse({ object: 'checkout_session' }));
     const board = await makeAuthedBoard();

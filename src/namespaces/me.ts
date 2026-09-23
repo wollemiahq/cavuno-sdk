@@ -2142,8 +2142,11 @@ export function meNamespace(client: BoardClient) {
        * profile.
        *
        * @example
+       * const { data: offers } = await board.paywall.offers();
+       * const selectedOffer = offers[0]; // Or the offer selected in your UI.
+       * if (!selectedOffer) throw new Error('No access offers available');
        * const kit = await board.me.access.checkout({
-       *   offerKey: 'monthly',
+       *   offerKey: selectedOffer.offerKey,
        *   returnPath: '/account/access',
        *   colorMode: 'light',
        * });

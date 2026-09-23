@@ -3167,7 +3167,7 @@ export interface paths {
         };
         /**
          * List a public board's places
-         * @description With no `q`: returns every place used by a published job on the board, with its live job count — the data the hosted `/jobs/locations/` index renders (bounded and unpaginated). With `q` (≥2 chars): returns the top name matches ranked, for a location search/autocomplete field.
+         * @description With no `q`: returns every place used by a published job on the board, with its live job count — the data the hosted `/jobs/locations/` index renders (bounded and unpaginated). With `q` (≥2 folded chars): returns the top diacritic-insensitive name substring and slug-prefix matches, ranked, for a location search/autocomplete field.
          */
         get: operations["listBoardPlaces"];
         put?: never;
@@ -3707,11 +3707,8 @@ export interface components {
             token: string;
         };
         AccessCheckoutBody: {
-            /**
-             * @description The offer tier to purchase (from `GET /paywall/offers/enabled`).
-             * @enum {string}
-             */
-            offerKey: "daily" | "weekly" | "monthly" | "quarterly" | "yearly" | "lifetime";
+            /** @description The opaque offer key returned by `GET /paywall/offers/enabled` (a plan ID or legacy tier key). */
+            offerKey: string;
             /** @description Relative path Stripe returns the buyer to on completion; `session_id` is appended. */
             returnPath: string;
             /** @enum {string} */
@@ -4812,6 +4809,10 @@ export interface components {
             officeLocations?: components["schemas"]["JobOfficeLocationInput"][];
             /** @description The job title. */
             title: string;
+            /** @description Board-defined custom-field values, keyed by the field `key` (definitions, including type, option keys and whether the field is required, are published on the public board context at `GET /v1/boards/:identifier` under `customFields.job`). Writes are **additive**: on `PATCH` a key you send is set/overwritten and a key you omit is preserved; on `POST` this initializes the bag. Send a key with an intentional-empty value (`null`, `""`, or `[]`) to **clear** it; `false` and `0` are kept as real values. Values must match the field type and `single_select`/`multi_select` must use defined option **keys** (not labels). A required field left empty, a wrong-typed value or an undefined option is rejected with `400 jobs_constraint_violation`. On `POST`, the required-field check runs only when this property is present (an empty object counts as present); a request that omits it is not rejected for a custom field it did not send. Unknown keys are ignored. */
+            customFieldValues?: {
+                [key: string]: string | string[] | boolean | number | unknown;
+            };
         };
         EmployerJob: components["schemas"]["EmployerJobSummary"] & {
             /** @description Long-form description of the role, or `null` if not specified. */
@@ -4938,12 +4939,16 @@ export interface components {
             isFeatured: boolean;
             /** @description Time at which the job was first published, or `null` if not yet published. ISO 8601 datetime. */
             publishedAt: string | null;
-            /** @description Time at which the job expires, or `null` if no expiry is set. ISO 8601 datetime. */
+            /** @description Time at which the job expires as an ISO 8601 datetime. `null` can appear when the expiry requirement does not apply, including for drafts and sponsored jobs; ordinary published jobs always have an expiry. */
             expiresAt: string | null;
             /** @description Time at which the job was created. ISO 8601 datetime. */
             createdAt: string;
             /** @description Time at which the job was last updated. ISO 8601 datetime. */
             updatedAt: string;
+            /** @description Board-defined custom-field values for this job, keyed by the field `key`. The definitions (label, type, option keys, required) are published on the public board context at `GET /v1/boards/:identifier` under `customFields.job`. Each value is returned as stored: a string (`short_text` / `long_text` / a `single_select` option key), a string array (`multi_select` option keys), a boolean, or a number. Always an object: `{}` when the job has no custom-field values, never `null` or a missing field. */
+            customFieldValues: {
+                [key: string]: string | string[] | boolean | number;
+            };
             links: components["schemas"]["EmployerJobLinks"];
         };
         EmployerPipeline: {
@@ -5070,6 +5075,10 @@ export interface components {
             officeLocations?: components["schemas"]["JobOfficeLocationInput"][];
             /** @description The job title. */
             title?: string;
+            /** @description Board-defined custom-field values, keyed by the field `key` (definitions, including type, option keys and whether the field is required, are published on the public board context at `GET /v1/boards/:identifier` under `customFields.job`). Writes are **additive**: on `PATCH` a key you send is set/overwritten and a key you omit is preserved; on `POST` this initializes the bag. Send a key with an intentional-empty value (`null`, `""`, or `[]`) to **clear** it; `false` and `0` are kept as real values. Values must match the field type and `single_select`/`multi_select` must use defined option **keys** (not labels). A required field left empty, a wrong-typed value or an undefined option is rejected with `400 jobs_constraint_violation`. On `POST`, the required-field check runs only when this property is present (an empty object counts as present); a request that omits it is not rejected for a custom field it did not send. Unknown keys are ignored. */
+            customFieldValues?: {
+                [key: string]: string | string[] | boolean | number | unknown;
+            };
         };
         /** @description The error envelope returned by every non-2xx response. */
         Error: {
@@ -5420,7 +5429,7 @@ export interface components {
         PaywallOffer: {
             /** @enum {string} */
             object: "paywall_offer";
-            /** @description The tier key posted to checkout (e.g. `monthly`, `lifetime`). */
+            /** @description The opaque key posted unchanged to checkout (a plan ID or legacy tier key). */
             offerKey: string;
             label: string;
             billingLabel: string;
@@ -5816,7 +5825,7 @@ export interface components {
             isFeatured: boolean;
             /** @description Time at which the job was first published, or `null` if not yet published. ISO 8601 datetime. */
             publishedAt: string | null;
-            /** @description Time at which the job expires, or `null` if no expiry is set. ISO 8601 datetime. */
+            /** @description Time at which the job expires as an ISO 8601 datetime. `null` can appear when the expiry requirement does not apply, including for drafts and sponsored jobs; ordinary published jobs always have an expiry. */
             expiresAt: string | null;
             /** @description Time at which the job was created. ISO 8601 datetime. */
             createdAt: string;
@@ -12759,7 +12768,7 @@ export interface operations {
                     "application/json": components["schemas"]["EmployerJob"];
                 };
             };
-            /** @description Validation failed (`validation_bad_request`). */
+            /** @description Validation failed (`validation_bad_request`), or the job violates the board's Job form configuration — a required built-in field missing, an option outside the allowed set, or, when `customFieldValues` is present, a required custom field left empty or a wrong-typed value (`jobs_constraint_violation`). `details.violations` lists each broken rule as `{ code, path, params }`. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -12956,7 +12965,7 @@ export interface operations {
                     "application/json": components["schemas"]["EmployerJob"];
                 };
             };
-            /** @description Validation failed. */
+            /** @description Validation failed, or the update breaks the board's Job form configuration (`jobs_constraint_violation`). Each field group the request sends (salary, seniority, employment type, work arrangement, office locations, remote eligibility, custom fields) is checked against the updated job; groups it omits are not re-checked. `details.violations` lists each broken rule as `{ code, path, params }`. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -18301,7 +18310,7 @@ export interface operations {
         parameters: {
             query?: {
                 /**
-                 * @description Location autocomplete query. When provided with ≥2 characters, returns the top name matches (prefix matches ranked first) instead of the full directory; under 2 characters returns an empty list.
+                 * @description Location autocomplete query. When provided with ≥2 characters after diacritic folding, returns the top matches against display name (substring) and slug (prefix), with prefix matches ranked first; under 2 folded characters returns an empty list.
                  * @example lon
                  */
                 q?: string;
