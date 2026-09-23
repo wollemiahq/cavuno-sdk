@@ -1,3 +1,4 @@
+import { hasCrawlableCavunoBacklink } from './attribution';
 import {
   apiBase,
   extractJobDetailLink,
@@ -15,9 +16,10 @@ import type { BoardSeo } from '../types/seo';
  *  read probes against the tenant's frontend (`--frontend <url>`):
  * home renders, /jobs carries a job DETAIL link, that page has JobPosting
  * JSON-LD, sitemap parses and a sample page resolves, robots.txt is
- * present, and platform SEO files match the dashboard snapshot. Same
- * run/skip module shape as writes.ts — every check always appears in
- * the results.
+ * present, platform SEO files match the dashboard snapshot, and home HTML
+ * carries a crawlable Cavuno backlink when the board's branding flag is
+ * on. Same run/skip module shape as writes.ts — every check always
+ * appears in the results.
  */
 
 export type BoardSeoSnapshot = Pick<
@@ -37,6 +39,7 @@ const READ = {
   adsTxt: record('read.adsTxt', 2),
   indexNow: record('read.indexNow', 2),
   googleVerification: record('read.googleVerification', 2),
+  attribution: record('read.attribution', 2),
   oauthCallback: record('read.oauthCallback', 2),
 } as const;
 
@@ -45,13 +48,54 @@ export function skipReadProbes(reason: string): CheckResult[] {
   return Object.values(READ).map((make) => make('skip', reason));
 }
 
+/** Only an explicit, successful unfiltered API response can establish emptiness. */
+async function confirmsNoPublishedJobs(
+  fetchImpl: typeof fetch,
+  env: DoctorEnv | undefined,
+): Promise<boolean> {
+  if (!env?.apiUrl || !env.boardKey) return false;
+  const response = await probe(
+    fetchImpl,
+    `${apiBase(env.apiUrl)}/v1/boards/${encodeURIComponent(env.boardKey)}/jobs?limit=1`,
+  );
+  if (response.status !== 200) return false;
+  try {
+    const value: unknown = JSON.parse(response.body);
+    if (typeof value !== 'object' || value === null) return false;
+    const list = value as Record<string, unknown>;
+    return (
+      list.object === 'list' &&
+      list.count === 0 &&
+      Array.isArray(list.data) &&
+      list.data.length === 0 &&
+      list.hasMore === false &&
+      list.nextCursor === null
+    );
+  } catch {
+    return false;
+  }
+}
+
 /** : /jobs listing carries a job DETAIL link, then that page's JSON-LD. */
 async function probeJobsAndJsonLd(
   fetchImpl: typeof fetch,
   base: string,
+  env: DoctorEnv | undefined,
 ): Promise<CheckResult[]> {
   const jobs = await probe(fetchImpl, `${base}/jobs`);
   const jobLink = jobs.ok ? extractJobDetailLink(jobs.body) : null;
+
+  if (
+    jobs.status === 200 &&
+    !jobLink &&
+    /<(html|body|main)[\s>]/i.test(jobs.body) &&
+    (await confirmsNoPublishedJobs(fetchImpl, env))
+  ) {
+    return [
+      READ.jobs('pass', 'listing renders; API confirms zero published jobs'),
+      READ.jsonld('skip', 'not probed — API confirms zero published jobs'),
+    ];
+  }
 
   const jobsResult =
     jobs.ok && jobLink
@@ -114,12 +158,12 @@ async function probeJobsAndJsonLd(
  * differ on a headless frontend, and a health check must not accuse a
  * correct deployment of serving another tenant.
  */
-async function probeBoardIdentity(
-  fetchImpl: typeof fetch,
+function scoreBoardIdentity(
+  board: Awaited<ReturnType<typeof probe>> | null,
   robotsBody: string | null,
   env: DoctorEnv | undefined,
-): Promise<CheckResult> {
-  if (!env?.apiUrl || !env.boardKey) {
+): CheckResult {
+  if (!env?.apiUrl || !env.boardKey || board === null) {
     return READ.boardIdentity(
       'skip',
       'not probed — env checks failed (see the env.* failures)',
@@ -132,10 +176,6 @@ async function probeBoardIdentity(
       'not probed — robots.txt advertises no Sitemap: URL to compare (see read.robots)',
     );
   }
-  const board = await probe(
-    fetchImpl,
-    `${apiBase(env.apiUrl)}/v1/boards/${encodeURIComponent(env.boardKey)}`,
-  );
   let expected: string | null = null;
   try {
     const parsed = JSON.parse(board.body) as Record<string, unknown>;
@@ -311,6 +351,64 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+function parseShowCavunoBranding(body: string): boolean | null {
+  try {
+    const parsed: unknown = JSON.parse(body);
+    if (typeof parsed !== 'object' || parsed === null) return null;
+    const flag = (parsed as Record<string, unknown>).showCavunoBranding;
+    return typeof flag === 'boolean' ? flag : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * When the board context says branding is on, home HTML must carry a
+ * crawlable Cavuno backlink. When the flag is off, absence is a pass.
+ * An unreadable flag fails verification; markup cannot assert its own exemption.
+ */
+function scoreAttribution(
+  board: Awaited<ReturnType<typeof probe>> | null,
+  homeHtml: string,
+  homeOk: boolean,
+  env: DoctorEnv | undefined,
+): CheckResult {
+  if (!homeOk) {
+    return READ.attribution(
+      'skip',
+      'not probed — home did not render (see read.home)',
+    );
+  }
+  if (!env?.apiUrl || !env.boardKey || board === null) {
+    return READ.attribution(
+      'skip',
+      'not probed — env checks failed (see the env.* failures)',
+    );
+  }
+
+  const showCavunoBranding = board.ok
+    ? parseShowCavunoBranding(board.body)
+    : null;
+  if (showCavunoBranding === null) {
+    return READ.attribution(
+      'fail',
+      `could not verify this board's branding requirement (HTTP ${board.status})`,
+    );
+  }
+  if (!showCavunoBranding) {
+    return READ.attribution(
+      'pass',
+      'board branding is off; no Cavuno backlink required',
+    );
+  }
+  return hasCrawlableCavunoBacklink(homeHtml)
+    ? READ.attribution('pass', 'home HTML has a crawlable Cavuno backlink')
+    : READ.attribution(
+        'fail',
+        'home HTML is missing a crawlable Cavuno backlink (visible link to cavuno.com) while the board requires branding',
+      );
+}
+
 function hasGoogleSiteVerificationMeta(html: string, token: string): boolean {
   const escaped = escapeRegExp(token);
   const quoted = `["']${escaped}["']`;
@@ -384,7 +482,7 @@ export async function runReadProbes(
   // home+jobs+sitemap+robots 503 the first child sitemap. ads.txt and
   // indexnow-key.txt follow robots for the same reason.
   const home = await probe(fetchImpl, base);
-  const jobsAndJsonLd = await probeJobsAndJsonLd(fetchImpl, base);
+  const jobsAndJsonLd = await probeJobsAndJsonLd(fetchImpl, base, env);
   const sitemap = await probeSitemap(fetchImpl, base);
   const robots = await probe(fetchImpl, `${base}/robots.txt`);
   const adsTxt = await probe(fetchImpl, `${base}/ads.txt`);
@@ -400,14 +498,25 @@ export async function runReadProbes(
     ),
   };
 
-  const boardIdentity = await probeBoardIdentity(
-    fetchImpl,
+  // Both checks use the same board response, so adding attribution adds no API round trip.
+  const board =
+    env?.apiUrl && env.boardKey
+      ? await probe(
+          fetchImpl,
+          `${apiBase(env.apiUrl)}/v1/boards/${encodeURIComponent(env.boardKey)}`,
+        )
+      : null;
+  const boardIdentity = scoreBoardIdentity(
+    board,
     robots.ok ? robots.body : null,
     env,
   );
 
+  const homeOk = home.ok && /<(html|body|div|main)[\s>]/i.test(home.body);
+  const attribution = scoreAttribution(board, home.body, homeOk, env);
+
   return [
-    home.ok && /<(html|body|div|main)[\s>]/i.test(home.body)
+    homeOk
       ? READ.home('pass', 'home renders')
       : READ.home(
           'fail',
@@ -436,6 +545,7 @@ export async function runReadProbes(
       probed: indexNow,
     }),
     scoreGoogleVerification(home.body, seo),
+    attribution,
     scoreOAuthCallback(oauthCallback),
   ];
 }

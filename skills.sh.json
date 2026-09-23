@@ -19,6 +19,7 @@
       "skills": [
         "cavuno-board-jobs",
         "cavuno-board-filters",
+        "cavuno-board-collections",
         "cavuno-board-search-suggestions",
         "cavuno-board-format",
         "cavuno-board-i18n",

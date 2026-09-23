@@ -1,6 +1,6 @@
 ---
 name: cavuno-board-filters
-description: Listing-filter contracts with @cavuno/board. Use for job filter controls, sort controls, listing URL validation, or taxonomy-backed filter options.
+description: Listing-filter contracts with @cavuno/board. Use for job filter controls, profile-field filters, collection choices, sort controls, listing URL validation, or taxonomy-backed filter options.
 ---
 
 # Listing filters
@@ -123,6 +123,45 @@ const { items } = await board.search.suggest({
 The host router owns URL serialization and saved-filter persistence.
 Locations come from `board.taxonomy.places` rather than a static filter export.
 
+## Build filters from public profile fields
+
+`board.profileFields.retrieve('company')` and `retrieve('candidate')` return only public scalar and collection-reference definitions. Use each stored field key for filtering. For a collection reference, page or search its active public choices and submit the returned record `id`; the optional `logoUrl` is display metadata.
+
+```ts snippet
+const companyFields = await board.profileFields.retrieve('company');
+const technologyChoices = await board.profileFields.choices(
+  'company',
+  'technologies',
+  { search: 'typescript', limit: 20 });
+
+const companies = await board.companies.search({
+  query: 'engineering',
+  customFields: [{ key: 'member_tier', values: ['gold'] }],
+  objectReferences: [
+    { key: 'technologies', recordIds: [technologyChoices.data[0]!.id] },
+  ],
+});
+
+const candidateFields = await board.profileFields.retrieve('candidate');
+const certifications = await board.profileFields.choices(
+  'candidate',
+  'certifications',
+  { limit: 20 });
+const talent = await board.talent.list({
+  customFields: [{ key: 'available_for_mentoring', values: [true] }],
+  objectReferences: [
+    { key: 'certifications', recordIds: [certifications.data[0]!.id] },
+  ],
+});
+
+void companyFields.definitions;
+void candidateFields.referenceDefinitions;
+void companies.data;
+void talent.data;
+```
+
+Clauses are AND-matched. Values or record IDs inside one clause are alternatives. Unknown, private, invalid, or archived choices return `invalid_filter`; each array accepts at most 10 clauses and each clause at most 10 choices. Job search supports scalar `customFields` under `filters`, but job collection references are outside this surface.
+
 ## Completion gate
 
 Finish only after every applicable check passes:
@@ -136,6 +175,8 @@ Finish only after every applicable check passes:
 - Category and skill filtering sends `sourceSlug`, while links use
   `canonicalSlug`.
 - Every paged taxonomy request forwards the previous opaque `nextCursor`.
+- Company and talent custom controls come from `board.profileFields`; private definitions and archived choices never become filter options.
+- Profile-filter requests use stored scalar values and returned collection entry IDs, not display labels.
 
 ## Cavuno SDK reference
 

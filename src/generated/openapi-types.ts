@@ -887,6 +887,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/job-fields/{fieldKey}/choices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List active choices for a public job collection field */
+        get: operations["listPublicJobCollectionChoices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/boards/{identifier}/job-postings": {
         parameters: {
             query?: never;
@@ -1691,6 +1708,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/me/companies/{slug}/custom-fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get my company profile custom fields
+         * @description Returns profile custom-field definitions and current values for a company where the authenticated user has approved membership. Never cached.
+         */
+        get: operations["getMyCompanyCustomFieldValues"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update my company profile custom fields
+         * @description Additive update of owner-editable company profile values. Omitted and non-editable keys are preserved; null, blank strings, and empty arrays clear a value; false and 0 are preserved.
+         */
+        patch: operations["updateMyCompanyCustomFieldValues"];
+        trace?: never;
+    };
     "/boards/{identifier}/me/companies/{slug}/invites": {
         parameters: {
             query?: never;
@@ -2003,6 +2044,41 @@ export interface paths {
          * @description The state of a membership checkout session started for this company: `open` (re-mountable via `clientSecret`), `complete`, or `expired`. A session minted for another company or board is `paywall_invalid_checkout_session`. Never cached.
          */
         get: operations["getBoardMeCompanyMembershipCheckout"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/me/companies/{slug}/object-references": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get my company catalog selections */
+        get: operations["getMyCompanyObjectReferences"];
+        /** Replace my company catalog selections */
+        put: operations["replaceMyCompanyObjectReferences"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/me/companies/{slug}/object-references/choices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List choices for my editable company catalog field */
+        get: operations["listMyCompanyObjectReferenceChoices"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2743,6 +2819,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/me/profile/custom-fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get my candidate profile custom fields
+         * @description Returns the authenticated candidate’s profile custom-field definitions and current values. Never cached.
+         */
+        get: operations["getMyCandidateCustomFieldValues"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update my candidate profile custom fields
+         * @description Additive update of owner-editable candidate profile values. Omitted and non-editable keys are preserved; null, blank strings, and empty arrays clear a value; false and 0 are preserved.
+         */
+        patch: operations["updateMyCandidateCustomFieldValues"];
+        trace?: never;
+    };
     "/boards/{identifier}/me/profile/education": {
         parameters: {
             query?: never;
@@ -2861,6 +2961,41 @@ export interface paths {
          * @description Replace the entire language set with the provided ordered list (idempotent full replace).
          */
         put: operations["updateBoardMeProfileLanguages"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/me/profile/object-references": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get my candidate catalog selections */
+        get: operations["getMyCandidateObjectReferences"];
+        /** Replace my candidate catalog selections */
+        put: operations["replaceMyCandidateObjectReferences"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/me/profile/object-references/choices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List choices for my editable candidate catalog field */
+        get: operations["listMyCandidateObjectReferenceChoices"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -3167,7 +3302,7 @@ export interface paths {
         };
         /**
          * List a public board's places
-         * @description With no `q`: returns every place used by a published job on the board, with its live job count — the data the hosted `/jobs/locations/` index renders (bounded and unpaginated). With `q` (≥2 chars): returns the top name matches ranked, for a location search/autocomplete field.
+         * @description With no `q`: returns every place used by a published job on the board, with its live job count — the data the hosted `/jobs/locations/` index renders (bounded and unpaginated). With `q` (≥2 folded chars): returns the top diacritic-insensitive name substring and slug-prefix matches, ranked, for a location search/autocomplete field.
          */
         get: operations["listBoardPlaces"];
         put?: never;
@@ -3210,6 +3345,40 @@ export interface paths {
          * @description The board's public plans as a flat catalogue: job-posting, talent-access, membership, job-seeker, and the two service purposes (`employer_service`, `job_seeker_service`), each with its `purpose`, `pricingMode`, price, and a feature summary (talent-access plans add a `talent` allowance block). Filter with `?purpose=`. A `pricingMode: contact` plan is quote-only — render `priceText` and the CTA fields instead of a price. The deprecated sales-led resource (`GET …/sales-led-plans`) remains for compatibility only.
          */
         get: operations["listBoardPlans"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/profile-fields/{entity}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Discover public company or talent field definitions */
+        get: operations["retrievePublicProfileFields"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/profile-fields/{entity}/{fieldKey}/choices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List active choices for a public catalog field */
+        get: operations["listPublicProfileFieldChoices"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3707,11 +3876,8 @@ export interface components {
             token: string;
         };
         AccessCheckoutBody: {
-            /**
-             * @description The offer tier to purchase (from `GET /paywall/offers/enabled`).
-             * @enum {string}
-             */
-            offerKey: "daily" | "weekly" | "monthly" | "quarterly" | "yearly" | "lifetime";
+            /** @description The opaque offer key returned by `GET /paywall/offers/enabled` (a plan ID or legacy tier key). */
+            offerKey: string;
             /** @description Relative path Stripe returns the buyer to on completion; `session_id` is appended. */
             returnPath: string;
             /** @enum {string} */
@@ -3979,6 +4145,89 @@ export interface components {
         BoardAuthVerifyEmailBody: {
             token: string;
         };
+        BoardFormBuiltinField: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "builtin";
+            /** @description The built-in field, rendered by your own control for that key. Job: `employmentType`, `seniority`, `title`, `workArrangement`, `location`, `remoteEligibility`, `description`, `salary`, `applyMethod`, `company`. Company: `name`, `website`, `summary`, `xUrl`, `linkedinUrl`, `facebookUrl`, `logo`, `description`. Talent: `name`, `email`, `avatar`, `headline`, `location`, `jobSearchStatus`, `bio`, `experience`, `education`, `skills`, `languages`. New built-ins may be added; skip keys you do not recognise. */
+            key: string;
+            /** @description Whether the form shows this field. Omit hidden fields from the form entirely; any value already stored on a record is kept. */
+            visible: boolean;
+            /** @description Whether a submission must fill this field. Always `false` for a hidden field. Validate it in the form before submitting. */
+            required: boolean;
+            /** @description A locked built-in is always shown and required: render it wherever it sits in the order, without a way to skip it. */
+            locked: boolean;
+            lockReason: components["schemas"]["FormFieldLockReason"];
+        };
+        /** @description The operator's job, company and talent forms (Settings → Job form, Company profile, Talent profile) as ordered field lists. Render each list in order: built-ins by `key` with your own controls, custom and collection fields from the inlined `definition`. Skip entries with `visible: false`. Every field the board has appears exactly once, so a new custom field shows up at its position without code changes. */
+        BoardForms: {
+            /** @description The job posting form, in the order to render it. */
+            job: components["schemas"]["BoardJobFormField"][];
+            /** @description The company profile form, in the order to render it. Public profile fields only. */
+            company: components["schemas"]["BoardProfileFormField"][];
+            /** @description The candidate profile form, in the order to render it. Public profile fields only. */
+            talent: components["schemas"]["BoardProfileFormField"][];
+        };
+        BoardJobFormCollectionField: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "collection";
+            /** @description The collection field key used in `collectionValues`. Fetch choices from /boards/{identifier}/job-fields/{fieldKey}/choices. */
+            key: string;
+            /** @description Whether the form shows this field. Omit hidden fields from the form entirely; any value already stored on a record is kept. */
+            visible: boolean;
+            /** @description Whether a submission must fill this field. Always `false` for a hidden field. Validate it in the form before submitting. */
+            required: boolean;
+            definition: components["schemas"]["JobCollectionFieldDefinition"];
+        };
+        BoardJobFormCustomField: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "custom";
+            /** @description The custom field key used in `customFieldValues`. */
+            key: string;
+            /** @description Whether the form shows this field. Omit hidden fields from the form entirely; any value already stored on a record is kept. */
+            visible: boolean;
+            /** @description Whether a submission must fill this field. Always `false` for a hidden field. Validate it in the form before submitting. */
+            required: boolean;
+            definition: components["schemas"]["CustomFieldDefinition"];
+        };
+        BoardJobFormField: components["schemas"]["BoardFormBuiltinField"] | components["schemas"]["BoardJobFormCustomField"] | components["schemas"]["BoardJobFormCollectionField"];
+        BoardProfileFormCollectionField: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "collection";
+            /** @description The catalog field key. Fetch choices from /boards/{identifier}/profile-fields/{entity}/{fieldKey}/choices, or the signed-in owner choices endpoint. */
+            key: string;
+            /** @description Whether the form shows this field. Omit hidden fields from the form entirely; any value already stored on a record is kept. */
+            visible: boolean;
+            /** @description Whether a submission must fill this field. Always `false` for a hidden field. Validate it in the form before submitting. */
+            required: boolean;
+            definition: components["schemas"]["ProfileObjectReferenceDefinition"];
+        };
+        BoardProfileFormCustomField: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "custom";
+            /** @description The profile custom field key. */
+            key: string;
+            /** @description Whether the form shows this field. Omit hidden fields from the form entirely; any value already stored on a record is kept. */
+            visible: boolean;
+            /** @description Whether a submission must fill this field. Always `false` for a hidden field. Validate it in the form before submitting. */
+            required: boolean;
+            definition: components["schemas"]["ProfileCustomFieldDefinition"];
+        };
+        BoardProfileFormField: components["schemas"]["BoardFormBuiltinField"] | components["schemas"]["BoardProfileFormCustomField"] | components["schemas"]["BoardProfileFormCollectionField"];
         BoardSeo: {
             /** @enum {string} */
             object: "board_seo";
@@ -4251,6 +4500,12 @@ export interface components {
             /** @description Number of jobs that contribute to this company's salary aggregates on the board (the salary sample size). `0` when there is no usable salary data — prefer this over fetching the full company-salary document just to decide whether to show a Salaries tab. Not the same as `publishedJobCount` (open roles without pay data stay at 0 here). */
             salarySampleCount: number;
             membership: components["schemas"]["PublicCompanyMembership"];
+            /** @description Values for public company custom fields, keyed by field key. Private and unknown fields are omitted. */
+            customFieldValues: {
+                [key: string]: string | number | boolean | string[];
+            };
+            /** @description Resolved public object references attached to this company. Private references are omitted. */
+            objectReferences: components["schemas"]["ResolvedProfileObjectReference"][];
             links: components["schemas"]["PublicCompanyLinks"];
         };
         CompanyPublicDetail: components["schemas"]["CompanyPublic"] & {
@@ -4569,11 +4824,13 @@ export interface components {
             key: string;
             /** @description Authoring-default label; the localized public string lives in the board template. */
             label: string;
+            /** @description Optional guidance displayed beside the field. */
+            helpText?: string;
             /**
-             * @description Field type, which dictates the value: `short_text`/`long_text` → string; `single_select` → one option key; `multi_select` → array of option keys; `boolean` → boolean; `number` → number.
+             * @description Field type, which dictates the value: `short_text`/`long_text` → plain string; `rich_text` → sanitized basic HTML; `single_select` → one option key; `multi_select` → array of option keys; `boolean` → boolean; `number` → number.
              * @enum {string}
              */
-            type: "short_text" | "long_text" | "single_select" | "multi_select" | "boolean" | "number";
+            type: "short_text" | "long_text" | "rich_text" | "single_select" | "multi_select" | "boolean" | "number";
             /** @description Present only for `single_select`/`multi_select`. A stored value is one (or, for multi, several) of these option `key`s — never a label. */
             options?: components["schemas"]["CustomFieldOption"][];
             /** @description When true, the value cannot be cleared or left empty on a write (rejected with `custom_field_required`). */
@@ -4810,10 +5067,21 @@ export interface components {
             inOfficeFrequency?: number;
             /** @description Physical office locations associated with the job. Prefer `{query: "City, Country"}` for free-form input; `{city, country, region?, locality?}` is also accepted when you already have structured fields. Each entry is resolved server-side; a country mismatch returns `400 jobs_unresolvable_location`. */
             officeLocations?: components["schemas"]["JobOfficeLocationInput"][];
+            /** @description Collection-reference selections keyed by the configured job collection field key. Values are arrays of record IDs, including for single-select fields. On PATCH omitted keys are preserved; send null or an empty array to clear a field. */
+            collectionValues?: {
+                [key: string]: string[] | unknown;
+            };
+            /** @description Per-job wording for selected collection entries, only on fields whose definition has `allowOverrides`. At most one item per selected entry; an item for an entry that is not selected on the job is rejected with `400 jobs_constraint_violation`. The list replaces the job's stored overrides: on PATCH omit it to keep them and send `[]` to clear them all. Deselecting an entry through `collectionValues` drops its override. */
+            collectionOverrides?: components["schemas"]["JobCollectionOverride"][];
             /** @description The job title. */
             title: string;
+            /** @description Board-defined custom-field values, keyed by the field `key` (definitions, including type, option keys and whether the field is required, are published on the public board context at `GET /v1/boards/:identifier` under `customFields.job`). Writes are **additive**: on `PATCH` a key you send is set/overwritten and a key you omit is preserved; on `POST` this initializes the bag. Send a key with an intentional-empty value (`null`, `""`, or `[]`) to **clear** it; `false` and `0` are kept as real values. Values must match the field type and `single_select`/`multi_select` must use defined option **keys** (not labels). A required field left empty, a wrong-typed value or an undefined option is rejected with `400 jobs_constraint_violation`. On `POST`, the required-field check runs only when this property is present (an empty object counts as present); a request that omits it is not rejected for a custom field it did not send. Unknown keys are ignored. */
+            customFieldValues?: {
+                [key: string]: string | string[] | boolean | number | unknown;
+            };
         };
         EmployerJob: components["schemas"]["EmployerJobSummary"] & {
+            resolvedCollectionFields: components["schemas"]["ResolvedJobCollectionField"][];
             /** @description Long-form description of the role, or `null` if not specified. */
             description: string | null;
             /** @description Where candidates apply, or `null` if not specified. An HTTPS URL or `mailto:` URI. */
@@ -4938,12 +5206,20 @@ export interface components {
             isFeatured: boolean;
             /** @description Time at which the job was first published, or `null` if not yet published. ISO 8601 datetime. */
             publishedAt: string | null;
-            /** @description Time at which the job expires, or `null` if no expiry is set. ISO 8601 datetime. */
+            /** @description Time at which the job expires as an ISO 8601 datetime. `null` can appear when the expiry requirement does not apply, including for drafts and sponsored jobs; ordinary published jobs always have an expiry. */
             expiresAt: string | null;
             /** @description Time at which the job was created. ISO 8601 datetime. */
             createdAt: string;
             /** @description Time at which the job was last updated. ISO 8601 datetime. */
             updatedAt: string;
+            /** @description Board-defined custom-field values for this job, keyed by the field `key`. The definitions (label, type, option keys, required) are published on the public board context at `GET /v1/boards/:identifier` under `customFields.job`. Each value is returned as stored: a string (`short_text` / `long_text` / a `single_select` option key), a string array (`multi_select` option keys), a boolean, or a number. Always an object: `{}` when the job has no custom-field values, never `null` or a missing field. */
+            customFieldValues: {
+                [key: string]: string | string[] | boolean | number;
+            };
+            /** @description Collection record IDs keyed by configured job collection field. */
+            collectionValues: {
+                [key: string]: string[];
+            };
             links: components["schemas"]["EmployerJobLinks"];
         };
         EmployerPipeline: {
@@ -5068,8 +5344,18 @@ export interface components {
             inOfficeFrequency?: number;
             /** @description Physical office locations associated with the job. Prefer `{query: "City, Country"}` for free-form input; `{city, country, region?, locality?}` is also accepted when you already have structured fields. Each entry is resolved server-side; a country mismatch returns `400 jobs_unresolvable_location`. */
             officeLocations?: components["schemas"]["JobOfficeLocationInput"][];
+            /** @description Collection-reference selections keyed by the configured job collection field key. Values are arrays of record IDs, including for single-select fields. On PATCH omitted keys are preserved; send null or an empty array to clear a field. */
+            collectionValues?: {
+                [key: string]: string[] | unknown;
+            };
+            /** @description Per-job wording for selected collection entries, only on fields whose definition has `allowOverrides`. At most one item per selected entry; an item for an entry that is not selected on the job is rejected with `400 jobs_constraint_violation`. The list replaces the job's stored overrides: on PATCH omit it to keep them and send `[]` to clear them all. Deselecting an entry through `collectionValues` drops its override. */
+            collectionOverrides?: components["schemas"]["JobCollectionOverride"][];
             /** @description The job title. */
             title?: string;
+            /** @description Board-defined custom-field values, keyed by the field `key` (definitions, including type, option keys and whether the field is required, are published on the public board context at `GET /v1/boards/:identifier` under `customFields.job`). Writes are **additive**: on `PATCH` a key you send is set/overwritten and a key you omit is preserved; on `POST` this initializes the bag. Send a key with an intentional-empty value (`null`, `""`, or `[]`) to **clear** it; `false` and `0` are kept as real values. Values must match the field type and `single_select`/`multi_select` must use defined option **keys** (not labels). A required field left empty, a wrong-typed value or an undefined option is rejected with `400 jobs_constraint_violation`. On `POST`, the required-field check runs only when this property is present (an empty object counts as present); a request that omits it is not rejected for a custom field it did not send. Unknown keys are ignored. */
+            customFieldValues?: {
+                [key: string]: string | string[] | boolean | number | unknown;
+            };
         };
         /** @description The error envelope returned by every non-2xx response. */
         Error: {
@@ -5084,11 +5370,50 @@ export interface components {
                 details?: unknown;
             };
         };
+        /**
+         * @description Why the field is locked, or `null` when it is not.
+         * @enum {string|null}
+         */
+        FormFieldLockReason: "google_required" | "google_hiring_organization" | "google_work_arrangement" | "google_job_location" | "google_remote_eligibility" | "posting" | "identity" | null;
         HandleAvailability: {
             /** @enum {string} */
             object: "handle_availability";
             handle: string;
             available: boolean;
+        };
+        JobCollectionChoiceList: {
+            data: {
+                id: string;
+                name: string;
+                /** @description URL-safe identifier, unique within the collection. Changing it keeps the previous value reserved. */
+                slug?: string;
+                /** @description The entry's logo: the image in the collection's logo field, or a legacy logo URL on older entries. Absent when the entry has neither. */
+                logoUrl?: string;
+            }[];
+            nextCursor: string | null;
+        };
+        JobCollectionFieldDefinition: {
+            key: string;
+            label: string;
+            typeId: string;
+            multiple: boolean;
+            required: boolean;
+            /** @description Operator-set maximum number of entries a poster can select. Only meaningful when `multiple` is true; absent means the system ceiling of 100. */
+            maxSelections?: number;
+            /** @description Whether each job can replace a selected entry's title and description through `collectionOverrides`. Absent means false. */
+            allowOverrides?: boolean;
+            /** @description Key of the collection's short, long or rich text field whose value is a selected entry's default description. When that field is rich text, an entry's `description` is sanitised HTML. Absent means entries have no default description. */
+            descriptionFieldKey?: string;
+        };
+        JobCollectionOverride: {
+            /** @description The collection field key used in `collectionValues`. */
+            fieldKey: string;
+            /** @description A record ID selected for that field on this job. */
+            recordId: string;
+            /** @description The entry's title on this job, up to 160 characters. Omit or send a blank string to use the entry name. */
+            title?: string;
+            /** @description The entry's description on this job, up to 2000 characters of plain text. When the default description field is rich text, the entry's `description` returns it escaped as HTML. Omit or send a blank string to use the default description. */
+            description?: string;
         };
         /** @description Embedded company resource for the job, or `null` if no company is attached. */
         JobCompany: {
@@ -5420,7 +5745,7 @@ export interface components {
         PaywallOffer: {
             /** @enum {string} */
             object: "paywall_offer";
-            /** @description The tier key posted to checkout (e.g. `monthly`, `lifetime`). */
+            /** @description The opaque key posted unchanged to checkout (a plan ID or legacy tier key). */
             offerKey: string;
             label: string;
             billingLabel: string;
@@ -5517,6 +5842,80 @@ export interface components {
             slug: string;
             /** @description Post title. */
             title: string;
+        };
+        ProfileChoiceList: {
+            data: {
+                id: string;
+                name: string;
+                /** @description URL-safe identifier, unique within the collection. Changing it keeps the previous value reserved. */
+                slug?: string;
+                logoUrl?: string;
+            }[];
+            nextCursor: string | null;
+        };
+        ProfileCustomFieldDefinition: {
+            key: string;
+            label: string;
+            helpText?: string;
+            /** @enum {string} */
+            type: "short_text" | "long_text" | "rich_text" | "single_select" | "multi_select" | "boolean" | "number" | "date" | "url" | "email" | "phone" | "image_gallery" | "file";
+            required: boolean;
+            /** @enum {string} */
+            visibility: "private" | "public";
+            editableByOwner: boolean;
+            options?: {
+                key: string;
+                label: string;
+            }[];
+            min?: number;
+            max?: number;
+        };
+        ProfileFieldValuesBody: {
+            values: {
+                [key: string]: string | number | boolean | string[] | unknown;
+            };
+        };
+        ProfileFieldValuesResponse: {
+            definitions: components["schemas"]["ProfileCustomFieldDefinition"][];
+            values: {
+                [key: string]: string | number | boolean | string[];
+            };
+        };
+        ProfileObjectReferenceDefinition: {
+            key: string;
+            label: string;
+            typeId: string;
+            multiple: boolean;
+            /** @description Operator-set maximum number of entries a profile can select. Only meaningful when `multiple` is true; absent means the system ceiling of 100. */
+            maxSelections?: number;
+            /** @description Whether a profile must select at least one entry when this field is shown. */
+            required?: boolean;
+            /** @enum {string} */
+            visibility: "private" | "public";
+            editableByOwner: boolean;
+            allowOverrides: boolean;
+            descriptionFieldKey?: string;
+            valueDefinitions?: components["schemas"]["ScalarProfileCustomFieldDefinition"][];
+            entryDefinitions?: components["schemas"]["ScalarProfileCustomFieldDefinition"][];
+        };
+        ProfileObjectReferenceSelectionWrite: {
+            fieldKey: string;
+            recordId: string;
+            titleOverride?: string | null;
+            descriptionOverride?: string | null;
+            values?: {
+                [key: string]: string | number | boolean | string[];
+            };
+            entries?: {
+                key: string;
+                values: {
+                    [key: string]: string | number | boolean | string[];
+                };
+            }[];
+        };
+        ProfileObjectReferencesResult: {
+            definitions: components["schemas"]["ProfileObjectReferenceDefinition"][];
+            selections: components["schemas"]["ResolvedProfileObjectReference"][];
         };
         PublicBlogAdjacentPosts: {
             /** @enum {string} */
@@ -5675,10 +6074,12 @@ export interface components {
                 /** @description Default Google-issued ad unit id (10 digits). Resolves the enabled jobs:list.footer slot first, then the first enabled valid slot in alphabetical placement-key order. Null when advertising is off, the publisher id is invalid, or no enabled valid slot exists. Frontends may override it per ad unit. */
                 defaultSlotId: string | null;
             };
-            /** @description Operator-defined custom field definitions keyed by model (currently only `job`). Each key holds that model's definitions in display order. Company and talent keys are added when those models ship. The frontend uses these to render and localize each record's opaque `customFieldValues`. Display-only: not filterable or searchable in v1. */
+            /** @description Operator-defined custom field definitions keyed by model (currently only `job`). Each key holds that model's definitions in display order. The frontend uses these to render and localize each record's opaque `customFieldValues`. Supports exact-value custom-field filters in job search. Profile definitions are discovered through the profile-fields endpoint. */
             customFields: {
                 /** @description This model's custom-field definitions in display order. Empty when the board defines none for the model. */
                 job: components["schemas"]["CustomFieldDefinition"][];
+                /** @description Collection-reference job field definitions in display order. Fetch choices from /boards/{identifier}/job-fields/{fieldKey}/choices. */
+                jobCollections: components["schemas"]["JobCollectionFieldDefinition"][];
             };
             /** @description Built-in job-form field configuration from Settings → Job form (custom fields live on `customFields.job`). The platform ENFORCES these constraints when a job is created — a violation is a 400 — so a posting form that ignores them offers options the server will reject and the employer only finds out on submit. */
             jobForm: {
@@ -5721,6 +6122,7 @@ export interface components {
                     allowedOptions: string[];
                 };
             };
+            forms: components["schemas"]["BoardForms"];
             /** @description Operator-authored contact and social identity (settings › Contact & company details). Extracted from the former `footer` group in 4.0.0: contact is identity data, not layout. Brand/social URLs are sanitized to absolute http(s). */
             contact: {
                 /** @description Public contact email (render as `mailto:`). Operator-set in settings › Contact & company details. */
@@ -5742,6 +6144,16 @@ export interface components {
             query?: string;
             /** @description Scope the results to companies in a single market (sector), by the market slug. Resolves a board-language or English slug; an unknown slug returns 404. Use `GET /boards/:identifier/companies/markets/:market` to resolve a slug to its canonical form first. */
             marketSlug?: string;
+            /** @description Public company custom fields. Clauses are AND-matched and values within a clause are OR-matched. */
+            customFields?: {
+                key: string;
+                values: (string | number | boolean)[];
+            }[];
+            /** @description Public company catalog references. Clauses are AND-matched and record IDs within a clause are OR-matched. */
+            objectReferences?: {
+                key: string;
+                recordIds: string[];
+            }[];
             /** @description An opaque pagination cursor returned in the `nextCursor` field of a previous response. Pass it back to fetch the next page of results. */
             cursor?: string | null;
             /** @description A limit on the number of objects to be returned. Limit can range between 1 and 100. */
@@ -5816,7 +6228,7 @@ export interface components {
             isFeatured: boolean;
             /** @description Time at which the job was first published, or `null` if not yet published. ISO 8601 datetime. */
             publishedAt: string | null;
-            /** @description Time at which the job expires, or `null` if no expiry is set. ISO 8601 datetime. */
+            /** @description Time at which the job expires as an ISO 8601 datetime. `null` can appear when the expiry requirement does not apply, including for drafts and sponsored jobs; ordinary published jobs always have an expiry. */
             expiresAt: string | null;
             /** @description Time at which the job was created. ISO 8601 datetime. */
             createdAt: string;
@@ -5885,10 +6297,12 @@ export interface components {
                 slug: string;
                 name: string;
             }[];
-            /** @description Opaque, display-only custom-field values, keyed by each field's `key`. Values are the option `key`(s) for select fields, or the raw boolean/number/text otherwise. Resolve labels via the board's `customFields.job` definitions (see `GET /v1/boards/:identifier`). `{}` when the board defines no custom fields. Not filterable or searchable in v1. */
+            /** @description Opaque, display-only custom-field values, keyed by each field's `key`. Values are the option `key`(s) for select fields, or the raw boolean/number/text otherwise. Resolve labels via the board's `customFields.job` definitions (see `GET /v1/boards/:identifier`). `{}` when the board defines no custom fields. Supports exact-value custom-field filters in job search. */
             customFieldValues: {
                 [key: string]: string | string[] | boolean | number;
             };
+            /** @description Configured collection references resolved to current live names, logos, and public record details. Archived collections and records are omitted. */
+            resolvedCollectionFields: components["schemas"]["ResolvedJobCollectionField"][];
         };
         PublicJobAlertConfirmation: {
             /** @enum {string} */
@@ -6027,6 +6441,10 @@ export interface components {
             /** @description Live published-job count for this place. */
             jobCount: number;
         };
+        PublicProfileFields: {
+            definitions: components["schemas"]["ProfileCustomFieldDefinition"][];
+            referenceDefinitions: components["schemas"]["ProfileObjectReferenceDefinition"][];
+        };
         PublicSearchJobsBody: {
             /** @description Free-text search query matched against job title and description. Up to 200 characters. */
             query?: string;
@@ -6064,6 +6482,11 @@ export interface components {
                 location?: string;
                 /** @description Search radius in kilometres around `location` (10–250; default 50). Ignored without `location`. */
                 radius?: number;
+                /** @description Public custom job fields. Clauses are AND-matched; values within a clause are OR-matched. Up to 10 clauses and 10 values per clause. */
+                customFields?: {
+                    key: string;
+                    values: (string | number | boolean)[];
+                }[];
             };
             /** @description An opaque pagination cursor returned in the `nextCursor` field of a previous response. Pass it back to fetch the next page of results. */
             cursor?: string;
@@ -6150,6 +6573,9 @@ export interface components {
             /** @description Every stage id of the job, in the new order. */
             orderedStageIds: string[];
         };
+        ReplaceProfileObjectReferenceSelectionsBody: {
+            selections: components["schemas"]["ProfileObjectReferenceSelectionWrite"][];
+        };
         ReplyBody: {
             body: string;
         };
@@ -6161,6 +6587,173 @@ export interface components {
         RequestEmailChangeBody: {
             /** Format: email */
             email: string;
+        };
+        ResolvedJobCollectionField: {
+            key: string;
+            label: string;
+            entries: {
+                id: string;
+                name: string;
+                /** @description URL-safe identifier, unique within the collection. Changing it keeps the previous value reserved. */
+                slug?: string;
+                /** @description The entry's logo: the image in the collection's logo field, or a legacy logo URL on older entries. Absent when the entry has neither. */
+                logoUrl?: string;
+                /** @description The entry's title on this job: the job's `titleOverride` when set, otherwise the entry name. Render this. */
+                title: string;
+                /** @description The entry's description on this job: the job's `descriptionOverride` when set, otherwise the value of the field's default description field, or `null` when neither exists. Sanitised HTML when the default description field is rich text, with a plain-text override escaped into paragraphs. Render this. */
+                description: string | null;
+                /** @description The title this job set for the entry, or `null` when it uses the entry name. */
+                titleOverride: string | null;
+                /** @description The plain-text description this job set for the entry, or `null` when it uses the default description. */
+                descriptionOverride: string | null;
+                fields: {
+                    key: string;
+                    label: string;
+                    /** @enum {string} */
+                    type: "short_text" | "long_text" | "rich_text" | "single_select" | "multi_select" | "boolean" | "number" | "date" | "url" | "email" | "phone" | "image" | "image_gallery" | "file" | "reference";
+                    helpText?: string;
+                    options?: {
+                        key: string;
+                        label: string;
+                    }[];
+                }[];
+                values: {
+                    [key: string]: string | string[] | boolean | number | {
+                        id: string;
+                        name: string;
+                        contentType: string;
+                        sizeBytes: number;
+                        url: string;
+                    } | {
+                        id: string;
+                        name: string;
+                        contentType: string;
+                        sizeBytes: number;
+                        url: string;
+                    }[];
+                };
+                references?: {
+                    [key: string]: {
+                        id: string;
+                        name: string;
+                        /** @description URL-safe identifier, unique within the collection. Changing it keeps the previous value reserved. */
+                        slug?: string;
+                        fields: {
+                            key: string;
+                            label: string;
+                            /** @enum {string} */
+                            type: "short_text" | "long_text" | "rich_text" | "single_select" | "multi_select" | "boolean" | "number" | "date" | "url" | "email" | "phone" | "image" | "image_gallery" | "file" | "reference";
+                            helpText?: string;
+                            options?: {
+                                key: string;
+                                label: string;
+                            }[];
+                        }[];
+                        values: {
+                            [key: string]: string | string[] | boolean | number | {
+                                id: string;
+                                name: string;
+                                contentType: string;
+                                sizeBytes: number;
+                                url: string;
+                            } | {
+                                id: string;
+                                name: string;
+                                contentType: string;
+                                sizeBytes: number;
+                                url: string;
+                            }[];
+                        };
+                    }[];
+                };
+            }[];
+        };
+        ResolvedProfileObjectReference: {
+            fieldKey: string;
+            fieldLabel: string;
+            recordId: string;
+            /** @description URL-safe identifier, unique within the collection. Changing it keeps the previous value reserved. */
+            slug?: string;
+            title: string;
+            description?: string;
+            titleOverride?: string;
+            descriptionOverride?: string;
+            /** @description The entry's logo: the image in the collection's logo field, or a legacy logo URL on older entries. Absent when the entry has neither. */
+            logoUrl?: string;
+            /** @enum {string} */
+            descriptionType?: "rich_text";
+            descriptionFieldKey?: string;
+            fields: {
+                key: string;
+                label: string;
+                /** @enum {string} */
+                type: "short_text" | "long_text" | "rich_text" | "single_select" | "multi_select" | "boolean" | "number" | "date" | "url" | "email" | "phone" | "image" | "image_gallery" | "file" | "reference";
+                helpText?: string;
+                options?: {
+                    key: string;
+                    label: string;
+                }[];
+            }[];
+            attributes: {
+                [key: string]: string | string[] | boolean | number | {
+                    id: string;
+                    name: string;
+                    contentType: string;
+                    sizeBytes: number;
+                    url: string;
+                } | {
+                    id: string;
+                    name: string;
+                    contentType: string;
+                    sizeBytes: number;
+                    url: string;
+                }[];
+            };
+            references?: {
+                [key: string]: {
+                    id: string;
+                    name: string;
+                    /** @description URL-safe identifier, unique within the collection. Changing it keeps the previous value reserved. */
+                    slug?: string;
+                    fields: {
+                        key: string;
+                        label: string;
+                        /** @enum {string} */
+                        type: "short_text" | "long_text" | "rich_text" | "single_select" | "multi_select" | "boolean" | "number" | "date" | "url" | "email" | "phone" | "image" | "image_gallery" | "file" | "reference";
+                        helpText?: string;
+                        options?: {
+                            key: string;
+                            label: string;
+                        }[];
+                    }[];
+                    values: {
+                        [key: string]: string | string[] | boolean | number | {
+                            id: string;
+                            name: string;
+                            contentType: string;
+                            sizeBytes: number;
+                            url: string;
+                        } | {
+                            id: string;
+                            name: string;
+                            contentType: string;
+                            sizeBytes: number;
+                            url: string;
+                        }[];
+                    };
+                }[];
+            };
+            valueDefinitions: components["schemas"]["ScalarProfileCustomFieldDefinition"][];
+            entryDefinitions: components["schemas"]["ScalarProfileCustomFieldDefinition"][];
+            values: {
+                [key: string]: string | number | boolean | string[];
+            };
+            entries: {
+                key: string;
+                values: {
+                    [key: string]: string | number | boolean | string[];
+                };
+            }[];
         };
         Resume: {
             /** @enum {string} */
@@ -6256,6 +6849,10 @@ export interface components {
             /** Format: date-time */
             savedAt: string;
             job: components["schemas"]["PublicJobCard"];
+        };
+        ScalarProfileCustomFieldDefinition: components["schemas"]["ProfileCustomFieldDefinition"] & {
+            /** @enum {string} */
+            type?: "short_text" | "long_text" | "rich_text" | "single_select" | "multi_select" | "boolean" | "number" | "date" | "url" | "email" | "phone";
         };
         SendWorkEmailBody: {
             /** Format: email */
@@ -6543,6 +7140,11 @@ export interface components {
                 startDate: string | null;
                 endDate: string | null;
             }[];
+            /** @description Values for public candidate custom fields, keyed by field key. Private and unknown fields are omitted. */
+            customFieldValues: {
+                [key: string]: string | number | boolean | string[];
+            };
+            objectReferences: components["schemas"]["ResolvedProfileObjectReference"][];
         };
         TalentList: {
             id: string;
@@ -6622,6 +7224,11 @@ export interface components {
                 name: string;
                 proficiency: string;
             }[];
+            /** @description Values for public candidate custom fields, keyed by field key. Private and unknown fields are omitted. */
+            customFieldValues: {
+                [key: string]: string | number | boolean | string[];
+            };
+            objectReferences: components["schemas"]["ResolvedProfileObjectReference"][];
         };
         TalentUnlock: {
             /** @enum {string} */
@@ -9211,6 +9818,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicJobAlertManageResult"];
+                };
+            };
+            /** @description An error. Every non-2xx response uses the same envelope; see the Errors section of the introduction. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listPublicJobCollectionChoices: {
+        parameters: {
+            query?: {
+                search?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                fieldKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paginated active records from the collection assigned to this job field. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobCollectionChoiceList"];
                 };
             };
             /** @description An error. Every non-2xx response uses the same envelope; see the Errors section of the introduction. */
@@ -12326,6 +12970,130 @@ export interface operations {
             };
         };
     };
+    getMyCompanyCustomFieldValues: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Profile custom-field definitions and current values. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileFieldValuesResponse"];
+                };
+            };
+            /** @description A valid board-user access token is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Approved company membership is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board or company not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateMyCompanyCustomFieldValues: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileFieldValuesBody"];
+            };
+        };
+        responses: {
+            /** @description Profile custom-field definitions and current values. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileFieldValuesResponse"];
+                };
+            };
+            /** @description A valid board-user access token is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Approved company membership is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board or company not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     listBoardMeCompanyInvites: {
         parameters: {
             query?: never;
@@ -12759,7 +13527,7 @@ export interface operations {
                     "application/json": components["schemas"]["EmployerJob"];
                 };
             };
-            /** @description Validation failed (`validation_bad_request`). */
+            /** @description Validation failed (`validation_bad_request`), or the job violates the board's Job form configuration — a required built-in field missing, an option outside the allowed set, or, when `customFieldValues` is present, a required custom field left empty or a wrong-typed value (`jobs_constraint_violation`). `details.violations` lists each broken rule as `{ code, path, params }`. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -12956,7 +13724,7 @@ export interface operations {
                     "application/json": components["schemas"]["EmployerJob"];
                 };
             };
-            /** @description Validation failed. */
+            /** @description Validation failed, or the update breaks the board's Job form configuration (`jobs_constraint_violation`). Each field group the request sends (salary, seniority, employment type, work arrangement, office locations, remote eligibility, custom fields) is checked against the updated job; groups it omits are not re-checked. `details.violations` lists each broken rule as `{ code, path, params }`. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -13731,6 +14499,168 @@ export interface operations {
             };
             /** @description Rate limited. */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getMyCompanyObjectReferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Profile catalog definitions and resolved selections. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileObjectReferencesResult"];
+                };
+            };
+            /** @description Invalid selection or field value. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A valid board-user access token is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Profile access is not permitted. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board or company not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    replaceMyCompanyObjectReferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplaceProfileObjectReferenceSelectionsBody"];
+            };
+        };
+        responses: {
+            /** @description Profile catalog definitions and resolved selections. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileObjectReferencesResult"];
+                };
+            };
+            /** @description Invalid selection or field value. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A valid board-user access token is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Profile access is not permitted. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board or company not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listMyCompanyObjectReferenceChoices: {
+        parameters: {
+            query: {
+                search?: string;
+                cursor?: string;
+                limit?: number;
+                fieldKey: string;
+            };
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Choices available to the authenticated profile owner, including editable private fields. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileChoiceList"];
+                };
+            };
+            /** @description An error. Every non-2xx response uses the same envelope; see the Errors section of the introduction. */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -16477,6 +17407,128 @@ export interface operations {
             };
         };
     };
+    getMyCandidateCustomFieldValues: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Profile custom-field definitions and current values. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileFieldValuesResponse"];
+                };
+            };
+            /** @description A valid board-user access token is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A candidate profile is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateMyCandidateCustomFieldValues: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileFieldValuesBody"];
+            };
+        };
+        responses: {
+            /** @description Profile custom-field definitions and current values. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileFieldValuesResponse"];
+                };
+            };
+            /** @description A valid board-user access token is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A candidate profile is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     listBoardMeProfileEducation: {
         parameters: {
             query?: never;
@@ -17212,6 +18264,165 @@ export interface operations {
             };
             /** @description Rate limited. */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getMyCandidateObjectReferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Profile catalog definitions and resolved selections. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileObjectReferencesResult"];
+                };
+            };
+            /** @description Invalid selection or field value. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A valid board-user access token is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Profile access is not permitted. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board or company not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    replaceMyCandidateObjectReferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplaceProfileObjectReferenceSelectionsBody"];
+            };
+        };
+        responses: {
+            /** @description Profile catalog definitions and resolved selections. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileObjectReferencesResult"];
+                };
+            };
+            /** @description Invalid selection or field value. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A valid board-user access token is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Profile access is not permitted. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board or company not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listMyCandidateObjectReferenceChoices: {
+        parameters: {
+            query: {
+                search?: string;
+                cursor?: string;
+                limit?: number;
+                fieldKey: string;
+            };
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Choices available to the authenticated profile owner, including editable private fields. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileChoiceList"];
+                };
+            };
+            /** @description An error. Every non-2xx response uses the same envelope; see the Errors section of the introduction. */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -18301,7 +19512,7 @@ export interface operations {
         parameters: {
             query?: {
                 /**
-                 * @description Location autocomplete query. When provided with ≥2 characters, returns the top name matches (prefix matches ranked first) instead of the full directory; under 2 characters returns an empty list.
+                 * @description Location autocomplete query. When provided with ≥2 characters after diacritic folding, returns the top matches against display name (substring) and slug (prefix), with prefix matches ranked first; under 2 folded characters returns an empty list.
                  * @example lon
                  */
                 q?: string;
@@ -18414,6 +19625,77 @@ export interface operations {
             };
             /** @description Public board not found, or the board is private. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    retrievePublicProfileFields: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                entity: "candidate" | "company";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Public definitions only; excludes private nested fields and archived catalogs. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicProfileFields"];
+                };
+            };
+            /** @description An error. Every non-2xx response uses the same envelope; see the Errors section of the introduction. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listPublicProfileFieldChoices: {
+        parameters: {
+            query?: {
+                search?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                entity: "candidate" | "company";
+                fieldKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paginated public field choices. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileChoiceList"];
+                };
+            };
+            /** @description An error. Every non-2xx response uses the same envelope; see the Errors section of the introduction. */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -19313,6 +20595,16 @@ export interface operations {
                 permitCountry?: string;
                 /** @description Accepted; no-op until interested roles are on the talent payload. */
                 interestedRole?: string;
+                /** @description JSON-encoded array of public candidate custom-field clauses. Clauses are AND-matched and values within a clause are OR-matched. */
+                customFields?: {
+                    key: string;
+                    values: (string | number | boolean)[];
+                }[];
+                /** @description JSON-encoded array of public candidate catalog-reference clauses. Clauses are AND-matched and record IDs within a clause are OR-matched. */
+                objectReferences?: {
+                    key: string;
+                    recordIds: string[];
+                }[];
             };
             header?: never;
             path: {

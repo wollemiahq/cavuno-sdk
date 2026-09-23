@@ -39,6 +39,25 @@ await board.me.companies.revokeInvite('acme', invites[0].id);
 const { companySlug } = await board.me.acceptInvite({ token });
 ```
 
+## Render the company profile form
+
+`board.context().forms.company` is the company profile form as one ordered list, set by the operator. Use it for `board.me.companies.create` and `update`: render in order, skip entries with `visible: false`, and validate `required` in the form before saving.
+
+```ts snippet
+const { forms } = await board.context();
+
+for (const field of forms.company) {
+  if (!field.visible) continue;
+  if (field.kind === 'builtin') {
+    renderCompanyBuiltin(field.key, { required: field.required });
+  } else if (field.definition.editableByOwner) {
+    renderCompanyField(field, { required: field.required });
+  }
+}
+```
+
+Built-in keys `name`, `website`, `summary`, `xUrl`, `linkedinUrl`, `facebookUrl`, and `description` are the same-named body fields of `create` / `update`; `logo` is `board.me.companies.uploadLogo`. `name` is locked (always shown and required). Skip a built-in key you do not recognise. `custom` entries write through `updateCustomFields` and `collection` entries through `updateObjectReferences`; both carry their public `definition` inline, and only `editableByOwner` definitions are inputs. See `cavuno-board-account` for those write rules.
+
 ## List and search
 
 `companies.list` returns `CompanyListEnvelope`: `ListEnvelope<PublicCompany>`
@@ -146,6 +165,7 @@ one. Gate a Salaries tab with `company.salarySampleCount > 0` from
 
 Finish only after every applicable check passes:
 
+- The company form follows `forms.company`: order matches, hidden fields are absent, and required fields block save while empty.
 - A known company is a `public_company`; only its retrieve response has a
   `markets` array.
 - A listed market slug works as `marketSlug`, while an invented one produces a

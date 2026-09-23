@@ -123,6 +123,37 @@ describe('board.me', () => {
     expect(spy.mock.calls[0]![1]!.body).toBe('{"headline":"Staff Engineer"}');
   });
 
+  it('profile custom-field methods use the owner profile resource', async () => {
+    const spy = stubFetch(jsonResponse({ definitions: [], values: {} }));
+    const board = await makeAuthedBoard();
+
+    await board.me.profile.retrieveCustomFields();
+    await board.me.profile.updateCustomFields({ values: { active: false } });
+
+    expect(spy.mock.calls[0]![0]).toBe(`${BASE}/me/profile/custom-fields`);
+    expect(spy.mock.calls[1]![0]).toBe(`${BASE}/me/profile/custom-fields`);
+    expect(spy.mock.calls[1]![1]!.method).toBe('PATCH');
+    expect(spy.mock.calls[1]![1]!.body).toBe('{"values":{"active":false}}');
+  });
+
+  it('company custom-field methods encode the company slug', async () => {
+    const spy = stubFetch(jsonResponse({ definitions: [], values: {} }));
+    const board = await makeAuthedBoard();
+
+    await board.me.companies.retrieveCustomFields('company/slug');
+    await board.me.companies.updateCustomFields('company/slug', {
+      values: { years: 0, note: null },
+    });
+
+    expect(spy.mock.calls[0]![0]).toBe(
+      `${BASE}/me/companies/company%2Fslug/custom-fields`,
+    );
+    expect(spy.mock.calls[1]![1]!.method).toBe('PATCH');
+    expect(spy.mock.calls[1]![1]!.body).toBe(
+      '{"values":{"years":0,"note":null}}',
+    );
+  });
+
   it('profile.handleAvailable GETs /me/profile/handle-available?handle=', async () => {
     const spy = stubFetch(
       jsonResponse({
@@ -425,11 +456,35 @@ describe('board.me', () => {
     expect(spy.mock.calls[0]![0]).toBe(`${BASE}/me/companies/search?q=acme`);
   });
 
+  it('profile object-reference methods use the owner routes', async () => {
+    const spy = stubFetch(jsonResponse({ definitions: [], selections: [] }));
+    const board = await makeAuthedBoard();
+    await board.me.profile.retrieveObjectReferences();
+    await board.me.profile.updateObjectReferences({
+      selections: [{ fieldKey: 'cohort', recordId: 'rec_1' }],
+    });
+    expect(spy.mock.calls[0]![0]).toBe(`${BASE}/me/profile/object-references`);
+    expect(spy.mock.calls[1]![1]!.method).toBe('PUT');
+  });
+
   it('companies.list GETs /me/companies', async () => {
     const spy = stubFetch(jsonResponse({ object: 'list', data: [] }));
     const board = await makeAuthedBoard();
     await board.me.companies.list();
     expect(spy.mock.calls[0]![0]).toBe(`${BASE}/me/companies`);
+  });
+
+  it('company object-reference methods encode the company slug', async () => {
+    const spy = stubFetch(jsonResponse({ definitions: [], selections: [] }));
+    const board = await makeAuthedBoard();
+    await board.me.companies.retrieveObjectReferences('acme/labs');
+    await board.me.companies.updateObjectReferences('acme/labs', {
+      selections: [{ fieldKey: 'investor', recordId: 'rec_1' }],
+    });
+    expect(spy.mock.calls[0]![0]).toBe(
+      `${BASE}/me/companies/acme%2Flabs/object-references`,
+    );
+    expect(spy.mock.calls[1]![1]!.method).toBe('PUT');
   });
 
   it('companies.create POSTs { name, website }', async () => {
@@ -1093,6 +1148,24 @@ describe('board.me.resume', () => {
 });
 
 describe('board.me.access (candidate paywall)', () => {
+  it('passes an opaque key from the offers response unchanged into checkout', async () => {
+    const offerKey = 'plan_candidate_monthly';
+    const spy = stubFetch(jsonResponse({ data: [{ offerKey }] }));
+    const board = await makeAuthedBoard();
+    const { data: offers } = await board.paywall.offers();
+    await board.me.access.checkout({
+      offerKey: offers[0]!.offerKey,
+      returnPath: '/account/access',
+      colorMode: 'light',
+    });
+    expect(spy.mock.calls[1]![0]).toBe(`${BASE}/me/access/checkout`);
+    expect(JSON.parse(spy.mock.calls[1]![1]!.body as string)).toEqual({
+      offerKey,
+      returnPath: '/account/access',
+      colorMode: 'light',
+    });
+  });
+
   it('checkout POSTs the offer body to /me/access/checkout with the bearer token', async () => {
     const spy = stubFetch(jsonResponse({ object: 'checkout_session' }));
     const board = await makeAuthedBoard();
