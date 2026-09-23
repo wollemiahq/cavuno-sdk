@@ -108,6 +108,7 @@ describe('board.context()', () => {
         employmentType: { allowedOptions: [] },
       },
       customFields: {
+        jobCollections: [],
         job: [
           {
             key: 'security_clearance',
@@ -120,6 +121,33 @@ describe('board.context()', () => {
             required: false,
           },
         ],
+      },
+      forms: {
+        job: [
+          {
+            kind: 'builtin',
+            key: 'title',
+            visible: true,
+            required: true,
+            locked: true,
+            lockReason: 'google_required',
+          },
+          {
+            kind: 'custom',
+            key: 'security_clearance',
+            visible: true,
+            required: false,
+            definition: {
+              key: 'security_clearance',
+              label: 'Security clearance',
+              type: 'single_select',
+              options: [{ key: 'ts_sci', label: 'TS/SCI' }],
+              required: false,
+            },
+          },
+        ],
+        company: [],
+        talent: [],
       },
       talentAccessModel: null,
       posting: { requiresMembership: false },
@@ -139,6 +167,8 @@ describe('board.context()', () => {
     expect(result).toEqual(context);
     // The definitions survive the pass-through byte-for-byte.
     expect(result.customFields).toEqual(context.customFields);
+    // So does the ordered form layout.
+    expect(result.forms).toEqual(context.forms);
   });
 });
 
@@ -275,6 +305,28 @@ describe('board.jobs', () => {
       limit: 5,
     });
   });
+
+  it('serializes typed custom job filters without losing false or zero', async () => {
+    const spy = stubFetch({ object: 'search_result', data: [] });
+    await makeBoard().jobs.search({
+      filters: {
+        customFields: [
+          { key: 'remote', values: [false] },
+          { key: 'score', values: [0] },
+          { key: 'level', values: ['senior', 'staff'] },
+        ],
+      },
+    });
+    expect(JSON.parse(spy.mock.calls[0]![1]!.body as string)).toEqual({
+      filters: {
+        customFields: [
+          { key: 'remote', values: [false] },
+          { key: 'score', values: [0] },
+          { key: 'level', values: ['senior', 'staff'] },
+        ],
+      },
+    });
+  });
 });
 
 describe('board.companies', () => {
@@ -311,6 +363,18 @@ describe('board.companies', () => {
     expect(sentUrl(spy, 0)).toContain('limit=5');
     expect(sentUrl(spy, 1)).toBe(`${BASE}/companies/search`);
     expect(sentUrl(spy, 2)).toBe(`${BASE}/companies/markets/cybersecurity`);
+  });
+
+  it('POSTs company custom fields and object references', async () => {
+    const spy = stubFetch();
+    await makeBoard().companies.search({
+      customFields: [{ key: 'stage', values: ['series_a', 'series_b'] }],
+      objectReferences: [{ key: 'investors', recordIds: ['rec_1'] }],
+    });
+    expect(JSON.parse(spy.mock.calls[0]![1]!.body as string)).toEqual({
+      customFields: [{ key: 'stage', values: ['series_a', 'series_b'] }],
+      objectReferences: [{ key: 'investors', recordIds: ['rec_1'] }],
+    });
   });
 
   it('passes the detail markets, list relatedSearches, and market resolution through unchanged', async () => {
@@ -609,6 +673,7 @@ describe('method conventions', () => {
       skills: [{ slug: 'typescript', name: 'TypeScript' }],
       placeHierarchy: [{ slug: 'germany', name: 'Germany' }],
       customFieldValues: { security_clearance: 'ts_sci', team_size: 12 },
+      resolvedCollectionFields: [],
       links: { public: null },
     };
     expect(fixture.object).toBe('public_job');
@@ -830,6 +895,21 @@ describe('board.talent', () => {
     expect(sentUrl(spy, 0)).toBe(`${BASE}/talent?q=eng&skill=react&limit=5`);
     expect(spy.mock.calls[0]![1]?.method ?? 'GET').toBe('GET');
     expect(sentUrl(spy, 1)).toBe(`${BASE}/talent/jane%20doe%2Fz%C3%BCrich`);
+  });
+
+  it('JSON-encodes talent custom filters into flat query parameters', async () => {
+    const spy = stubFetch();
+    await makeBoard().talent.list({
+      customFields: [{ key: 'available', values: [false, 0] }],
+      objectReferences: [{ key: 'cohort', recordIds: ['rec_1', 'rec_2'] }],
+    });
+    const url = new URL(sentUrl(spy));
+    expect(JSON.parse(url.searchParams.get('customFields')!)).toEqual([
+      { key: 'available', values: [false, 0] },
+    ]);
+    expect(JSON.parse(url.searchParams.get('objectReferences')!)).toEqual([
+      { key: 'cohort', recordIds: ['rec_1', 'rec_2'] },
+    ]);
   });
 
   it('passes the profile + directory list through unchanged', async () => {

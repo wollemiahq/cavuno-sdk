@@ -9,6 +9,8 @@ import type {
 } from '../types/apply-intents';
 import type { ListEnvelope } from '../types/common';
 import type {
+  JobCollectionChoiceList,
+  JobCollectionChoiceQuery,
   JobCardListEnvelope,
   JobCardSearchEnvelope,
   JobsListQuery,
@@ -21,6 +23,18 @@ import type { Application, ApplyBody } from '../types/me';
 
 export function jobsNamespace(client: BoardClient) {
   return {
+    /** List active entries available to a job collection field. Follow nextCursor for more. */
+    collectionChoices(
+      fieldKey: string,
+      query?: JobCollectionChoiceQuery,
+      options?: FetchOptions,
+    ) {
+      return client.fetch<JobCollectionChoiceList>(
+        `/job-fields/${encodeURIComponent(fieldKey)}/choices`,
+        { ...options, query },
+      );
+    },
+
     /**
      * List published jobs.
      *
@@ -60,7 +74,7 @@ export function jobsNamespace(client: BoardClient) {
      * @example
      * const { data } = await board.jobs.search({
      *   query: 'chef',
-     *   filters: { seniority: ['senior'] },
+     *   filters: { seniority: ['senior'], categories: ['engineering'] },
      * });
      */
     search(
