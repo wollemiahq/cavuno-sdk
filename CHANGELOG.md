@@ -3,6 +3,95 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.27.0 — 2026-09-23
+
+- **Collections and profile fields.** Company and talent responses carry
+  public `customFieldValues` and resolved collection selections in
+  `objectReferences`: title, description, logo, slug, the entry's public
+  fields and the profile's own details. `board.profileFields.retrieve` and
+  `board.profileFields.choices` list the public definitions and active
+  choices, and the signed-in owner methods on `board.me` read and update
+  editable fields and selections.
+- **Collection fields on jobs.** Jobs return `resolvedCollectionFields`, with
+  each selected entry's `title` and `description` already resolved for that
+  job. `board.jobs.collectionChoices` lists a field's active choices. When a
+  field sets `allowOverrides`, operator and employer job writes accept
+  `collectionOverrides` to give a selected entry its own plain-text title and
+  description; on `PATCH`, an omitted list keeps the stored wording and `[]`
+  clears it.
+- **Form layouts.** The board context's `forms` lists the job, company and
+  talent form fields in the operator's order, with visibility and required
+  flags, so a frontend can render forms the way the board is configured.
+  Operators read and replace layouts with `GET` and `PUT
+  /settings/form-layouts`.
+- **Deprecated:** writing `logoUrl` on collection records. Mark an image
+  field as the collection's logo with `logoFieldKey` instead. Resolved
+  selections, job entries and choices still return `logoUrl`.
+
+- **Custom fields on the employer job surface.** `POST` and `PATCH
+  /boards/{identifier}/me/companies/{slug}/jobs` accept `customFieldValues`,
+  the board-defined custom fields keyed by field `key`, with the same
+  additive write semantics as the operator job endpoints (`null` / `""` /
+  `[]` clear a key, omitted keys are preserved, unknown keys are ignored).
+  Every employer job read (`EmployerJobSummary`, `EmployerJob`) now carries
+  `customFieldValues` (`{}` when empty) so an edit form can prefill them. The
+  definitions to render — label, type, option keys, required — are the
+  board context's `customFields.job`. Writes are validated against the
+  board's Job form configuration: a required custom field left empty, a
+  wrong-typed value or an undefined option is rejected with `400
+  jobs_constraint_violation`. On employer create, custom fields are checked
+  only when the request carries `customFieldValues` (an empty object counts),
+  so a client that does not yet send them is not rejected for a custom field
+  it cannot supply. Employer creates are now held to the board's built-in Job
+  form rules (required salary or seniority, allowed options, allowed
+  countries) on the server as well, with the same error.
+- **Job updates are checked against the board's Job form rules.** `PATCH
+  /jobs/{id}` and the employer job `PATCH` check each field group the request
+  sends (salary, seniority, employment type, work arrangement, office
+  locations, remote eligibility, custom fields) against the updated job, so
+  clearing a required salary or moving a job onto a work arrangement the board
+  does not allow is refused with `400 jobs_constraint_violation`. Groups the
+  request omits are not re-checked, so a job that predates a rule stays
+  editable.
+- **The default work arrangement is checked too.** A job saved with an
+  office location but no `remoteOption` is stored as `on_site`. Creates and
+  updates now check that saved value against the board's allowed work
+  arrangements, so on a board that does not allow `on_site` such a write is
+  refused with `400 jobs_constraint_violation` instead of saving an on-site
+  job. This applies to any edit of an existing job that has an office
+  location but no work arrangement, even one that changes only other fields:
+  send an allowed `remoteOption` with it.
+- **`jobs_constraint_violation` errors carry structured details.**
+  `error.details.violations` lists each broken rule as `{ code, path, params }`
+  (for example `{ code: "custom_field_required", path: ["customFieldValues",
+  "team"] }`), so a client can show its own localized message.
+
+- **`cavuno-board doctor`**: the new `read.attribution` check uses the board's
+  `showCavunoBranding` setting to require a real Cavuno backlink when branding
+  is enabled. Marker attributes, scripts, templates and explicitly hidden
+  markup do not count. Branding disabled permits the link to be absent;
+  unreadable branding settings fail verification. This HTML diagnostic does
+  not evaluate external stylesheets or client-side changes.
+
+- **Blocking a company can also remove it from the board.** `POST
+  /companies/{id}/block` accepts an optional `remove` flag. Left off, blocking
+  behaves as before: the public profile stays up and currently published jobs
+  are archived. Set to `true`, the company's jobs and its profile are taken off
+  the board — its directory, sitemap, and search entries go with them — while
+  the company stays on the blocklist, so automated sourcing cannot bring it
+  back. Sending `remove: true` for a company that is already blocked upgrades it
+  to that outcome.
+- **New fields on the block result**: `removed` reports the resulting state and
+  `removal_scheduled` reports whether this call started the removal.
+- **New field on the unblock result**: `was_removed` reports whether the company
+  had also been taken off the board. Unblocking such a company brings it back as
+  an empty profile; its jobs are not restored.
+- **Deleting a blocked company no longer unblocks it.** `DELETE
+  /companies/{id}` on a company that is on the blocklist keeps the block and
+  removes the company from the board instead of purging it. To purge one
+  completely, unblock it first and then delete it. Deleting a company that is
+  not blocked is unchanged, and the response is still `204`.
+
 ## 4.26.0 — 2026-09-07
 
 - **`board.me.talentAccess.claim()`** claims a public free `talent_access`

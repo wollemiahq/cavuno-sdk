@@ -1,6 +1,6 @@
 ---
 name: cavuno-board-companies
-description: Company catalog reads with @cavuno/board. Use for company indexes, market archives, profiles, company job rails, similar companies, or company salary pages.
+description: Company catalog reads with @cavuno/board. Use for company indexes, market archives, profiles, company job rails, similar companies, company salary pages, or employer job drafts.
 ---
 
 # Companies
@@ -38,6 +38,47 @@ await board.me.companies.createInvite('acme', { email: 'ada@acme.test' });
 await board.me.companies.revokeInvite('acme', invites[0].id);
 const { companySlug } = await board.me.acceptInvite({ token });
 ```
+
+An approved member drafts jobs with `board.me.companies.jobs.create`. The body
+must carry `remoteOption` (`on_site`, `hybrid`, or `remote`): `on_site` and
+`hybrid` also need `officeLocations`, and `remote` needs `remotePermits`. A
+salary is optional, but a `salaryMin` or `salaryMax` needs both
+`salaryCurrency` and `salaryTimeframe`. `update` cannot clear `remoteOption`,
+and an update that sends salary fields is checked against the stored salary.
+Each violation is a 400 `validation_bad_request` naming the field.
+
+```ts snippet
+const draft = await board.me.companies.jobs.create('acme', {
+  title: 'Staff Engineer',
+  description: 'Build the platform.',
+  remoteOption: 'remote',
+  remotePermits: [{ type: 'worldwide', value: 'worldwide' }],
+  salaryMin: 150000,
+  salaryMax: 190000,
+  salaryCurrency: 'USD',
+  salaryTimeframe: 'per_year',
+});
+await board.me.companies.jobs.update('acme', draft.id, { salaryMax: 200000 });
+```
+
+## Render the company profile form
+
+`board.context().forms.company` is the company profile form as one ordered list, set by the operator. Use it for `board.me.companies.create` and `update`: render in order, skip entries with `visible: false`, and validate `required` in the form before saving.
+
+```ts snippet
+const { forms } = await board.context();
+
+for (const field of forms.company) {
+  if (!field.visible) continue;
+  if (field.kind === 'builtin') {
+    renderCompanyBuiltin(field.key, { required: field.required });
+  } else if (field.definition.editableByOwner) {
+    renderCompanyField(field, { required: field.required });
+  }
+}
+```
+
+Built-in keys `name`, `website`, `summary`, `xUrl`, `linkedinUrl`, `facebookUrl`, and `description` are the same-named body fields of `create` / `update`; `logo` is `board.me.companies.uploadLogo`. `name` is locked (always shown and required). Skip a built-in key you do not recognise. `custom` entries write through `updateCustomFields` and `collection` entries through `updateObjectReferences`; both carry their public `definition` inline, and only `editableByOwner` definitions are inputs. See `cavuno-board-account` for those write rules.
 
 ## List and search
 
@@ -146,6 +187,7 @@ one. Gate a Salaries tab with `company.salarySampleCount > 0` from
 
 Finish only after every applicable check passes:
 
+- The company form follows `forms.company`: order matches, hidden fields are absent, and required fields block save while empty.
 - A known company is a `public_company`; only its retrieve response has a
   `markets` array.
 - A listed market slug works as `marketSlug`, while an invented one produces a

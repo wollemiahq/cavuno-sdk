@@ -20,9 +20,20 @@ export function talentNamespace(client: BoardClient) {
      * const { data } = await board.talent.list({ skill: 'react', limit: 20 });
      */
     list(query?: TalentDirectoryQuery, options?: FetchOptions) {
+      const serializedQuery = query
+        ? {
+            ...query,
+            customFields: query.customFields
+              ? JSON.stringify(query.customFields)
+              : undefined,
+            objectReferences: query.objectReferences
+              ? JSON.stringify(query.objectReferences)
+              : undefined,
+          }
+        : undefined;
       return client.fetch<TalentDirectoryListEnvelope>('/talent', {
         ...options,
-        query,
+        query: serializedQuery,
       });
     },
 

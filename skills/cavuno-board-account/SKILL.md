@@ -1,6 +1,6 @@
 ---
 name: cavuno-board-account
-description: Candidate self-service boundary with @cavuno/board. Use for account, profile, resume onboarding, recommended jobs, avatar, experience, education, skills, languages, or notification preferences.
+description: Candidate self-service boundary with @cavuno/board. Use for account, profile, custom profile fields, collection selections, resume onboarding, recommended jobs, avatar, experience, education, skills, languages, or notification preferences.
 ---
 
 # Candidate self-service boundary
@@ -40,6 +40,97 @@ const { available } = await board.me.profile.handleAvailable('jane');
 ```
 
 Profile updates are merge-patches. Handle availability is advisory—your current handle counts as available—and the write re-checks uniqueness.
+
+## Render the profile form from the operator's layout
+
+`board.context().forms.talent` is the candidate profile form as one ordered list, set by the operator. Render it in order and skip entries with `visible: false`. Each entry has `required`; validate it in the form before saving.
+
+```ts snippet
+const { forms } = await board.context();
+
+for (const field of forms.talent) {
+  if (!field.visible) continue;
+  if (field.kind === 'builtin') {
+    renderProfileBuiltin(field.key, { required: field.required });
+  } else if (field.definition.editableByOwner) {
+    renderProfileField(field, { required: field.required });
+  }
+}
+```
+
+Built-in keys map to the methods below: `name` → `displayName` and `headline`, `location`, `jobSearchStatus`, `bio` → `profile.update`; `email` → `requestEmailChange`; `avatar` → `uploadAvatar`; `experience` and `education` → their CRUD methods; `skills` and `languages` → `updateSkills` / `updateLanguages`. `name` and `email` are locked (always shown and required). Skip a built-in key you do not recognise.
+
+`custom` entries are scalar profile fields (`updateCustomFields`) and `collection` entries are collection fields (`updateObjectReferences`); both carry their public `definition` inline. Render only definitions with `editableByOwner: true` as inputs. The layout lists public fields only; private owner-editable fields come from `retrieveCustomFields` and `retrieveObjectReferences` below. A collection definition with `required: true` needs at least one selection while shown.
+
+## Custom fields and collection selections
+
+Scalar custom-field updates are additive. Render controls from the returned definitions, preserve their value types, and send only owner-editable keys. Omitted keys remain unchanged.
+
+Collection-selection updates replace the complete editable set. Read before writing when the user means to retain existing selections. Each resolved selection includes its display title, optional description and logo, shared attributes, and profile-specific details. Use `listObjectReferenceChoices` to search the active choices for one editable field; do not guess record IDs from names.
+
+```ts snippet
+const customFields = await board.me.profile.retrieveCustomFields();
+await board.me.profile.updateCustomFields({
+  values: { membership_number: 'A-1234' },
+});
+
+const references = await board.me.profile.retrieveObjectReferences();
+const choices = await board.me.profile.listObjectReferenceChoices(
+  'certifications',
+  { search: 'professional', limit: 20 });
+await board.me.profile.updateObjectReferences({
+  selections: [
+    ...references.selections
+      .filter((selection) => selection.fieldKey !== 'certifications')
+      .map(({ fieldKey, recordId, values, entries }) => ({
+        fieldKey,
+        recordId,
+        values,
+        entries,
+      })),
+    {
+      fieldKey: 'certifications',
+      recordId: choices.data[0]!.id,
+    },
+  ],
+});
+```
+
+Approved company members use the parallel company methods. The company slug comes before the body or field key.
+
+```ts snippet
+const companyFields = await board.me.companies.retrieveCustomFields('acme');
+await board.me.companies.updateCustomFields('acme', {
+  values: { founded_year: 2018 },
+});
+
+const companyReferences =
+  await board.me.companies.retrieveObjectReferences('acme');
+const technologies =
+  await board.me.companies.listObjectReferenceChoices(
+    'acme',
+    'technologies',
+    { search: 'typescript', limit: 20 });
+await board.me.companies.updateObjectReferences('acme', {
+  selections: [
+    ...companyReferences.selections
+      .filter((selection) => selection.fieldKey !== 'technologies')
+      .map(({ fieldKey, recordId, values, entries }) => ({
+        fieldKey,
+        recordId,
+        values,
+        entries,
+      })),
+    {
+      fieldKey: 'technologies',
+      recordId: technologies.data[0]!.id,
+      values: { years: 4 },
+    },
+  ],
+});
+```
+
+Collection creation, collection entry mutation, and bulk imports are operator API operations. Keep that API key on the server; the Board SDK intentionally exposes only public discovery and signed-in owner reads and writes.
 
 ## Experience and education
 
@@ -161,7 +252,10 @@ await board.me.notificationPreferences.unsubscribeWithToken({
 
 ## Completion gate
 
+- The profile form follows `forms.talent`: order matches, hidden fields are absent, and required fields block save while empty.
 - Profile update is visible after retrieval.
+- Scalar field updates preserve omitted values; collection selection updates preserve every selection the user meant to keep.
+- Choice searches use the returned record `id`, and an optional returned `logoUrl` renders without a separate logo map.
 - Adding a skill preserves every existing skill.
 - Uploaded `avatarUrl` renders.
 - Resume parsing reaches `parsed`, reports `parseFailureReason`, or reaches the explicit delayed state without blocking editing.

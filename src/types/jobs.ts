@@ -8,6 +8,16 @@
 import type { Schemas } from './_spec';
 import type { ListEnvelope, SearchEnvelope } from './common';
 
+export type JobCollectionChoiceList = Schemas['JobCollectionChoiceList'];
+export type JobCollectionFieldDefinition =
+  Schemas['JobCollectionFieldDefinition'];
+export type ResolvedJobCollectionField = Schemas['ResolvedJobCollectionField'];
+export type JobCollectionChoiceQuery = {
+  search?: string;
+  cursor?: string;
+  limit?: number;
+};
+
 export type PublicJob = Schemas['PublicJob'];
 export type PublicJobCard = Schemas['PublicJobCard'];
 
@@ -88,4 +98,13 @@ export type JobsSimilarQuery = {
   limit?: number;
 };
 
-export type JobsSearchBody = Schemas['PublicSearchJobsBody'];
+export type CustomFilterValue = string | number | boolean;
+export type CustomFieldFilter = { key: string; values: CustomFilterValue[] };
+export type ObjectReferenceFilter = { key: string; recordIds: string[] };
+
+type GeneratedJobsSearchBody = Schemas['PublicSearchJobsBody'];
+export type JobsSearchBody = Omit<GeneratedJobsSearchBody, 'filters'> & {
+  filters?: NonNullable<GeneratedJobsSearchBody['filters']> & {
+    customFields?: CustomFieldFilter[];
+  };
+};

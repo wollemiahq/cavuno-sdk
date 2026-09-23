@@ -73,7 +73,7 @@ const BOARD = {
     clientId: null,
     defaultSlotId: null,
   },
-  customFields: { job: [] },
+  customFields: { job: [], jobCollections: [] },
   jobForm: {
     salary: {
       visible: true,
@@ -88,6 +88,7 @@ const BOARD = {
     workArrangement: { allowedOptions: [] },
     employmentType: { allowedOptions: [] },
   },
+  forms: { job: [], company: [], talent: [] },
   talentAccessModel: null,
   posting: { requiresMembership: false },
   contact: {
@@ -159,6 +160,7 @@ const JOB = {
   placeHierarchy: [{ slug: 'germany', name: 'Germany' }],
   links: { public: null },
   customFieldValues: {},
+  resolvedCollectionFields: [],
 } satisfies PublicJob;
 
 const SHARE_URL =

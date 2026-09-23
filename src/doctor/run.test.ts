@@ -41,7 +41,9 @@ describe('runDoctor tiers 1-2', () => {
   it('uses the production API when PUBLIC_CAVUNO_API_URL is omitted', async () => {
     const fetchImpl = fetchStub({
       '/openapi.json': { body: '{"openapi":"3.1.0"}' },
-      '/v1/boards/': { body: '{"board":{"name":"Example board"}}' },
+      '/v1/boards/': {
+        body: '{"name":"Example board","showCavunoBranding":false}',
+      },
     });
 
     const { results } = await runDoctor({
@@ -67,7 +69,9 @@ describe('runDoctor tiers 1-2', () => {
   it('all read probes pass against a healthy frontend', async () => {
     const fetchImpl = fetchStub({
       '/openapi.json': { body: '{"openapi":"3.1.0"}' },
-      '/v1/boards/': { body: '{"board":{"name":"Example board"}}' },
+      '/v1/boards/': {
+        body: '{"name":"Example board","showCavunoBranding":false}',
+      },
       '/sitemap.xml': {
         body: '<urlset><url><loc>https://canonical-prod.example/jobs</loc></url></urlset>',
       },
@@ -121,9 +125,12 @@ describe('runDoctor tiers 1-2', () => {
         return new Response('{"openapi":"3.1.0"}', { status: 200 });
       }
       if (url.includes('/v1/boards/')) {
-        return new Response('{"board":{"name":"Example board"}}', {
-          status: 200,
-        });
+        return new Response(
+          '{"name":"Example board","showCavunoBranding":false}',
+          {
+            status: 200,
+          },
+        );
       }
       if (url.endsWith('/robots.txt')) {
         return new Response('User-agent: *\nDisallow: /go/\n', { status: 200 });
@@ -145,7 +152,9 @@ describe('runDoctor tiers 1-2', () => {
   it('fails loudly when the job page has no JobPosting JSON-LD', async () => {
     const fetchImpl = fetchStub({
       '/openapi.json': { body: '{"openapi":"3.1.0"}' },
-      '/v1/boards/': { body: '{"board":{"name":"Example board"}}' },
+      '/v1/boards/': {
+        body: '{"name":"Example board","showCavunoBranding":false}',
+      },
       '/sitemap.xml': {
         body: '<urlset><url><loc>https://canonical-prod.example/jobs</loc></url></urlset>',
       },
@@ -184,7 +193,7 @@ describe('runDoctor tiers 1-2', () => {
   it('fails static.api on a 200 that is not an OpenAPI document (captive portal)', async () => {
     const fetchImpl = fetchStub({
       '/openapi.json': { body: '<html>Please contact your provider</html>' },
-      '/v1/boards/': { body: '{"board":{}}' },
+      '/v1/boards/': { body: '{"showCavunoBranding":false}' },
     });
     const { results } = await runDoctor({
       env: ENV,
@@ -209,7 +218,9 @@ describe('runDoctor tiers 1-2', () => {
   it('skips the whole read tier (loudly) when no frontend url is given', async () => {
     const fetchImpl = fetchStub({
       '/openapi.json': { body: '{"openapi":"3.1.0"}' },
-      '/v1/boards/': { body: '{"board":{"name":"Example board"}}' },
+      '/v1/boards/': {
+        body: '{"name":"Example board","showCavunoBranding":false}',
+      },
     });
 
     const { summary, results } = await runDoctor({
@@ -241,7 +252,9 @@ describe('runDoctor tiers 1-2', () => {
   it('preserves an /api path prefix in the API URL (mirrors BoardClient basePath)', async () => {
     const fetchImpl = fetchStub({
       '/openapi.json': { body: '{"openapi":"3.1.0"}' },
-      '/v1/boards/': { body: '{"board":{"name":"Example board"}}' },
+      '/v1/boards/': {
+        body: '{"name":"Example board","showCavunoBranding":false}',
+      },
     });
 
     const { results } = await runDoctor({
@@ -268,7 +281,7 @@ describe('static.skills freshness branches', () => {
   const okFetch = () =>
     fetchStub({
       '/openapi.json': { body: '{"openapi":"3.1.0"}' },
-      '/v1/boards/': { body: '{"board":{}}' },
+      '/v1/boards/': { body: '{"showCavunoBranding":false}' },
     });
 
   function rootWithSkill(
@@ -332,7 +345,7 @@ describe('static.cookie-codec wiring', () => {
   it('appears in runDoctor tier-1 results', async () => {
     const fetchImpl = fetchStub({
       '/openapi.json': { body: '{"openapi":"3.1.0"}' },
-      '/v1/boards/': { body: '{"board":{}}' },
+      '/v1/boards/': { body: '{"showCavunoBranding":false}' },
     });
     const { results } = await runDoctor({
       env: ENV,
@@ -357,7 +370,7 @@ describe('static.analytics-surface wiring', () => {
     );
     const fetchImpl = fetchStub({
       '/openapi.json': { body: '{"openapi":"3.1.0"}' },
-      '/v1/boards/': { body: '{"board":{}}' },
+      '/v1/boards/': { body: '{"showCavunoBranding":false}' },
     });
 
     const { results, summary } = await runDoctor({
@@ -375,7 +388,7 @@ describe('static.analytics-surface wiring', () => {
   it('defaults the source scan to cwd when projectRoot is omitted', async () => {
     const fetchImpl = fetchStub({
       '/openapi.json': { body: '{"openapi":"3.1.0"}' },
-      '/v1/boards/': { body: '{"board":{}}' },
+      '/v1/boards/': { body: '{"showCavunoBranding":false}' },
     });
     const previousCwd = process.cwd();
     process.chdir(EMPTY_ROOT);
@@ -413,9 +426,12 @@ describe('tier-2 SEO snapshot fetch', () => {
         return new Response(JSON.stringify(seo), { status: 200 });
       }
       if (url.includes('/v1/boards/')) {
-        return new Response('{"board":{"name":"Example board"}}', {
-          status: 200,
-        });
+        return new Response(
+          '{"name":"Example board","showCavunoBranding":false}',
+          {
+            status: 200,
+          },
+        );
       }
       if (url.endsWith('/robots.txt')) {
         return new Response(
