@@ -1018,15 +1018,19 @@ export function meNamespace(client: BoardClient) {
         /**
          * Pay for / publish a held draft. Select billing: a paid plan
          * returns `{ status: 'checkout', checkoutUrl }` (send the buyer there;
-         * the webhook publishes on payment); a free / bundle / subscription plan
-         * publishes immediately (`status: 'published'`); an invoice plan emails a
-         * Stripe invoice (`status: 'invoice_sent'`).
+         * the webhook publishes on payment); a free plan publishes immediately
+         * (`status: 'published'`) unless the board requires free-job approval
+         * (`status: 'pending_approval'`); bundle, subscription, and member-credit
+         * posts always publish immediately; an invoice plan emails a Stripe
+         * invoice (`status: 'invoice_sent'`) or holds an on-issue post for
+         * approval.
          *
          * @example
          * const r = await board.me.companies.jobs.checkout('acme', jobId, {
          *   billing: { type: 'new', planId },
          * });
          * if (r.status === 'checkout') location.href = r.checkoutUrl!;
+         * if (r.status === 'pending_approval') showAwaitingReview(r.jobId);
          */
         checkout(
           slug: string,

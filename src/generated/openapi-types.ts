@@ -1879,7 +1879,7 @@ export interface paths {
         put?: never;
         /**
          * Pay for / publish a held draft
-         * @description Complete a held draft by selecting billing: a paid plan returns a Stripe Checkout URL (the webhook publishes on payment); a free / bundle / subscription plan publishes immediately; an invoice plan emails a Stripe invoice. Requires an approved membership.
+         * @description Complete a held draft by selecting billing: a paid plan returns a Stripe Checkout URL (the webhook publishes on payment); a free plan publishes immediately unless the board requires free-job approval (`pending_approval`); bundle, subscription, and member-credit posts always publish immediately; an invoice plan emails a Stripe invoice, or holds an on-issue post for approval. Requires an approved membership.
          */
         post: operations["createBoardMeCompanyJobCheckout"];
         delete?: never;
@@ -4916,7 +4916,7 @@ export interface components {
             /** @enum {string} */
             object: "employer_checkout";
             /** @enum {string} */
-            status: "checkout" | "published" | "invoice_sent";
+            status: "checkout" | "published" | "pending_approval" | "invoice_sent";
             /** @description The Stripe Checkout / hosted-invoice URL, or `null`. */
             checkoutUrl: string | null;
             jobId: string;
@@ -17278,7 +17278,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Token was issued for a different board. */
+            /** @description Token was issued for a different board, or the caller has no candidate profile, e.g. an employer account (`candidate_profile_required`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -17640,7 +17640,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Token issued for a different board. */
+            /** @description Token issued for a different board, or the caller has no candidate profile, e.g. an employer account (`candidate_profile_required`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -17771,7 +17771,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Token issued for a different board. */
+            /** @description Token issued for a different board, or the caller has no candidate profile, e.g. an employer account (`candidate_profile_required`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -17909,7 +17909,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Token issued for a different board. */
+            /** @description Token issued for a different board, or the caller has no candidate profile, e.g. an employer account (`candidate_profile_required`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -18040,7 +18040,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Token issued for a different board. */
+            /** @description Token issued for a different board, or the caller has no candidate profile, e.g. an employer account (`candidate_profile_required`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -18246,7 +18246,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Token issued for a different board. */
+            /** @description Token issued for a different board, or the caller has no candidate profile, e.g. an employer account (`candidate_profile_required`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -18550,7 +18550,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Token issued for a different board. */
+            /** @description Token issued for a different board, or the caller has no candidate profile, e.g. an employer account (`candidate_profile_required`). */
             403: {
                 headers: {
                     [name: string]: unknown;

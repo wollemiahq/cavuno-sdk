@@ -61,6 +61,17 @@ types, runtime behavior, or supported integration patterns.
   job. This applies to any edit of an existing job that has an office
   location but no work arrangement, even one that changes only other fields:
   send an allowed `remoteOption` with it.
+- **Employer checkout can return `pending_approval`.** When a board requires
+  approval of free jobs, a free employer post (and an invoice post that
+  publishes on issue) is held as a draft for the operator to publish instead
+  of going live, and `POST
+  /boards/{identifier}/me/companies/{slug}/jobs/{id}/checkout` answers
+  `status: "pending_approval"` with the `jobId`. Treat it as "submitted, not
+  live": do not link the job as published. Bundle, subscription and
+  member-credit posts still publish immediately (`status: "published"`), as
+  does a free post on a board without approval. The board operator now also
+  receives the job-submission notification for employer posts, matching the
+  public posting form.
 - **`jobs_constraint_violation` errors carry structured details.**
   `error.details.violations` lists each broken rule as `{ code, path, params }`
   (for example `{ code: "custom_field_required", path: ["customFieldValues",
