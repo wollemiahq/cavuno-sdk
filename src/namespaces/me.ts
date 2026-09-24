@@ -66,6 +66,9 @@ import type {
   ModerationReport,
   MoveApplicantStageBody,
   NotificationPreference,
+  ProfileFieldValues,
+  ProfileObjectReferences,
+  ReplaceProfileObjectReferencesBody,
   ReadReceipt,
   ReorderPipelineStagesBody,
   ReplyBody,
@@ -116,6 +119,7 @@ import type {
   UpdateCompanyMemberRoleBody,
   UpdateNotificationPreferenceBody,
   UpdatePasswordBody,
+  UpdateProfileFieldValuesBody,
   UpdatePipelineStageBody,
   UpdateSkillsBody,
 } from '../types/me';
@@ -127,6 +131,10 @@ import type {
   AccessPortalBody,
   AccessPortalSession,
 } from '../types/paywall';
+import type {
+  ProfileChoiceList,
+  ProfileChoiceQuery,
+} from '../types/profile-fields';
 
 export function meNamespace(client: BoardClient) {
   return {
@@ -229,6 +237,17 @@ export function meNamespace(client: BoardClient) {
      * experience / education / skills / languages collections + avatar.
      */
     profile: {
+      /** List selectable records for an owner-editable catalog field, including private fields. */
+      listObjectReferenceChoices(
+        fieldKey: string,
+        query?: ProfileChoiceQuery,
+        options?: FetchOptions,
+      ) {
+        return client.fetch<ProfileChoiceList>(
+          '/me/profile/object-references/choices',
+          { ...options, query: { ...query, fieldKey } },
+        );
+      },
       /**
        * Retrieve my lean candidate profile.
        *
@@ -260,6 +279,44 @@ export function meNamespace(client: BoardClient) {
           body,
           query,
         });
+      },
+
+      /** Retrieve my profile custom-field definitions and current values. */
+      retrieveCustomFields(options?: FetchOptions) {
+        return client.fetch<ProfileFieldValues>('/me/profile/custom-fields', {
+          ...options,
+        });
+      },
+
+      /** Additively update my editable candidate profile custom fields. */
+      updateCustomFields(
+        body: UpdateProfileFieldValuesBody,
+        options?: FetchOptions,
+      ) {
+        return client.fetch<ProfileFieldValues>('/me/profile/custom-fields', {
+          ...options,
+          method: 'PATCH',
+          body,
+        });
+      },
+
+      /** Retrieve editable catalog references on my candidate profile. */
+      retrieveObjectReferences(options?: FetchOptions) {
+        return client.fetch<ProfileObjectReferences>(
+          '/me/profile/object-references',
+          options,
+        );
+      },
+
+      /** Replace editable catalog references on my candidate profile. */
+      updateObjectReferences(
+        body: ReplaceProfileObjectReferencesBody,
+        options?: FetchOptions,
+      ) {
+        return client.fetch<ProfileObjectReferences>(
+          '/me/profile/object-references',
+          { ...options, method: 'PUT', body },
+        );
       },
 
       /**
@@ -430,6 +487,37 @@ export function meNamespace(client: BoardClient) {
      * claiming a company — the same identity can also be a candidate.
      */
     companies: {
+      /** List selectable records for an approved company's owner-editable catalog field. */
+      listObjectReferenceChoices(
+        slug: string,
+        fieldKey: string,
+        query?: ProfileChoiceQuery,
+        options?: FetchOptions,
+      ) {
+        return client.fetch<ProfileChoiceList>(
+          `/me/companies/${encodeURIComponent(slug)}/object-references/choices`,
+          { ...options, query: { ...query, fieldKey } },
+        );
+      },
+      /** Retrieve editable catalog references for one of my companies. */
+      retrieveObjectReferences(slug: string, options?: FetchOptions) {
+        return client.fetch<ProfileObjectReferences>(
+          `/me/companies/${encodeURIComponent(slug)}/object-references`,
+          options,
+        );
+      },
+
+      /** Replace editable catalog references for one of my companies. */
+      updateObjectReferences(
+        slug: string,
+        body: ReplaceProfileObjectReferencesBody,
+        options?: FetchOptions,
+      ) {
+        return client.fetch<ProfileObjectReferences>(
+          `/me/companies/${encodeURIComponent(slug)}/object-references`,
+          { ...options, method: 'PUT', body },
+        );
+      },
       /**
        * Search companies on this board to claim.
        *
@@ -531,6 +619,26 @@ export function meNamespace(client: BoardClient) {
         );
       },
 
+      /** Retrieve profile custom fields for a company I belong to. */
+      retrieveCustomFields(slug: string, options?: FetchOptions) {
+        return client.fetch<ProfileFieldValues>(
+          `/me/companies/${encodeURIComponent(slug)}/custom-fields`,
+          options,
+        );
+      },
+
+      /** Additively update editable custom fields for a company I belong to. */
+      updateCustomFields(
+        slug: string,
+        body: UpdateProfileFieldValuesBody,
+        options?: FetchOptions,
+      ) {
+        return client.fetch<ProfileFieldValues>(
+          `/me/companies/${encodeURIComponent(slug)}/custom-fields`,
+          { ...options, method: 'PATCH', body },
+        );
+      },
+
       /**
        * Delete a company I admin (soft-delete cascade + Forager
        * exclusion). Resolves void on success (204).
@@ -574,7 +682,9 @@ export function meNamespace(client: BoardClient) {
         options?: FetchOptions,
       ) {
         return client.fetch<void>(
-          `/me/companies/${encodeURIComponent(slug)}/members/${encodeURIComponent(memberId)}`,
+          `/me/companies/${encodeURIComponent(
+            slug,
+          )}/members/${encodeURIComponent(memberId)}`,
           { ...options, method: 'PATCH', body },
         );
       },
@@ -588,7 +698,9 @@ export function meNamespace(client: BoardClient) {
        */
       removeMember(slug: string, memberId: string, options?: FetchOptions) {
         return client.fetch<void>(
-          `/me/companies/${encodeURIComponent(slug)}/members/${encodeURIComponent(memberId)}`,
+          `/me/companies/${encodeURIComponent(
+            slug,
+          )}/members/${encodeURIComponent(memberId)}`,
           { ...options, method: 'DELETE' },
         );
       },
@@ -651,7 +763,9 @@ export function meNamespace(client: BoardClient) {
         options?: FetchOptions,
       ) {
         return client.fetch<MembershipCheckoutSessionState>(
-          `/me/companies/${encodeURIComponent(slug)}/membership/checkout/${encodeURIComponent(sessionId)}`,
+          `/me/companies/${encodeURIComponent(
+            slug,
+          )}/membership/checkout/${encodeURIComponent(sessionId)}`,
           options,
         );
       },
@@ -698,7 +812,9 @@ export function meNamespace(client: BoardClient) {
        */
       revokeInvite(slug: string, inviteId: string, options?: FetchOptions) {
         return client.fetch<void>(
-          `/me/companies/${encodeURIComponent(slug)}/invites/${encodeURIComponent(inviteId)}`,
+          `/me/companies/${encodeURIComponent(
+            slug,
+          )}/invites/${encodeURIComponent(inviteId)}`,
           { ...options, method: 'DELETE' },
         );
       },
@@ -793,19 +909,28 @@ export function meNamespace(client: BoardClient) {
          */
         retrieve(slug: string, id: string, options?: FetchOptions) {
           return client.fetch<EmployerJob>(
-            `/me/companies/${encodeURIComponent(slug)}/jobs/${encodeURIComponent(id)}`,
+            `/me/companies/${encodeURIComponent(
+              slug,
+            )}/jobs/${encodeURIComponent(id)}`,
             options,
           );
         },
 
         /**
          * Create a job as a held draft. Returns the created job.
+         * `remoteOption` is required. A `salaryMin` or `salaryMax` needs both
+         * `salaryCurrency` and `salaryTimeframe`.
          *
          * @example
          * await board.me.companies.jobs.create('acme', {
          *   title: 'Staff Engineer',
          *   description: '…',
          *   applicationUrl: 'https://acme.com/apply',
+         *   remoteOption: 'remote',
+         *   remotePermits: [{ type: 'worldwide', value: 'worldwide' }],
+         *   salaryMin: 150000,
+         *   salaryCurrency: 'USD',
+         *   salaryTimeframe: 'per_year',
          * });
          */
         create(
@@ -835,7 +960,9 @@ export function meNamespace(client: BoardClient) {
           options?: FetchOptions,
         ) {
           return client.fetch<EmployerJob>(
-            `/me/companies/${encodeURIComponent(slug)}/jobs/${encodeURIComponent(id)}`,
+            `/me/companies/${encodeURIComponent(
+              slug,
+            )}/jobs/${encodeURIComponent(id)}`,
             { ...options, method: 'PATCH', body },
           );
         },
@@ -848,7 +975,9 @@ export function meNamespace(client: BoardClient) {
          */
         delete(slug: string, id: string, options?: FetchOptions) {
           return client.fetch<void>(
-            `/me/companies/${encodeURIComponent(slug)}/jobs/${encodeURIComponent(id)}`,
+            `/me/companies/${encodeURIComponent(
+              slug,
+            )}/jobs/${encodeURIComponent(id)}`,
             { ...options, method: 'DELETE' },
           );
         },
@@ -863,7 +992,9 @@ export function meNamespace(client: BoardClient) {
          */
         publish(slug: string, id: string, options?: FetchOptions) {
           return client.fetch<EmployerJob>(
-            `/me/companies/${encodeURIComponent(slug)}/jobs/${encodeURIComponent(id)}/publish`,
+            `/me/companies/${encodeURIComponent(
+              slug,
+            )}/jobs/${encodeURIComponent(id)}/publish`,
             { ...options, method: 'POST' },
           );
         },
@@ -877,7 +1008,9 @@ export function meNamespace(client: BoardClient) {
          */
         unpublish(slug: string, id: string, options?: FetchOptions) {
           return client.fetch<EmployerJob>(
-            `/me/companies/${encodeURIComponent(slug)}/jobs/${encodeURIComponent(id)}/unpublish`,
+            `/me/companies/${encodeURIComponent(
+              slug,
+            )}/jobs/${encodeURIComponent(id)}/unpublish`,
             { ...options, method: 'POST' },
           );
         },
@@ -902,7 +1035,9 @@ export function meNamespace(client: BoardClient) {
           options?: FetchOptions,
         ) {
           return client.fetch<EmployerCheckout>(
-            `/me/companies/${encodeURIComponent(slug)}/jobs/${encodeURIComponent(id)}/checkout`,
+            `/me/companies/${encodeURIComponent(
+              slug,
+            )}/jobs/${encodeURIComponent(id)}/checkout`,
             { ...options, method: 'POST', body },
           );
         },
@@ -1042,7 +1177,9 @@ export function meNamespace(client: BoardClient) {
           options?: FetchOptions,
         ) {
           return client.fetch<ListEnvelope<EmployerProfileViewsPoint>>(
-            `/me/companies/${encodeURIComponent(slug)}/profile-stats/timeseries`,
+            `/me/companies/${encodeURIComponent(
+              slug,
+            )}/profile-stats/timeseries`,
             { ...options, query },
           );
         },
@@ -1133,14 +1270,18 @@ export function meNamespace(client: BoardClient) {
           options?: FetchOptions,
         ) {
           return client.fetch<TalentList>(
-            `/me/companies/${encodeURIComponent(slug)}/talent-lists/${encodeURIComponent(listId)}`,
+            `/me/companies/${encodeURIComponent(
+              slug,
+            )}/talent-lists/${encodeURIComponent(listId)}`,
             { ...options, method: 'PATCH', body },
           );
         },
         /** Delete a talent list. Sourced membership is unaffected. */
         remove(slug: string, listId: string, options?: FetchOptions) {
           return client.fetch<void>(
-            `/me/companies/${encodeURIComponent(slug)}/talent-lists/${encodeURIComponent(listId)}`,
+            `/me/companies/${encodeURIComponent(
+              slug,
+            )}/talent-lists/${encodeURIComponent(listId)}`,
             { ...options, method: 'DELETE' },
           );
         },
@@ -1197,7 +1338,9 @@ export function meNamespace(client: BoardClient) {
         /** Remove a sourced membership. Does not touch pipeline applications. */
         remove(slug: string, sourcedId: string, options?: FetchOptions) {
           return client.fetch<void>(
-            `/me/companies/${encodeURIComponent(slug)}/sourced-candidates/${encodeURIComponent(sourcedId)}`,
+            `/me/companies/${encodeURIComponent(
+              slug,
+            )}/sourced-candidates/${encodeURIComponent(sourcedId)}`,
             { ...options, method: 'DELETE' },
           );
         },
@@ -1226,7 +1369,9 @@ export function meNamespace(client: BoardClient) {
             object: 'application';
             created: boolean;
           }>(
-            `/me/companies/${encodeURIComponent(slug)}/sourced-candidates/${encodeURIComponent(sourcedId)}/convert`,
+            `/me/companies/${encodeURIComponent(
+              slug,
+            )}/sourced-candidates/${encodeURIComponent(sourcedId)}/convert`,
             { ...options, method: 'POST', body },
           );
         },
@@ -1277,7 +1422,9 @@ export function meNamespace(client: BoardClient) {
           options?: FetchOptions,
         ) {
           return client.fetch<void>(
-            `/me/companies/${encodeURIComponent(slug)}/applicants/${encodeURIComponent(applicationId)}/stage`,
+            `/me/companies/${encodeURIComponent(
+              slug,
+            )}/applicants/${encodeURIComponent(applicationId)}/stage`,
             { ...options, method: 'PATCH', body },
           );
         },
@@ -1338,7 +1485,9 @@ export function meNamespace(client: BoardClient) {
           options?: FetchOptions,
         ) {
           return client.fetch<void>(
-            `/me/companies/${encodeURIComponent(slug)}/applicants/${encodeURIComponent(applicationId)}/notes`,
+            `/me/companies/${encodeURIComponent(
+              slug,
+            )}/applicants/${encodeURIComponent(applicationId)}/notes`,
             { ...options, method: 'POST', body },
           );
         },
@@ -1386,7 +1535,9 @@ export function meNamespace(client: BoardClient) {
           options?: FetchOptions,
         ) {
           return client.fetch<void>(
-            `/me/companies/${encodeURIComponent(slug)}/pipeline-stages/${encodeURIComponent(stageId)}`,
+            `/me/companies/${encodeURIComponent(
+              slug,
+            )}/pipeline-stages/${encodeURIComponent(stageId)}`,
             { ...options, method: 'PATCH', body },
           );
         },
@@ -1400,7 +1551,9 @@ export function meNamespace(client: BoardClient) {
          */
         remove(slug: string, stageId: string, options?: FetchOptions) {
           return client.fetch<void>(
-            `/me/companies/${encodeURIComponent(slug)}/pipeline-stages/${encodeURIComponent(stageId)}`,
+            `/me/companies/${encodeURIComponent(
+              slug,
+            )}/pipeline-stages/${encodeURIComponent(stageId)}`,
             { ...options, method: 'DELETE' },
           );
         },
@@ -2142,8 +2295,11 @@ export function meNamespace(client: BoardClient) {
        * profile.
        *
        * @example
+       * const { data: offers } = await board.paywall.offers();
+       * const selectedOffer = offers[0]; // Or the offer selected in your UI.
+       * if (!selectedOffer) throw new Error('No access offers available');
        * const kit = await board.me.access.checkout({
-       *   offerKey: 'monthly',
+       *   offerKey: selectedOffer.offerKey,
        *   returnPath: '/account/access',
        *   colorMode: 'light',
        * });

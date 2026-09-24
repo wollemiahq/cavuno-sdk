@@ -5,6 +5,7 @@
 import type { Schemas } from './_spec';
 import type { ListEnvelope } from './common';
 import type { RelatedSearch } from './jobs';
+import type { CustomFieldFilter, ObjectReferenceFilter } from './jobs';
 
 export type PublicCompany = Schemas['CompanyPublic'];
 
@@ -94,4 +95,7 @@ export type CompanyMarketsListQuery = {
   search?: string;
 };
 
-export type CompaniesSearchBody = Schemas['PublicCompaniesSearchBody'];
+export type CompaniesSearchBody = Schemas['PublicCompaniesSearchBody'] & {
+  customFields?: CustomFieldFilter[];
+  objectReferences?: ObjectReferenceFilter[];
+};

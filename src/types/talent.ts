@@ -2,6 +2,7 @@
 // alias the generated OpenAPI components; the query type stays hand-written.
 import type { Schemas } from './_spec';
 import type { ListEnvelope } from './common';
+import type { CustomFieldFilter, ObjectReferenceFilter } from './jobs';
 
 /**
  * A candidate's public profile — header (name, headline, location, bio, avatar,
@@ -37,6 +38,8 @@ export type TalentDirectoryQuery = {
   seniority?: string;
   permitCountry?: string;
   interestedRole?: string;
+  customFields?: CustomFieldFilter[];
+  objectReferences?: ObjectReferenceFilter[];
 };
 
 export type TalentDirectoryListEnvelope = ListEnvelope<TalentDirectoryEntry>;

@@ -1,9 +1,9 @@
 {
-  "version": "4.26.0",
+  "version": "4.27.0",
   "skills": [
     {
       "name": "cavuno-board-account",
-      "description": "Candidate self-service boundary with @cavuno/board. Use for account, profile, resume onboarding, recommended jobs, avatar, experience, education, skills, languages, or notification preferences.",
+      "description": "Candidate self-service boundary with @cavuno/board. Use for account, profile, custom profile fields, catalog selections, resume onboarding, recommended jobs, avatar, experience, education, skills, languages, or notification preferences.",
       "path": "skills/cavuno-board-account/SKILL.md",
       "framework": null,
       "category": "core"
@@ -37,6 +37,13 @@
       "category": "core"
     },
     {
+      "name": "cavuno-board-collections",
+      "description": "Custom profile fields and collection references with @cavuno/board. Use for rendering company, talent or job custom fields, collection entries, benefits/technologies/certification sections, or collection-backed filters.",
+      "path": "skills/cavuno-board-collections/SKILL.md",
+      "framework": null,
+      "category": "core"
+    },
+    {
       "name": "cavuno-board-companies",
       "description": "Company catalog reads with @cavuno/board. Use for company indexes, market archives, profiles, company job rails, similar companies, or company salary pages.",
       "path": "skills/cavuno-board-companies/SKILL.md",
@@ -52,7 +59,7 @@
     },
     {
       "name": "cavuno-board-filters",
-      "description": "Listing-filter contracts with @cavuno/board. Use for job filter controls, sort controls, listing URL validation, or taxonomy-backed filter options.",
+      "description": "Listing-filter contracts with @cavuno/board. Use for job filter controls, profile-field filters, catalog choices, sort controls, listing URL validation, or taxonomy-backed filter options.",
       "path": "skills/cavuno-board-filters/SKILL.md",
       "framework": null,
       "category": "core"

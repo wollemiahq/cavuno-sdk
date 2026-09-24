@@ -16,6 +16,7 @@ import { meNamespace } from './namespaces/me';
 import { passwordNamespace } from './namespaces/password';
 import { paywallNamespace } from './namespaces/paywall';
 import { plansNamespace } from './namespaces/plans';
+import { profileFieldsNamespace } from './namespaces/profile-fields';
 import { redirectsNamespace } from './namespaces/redirects';
 import { salariesNamespace } from './namespaces/salaries';
 import { searchNamespace } from './namespaces/search';
@@ -114,6 +115,7 @@ export function createBoardClient(options: CreateBoardClientOptions) {
     jobPosting: jobPostingNamespace(client),
     salaries: salariesNamespace(client),
     talent: talentNamespace(client),
+    profileFields: profileFieldsNamespace(client),
     plans: plansNamespace(client),
     paywall: paywallNamespace(client),
     sitemap: sitemapNamespace(client),
@@ -177,6 +179,12 @@ export type {
   VerifyEmailBody,
 } from './types/auth';
 export type {
+  BoardFormBuiltinField,
+  BoardFormField,
+  BoardFormLayout,
+  BoardFormLockReason,
+  BoardJobFormField,
+  BoardProfileFormField,
   CustomFieldDefinition,
   CustomFieldOption,
   CustomFieldType,
@@ -261,6 +269,10 @@ export type {
   EducationRequirement,
   EmploymentType,
   JobCompany,
+  JobCollectionChoiceList,
+  JobCollectionChoiceQuery,
+  JobCollectionFieldDefinition,
+  ResolvedJobCollectionField,
   JobsListQuery,
   JobsSearchBody,
   JobsSimilarQuery,
@@ -268,6 +280,9 @@ export type {
   JobCardSearchEnvelope,
   CustomFieldValue,
   CustomFieldValues,
+  CustomFilterValue,
+  CustomFieldFilter,
+  ObjectReferenceFilter,
   JobSort,
   OfficeLocation,
   PublicJob,
@@ -307,7 +322,11 @@ export type {
   Message,
   ModerationReport,
   NotificationPreference,
+  ProfileFieldValues,
+  ProfileObjectReferenceSelectionWrite,
+  ProfileObjectReferences,
   ReadReceipt,
+  ReplaceProfileObjectReferencesBody,
   ReplyBody,
   ReportBody,
   Resume,
@@ -329,6 +348,7 @@ export type {
   UpdateLanguagesBody,
   UpdateNotificationPreferenceBody,
   UpdatePasswordBody,
+  UpdateProfileFieldValuesBody,
   UpdateSkillsBody,
   RequestEmailChangeBody,
   ConfirmEmailChangeBody,
@@ -466,3 +486,10 @@ export type {
   TitleLocationsIndex,
   TitleSalaryDetail,
 } from './types/salaries';
+
+export type {
+  PublicProfileFields,
+  ProfileChoiceList,
+  ProfileChoiceQuery,
+  ProfileFieldEntity,
+} from './types/profile-fields';

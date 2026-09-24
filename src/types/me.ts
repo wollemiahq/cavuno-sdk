@@ -99,11 +99,22 @@ export type SaveJobBody = Schemas['SaveJobBody'];
 /** The authenticated user's lean candidate profile singleton. */
 export type CandidateProfile = Schemas['CandidateProfile'];
 
+export type ProfileObjectReferenceSelectionWrite =
+  Schemas['ProfileObjectReferenceSelectionWrite'];
+export type ReplaceProfileObjectReferencesBody =
+  Schemas['ReplaceProfileObjectReferenceSelectionsBody'];
+export type ProfileObjectReferences = Schemas['ProfileObjectReferencesResult'];
+
 /** Optional-field merge-patch body for `board.me.profile.update`. */
 export type UpdateCandidateProfileBody = Schemas['UpdateCandidateProfileBody'];
 
 /** The result of `board.me.profile.handleAvailable(handle)`. */
 export type HandleAvailability = Schemas['HandleAvailability'];
+
+/** Profile custom-field definitions and current values. */
+export type ProfileFieldValues = Schemas['ProfileFieldValuesResponse'];
+/** Additive update body for owner-editable profile custom fields. */
+export type UpdateProfileFieldValuesBody = Schemas['ProfileFieldValuesBody'];
 
 // ── Profile collections ──────────────────────────────────────────────
 export type CandidateExperience = Schemas['CandidateExperience'];

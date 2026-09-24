@@ -6,6 +6,7 @@ import {
   JOB_SORTS,
   REMOTE_OPTIONS,
   SENIORITIES,
+  parseCategory,
   parseCompany,
   parseListingFilters,
   parseSeniority,
@@ -72,7 +73,26 @@ describe('parseCompany (hosted semantics)', () => {
   });
 });
 
+describe('parseCategory', () => {
+  it('trims, lowercases, dedupes and caps at the wire max of 10', () => {
+    expect(parseCategory(' Engineering ,design,engineering,')).toEqual([
+      'engineering',
+      'design',
+    ]);
+    expect(parseCategory(['sales'])).toEqual(['sales']);
+    expect(parseCategory('')).toBeUndefined();
+    const many = Array.from({ length: 12 }, (_, i) => `c${i}`);
+    expect(parseCategory(many)).toEqual(many.slice(0, 10));
+  });
+});
+
 describe('parseListingFilters', () => {
+  it('parses a multi-value category facet', () => {
+    expect(
+      parseListingFilters({ category: 'engineering,design' }).category,
+    ).toEqual(['engineering', 'design']);
+  });
+
   it('validates each param and drops unknown values silently', () => {
     expect(
       parseListingFilters({
