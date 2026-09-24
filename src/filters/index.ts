@@ -12,6 +12,8 @@
  * seniority: filters.seniority,
  * remoteOption: filters.remoteOption ? [filters.remoteOption] : undefined,
  * ```
+ * Category is a `jobs.search` filter only: pass `filters.category` as
+ * `filters.categories` in the search body.
  * Company slugs are the URL identity; the API accepts them directly via
  * `companySlug` — never resolve slug→id client-side.
  *
@@ -70,6 +72,9 @@ export const DEFAULT_SORT: JobSort = 'relevance';
 /** Wire max for `companySlug` / company multi-select. Keep the FIRST N. */
 const COMPANY_SLUG_MAX = 10;
 
+/** Wire max for the `jobs.search` `categories` filter. Keep the FIRST N. */
+const CATEGORY_SLUG_MAX = 10;
+
 export interface ListingFilters {
   q?: string;
   remoteOption?: RemoteOption;
@@ -82,6 +87,12 @@ export interface ListingFilters {
    * wire as `companySlug` (`jobs.list` query / `jobs.search` filters).
    */
   company?: string[];
+  /**
+   * Category filter as category SLUGS (a term's `sourceSlug` or
+   * `canonicalSlug`). Multi-select, comma-joined in URLs, matched as any-of.
+   * Map to the wire as `categories` in `jobs.search` filters.
+   */
+  category?: string[];
   /** Result ordering; absent ⇒ `relevance`. */
   sort?: JobSort;
 }
@@ -123,6 +134,19 @@ export function parseSeniority(raw: unknown): Seniority[] | undefined {
  * (the wire max; keep FIRST 10). Open value set (no vocabulary).
  */
 export function parseCompany(raw: unknown): string[] | undefined {
+  return parseSlugList(raw, COMPANY_SLUG_MAX);
+}
+
+/**
+ * Normalise raw category-slug input with the same semantics as
+ * {@link parseCompany}: an array or comma-string; trim, lowercase, drop
+ * empties, dedupe preserving order, cap at 10 (the wire max; keep FIRST 10).
+ */
+export function parseCategory(raw: unknown): string[] | undefined {
+  return parseSlugList(raw, CATEGORY_SLUG_MAX);
+}
+
+function parseSlugList(raw: unknown, max: number): string[] | undefined {
   const values = Array.isArray(raw)
     ? raw
     : typeof raw === 'string' && raw
@@ -139,7 +163,7 @@ export function parseCompany(raw: unknown): string[] | undefined {
     if (!normalized || seen.has(normalized)) continue;
     seen.add(normalized);
     result.push(normalized);
-    if (result.length >= COMPANY_SLUG_MAX) break;
+    if (result.length >= max) break;
   }
 
   return result.length > 0 ? result : undefined;
@@ -152,6 +176,8 @@ export function parseCompany(raw: unknown): string[] | undefined {
  * @example
  * parseListingFilters({ seniority: 'senior,lead', company: 'acme', sort: 'newest' });
  * // { seniority: ['senior', 'lead'], company: ['acme'], sort: 'newest' }
+ * parseListingFilters({ category: 'engineering,design' });
+ * // { category: ['engineering', 'design'] }
  */
 export function parseListingFilters(
   search: Record<string, unknown>,
@@ -168,6 +194,7 @@ export function parseListingFilters(
       : undefined,
     seniority: parseSeniority(search.seniority),
     company: parseCompany(search.company),
+    category: parseCategory(search.category),
     sort: JOB_SORTS.includes(search.sort as JobSort)
       ? (search.sort as JobSort)
       : undefined,

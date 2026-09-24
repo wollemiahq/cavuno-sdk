@@ -17,6 +17,7 @@ export const BOARD_API_ERROR_CODES = [
   'rate_limited',
   'rate_limit_unavailable',
   'search_unavailable',
+  'search_filter_unavailable',
   'too_many_filter_values',
   'pagination_invalid_cursor',
   'pagination_offset_too_large',

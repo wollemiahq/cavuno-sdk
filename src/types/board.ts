@@ -17,6 +17,25 @@ export type PublicBoardAds = PublicBoard['ads'];
 export type PublicBoardJobForm = PublicBoard['jobForm'];
 
 /**
+ * The operator's job, company and talent forms from
+ * `board.context().forms`: one ordered field list per form. Render each list
+ * in order, skip entries with `visible: false`, draw built-ins by `key` with
+ * your own controls, and draw custom and collection fields from their inlined
+ * `definition`. A locked built-in is always shown and required.
+ */
+export type BoardFormLayout = PublicBoard['forms'];
+/** One entry of `forms.job`: a built-in, a custom field or a collection field. */
+export type BoardJobFormField = Schemas['BoardJobFormField'];
+/** One entry of `forms.company` or `forms.talent`. */
+export type BoardProfileFormField = Schemas['BoardProfileFormField'];
+/** Any form entry, from any of the three forms. */
+export type BoardFormField = BoardJobFormField | BoardProfileFormField;
+/** A built-in form entry, identified by `key`. */
+export type BoardFormBuiltinField = Schemas['BoardFormBuiltinField'];
+/** Why a built-in is locked; `null` on an unlocked built-in. */
+export type BoardFormLockReason = Schemas['FormFieldLockReason'];
+
+/**
  * An operator-defined custom field definition. Board-wide and
  * model-scoped under `board.context().customFields` (today only `job`);
  * use it to render and localize a record's opaque `customFieldValues`
