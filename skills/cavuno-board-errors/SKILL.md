@@ -44,7 +44,7 @@ try {
 }
 ```
 
-The remaining status guards are `isForbidden` for 403 and `isConflict` for 409. Record `code` and `requestId` in support diagnostics. Because v1 may add error codes, unmatched `BoardApiError` instances still need a safe generic state.
+The remaining status guards are `isForbidden` for 403 and `isConflict` for 409. A 403 `candidate_profile_required` means an account that is not a candidate (for example an employer) tried to write candidate profile data: gate candidate screens on `me.role === 'candidate'` and show the error rather than a success state. Record `code` and `requestId` in support diagnostics. Because v1 may add error codes, unmatched `BoardApiError` instances still need a safe generic state.
 
 **Complete when:** every expected failure has one typed branch, an invalid resource renders not-found, and unmatched failures retain their original error.
 
