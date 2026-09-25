@@ -96,6 +96,55 @@ the same card view-model as listings — do not convert a full job client-side.
 const card = toJobCardVM(saved.job, { language, /* … */ });
 ```
 
+## Badges on job cards
+
+Every job card (listings, search, company jobs, similar, recommended, and
+saved jobs) carries `customFieldValues` for the job and
+`company.customFieldValues` for its company. Both hold only select, boolean,
+and number values keyed by field key; select values are option keys. Text
+fields stay on the full job and company, and private company fields never
+appear. Both are `{}` when empty, so a card needs no extra request to show a
+badge.
+
+```ts snippet
+import { resolveCustomFieldDisplay } from '@cavuno/board/format';
+
+const context = await board.context();
+const companyFields = await board.profileFields.retrieve('company');
+
+// Badge only the fields the operator wants on cards (an app-config list).
+const JOB_BADGE_KEYS = ['work_type'];
+const jobBadges = resolveCustomFieldDisplay(
+  context.language,
+  context.customFields.job.filter((field) => JOB_BADGE_KEYS.includes(field.key)),
+  card.customFieldValues).flatMap((entry) => {
+  switch (entry.kind) {
+    case 'text': // a single_select resolves to its option label
+      return [entry.value];
+    case 'multi_select':
+      return entry.values;
+    case 'boolean':
+      return entry.value ? [entry.label] : [];
+    case 'number':
+      return [`${entry.label}: ${entry.value}`];
+  }
+});
+
+// Company badge: resolve the stored option key to its public label.
+const employerField = companyFields.definitions.find(
+  (field) => field.key === 'employer_category');
+const employerKey = card.company?.customFieldValues.employer_category;
+const employerBadge =
+  typeof employerKey === 'string'
+    ? (employerField?.options?.find((option) => option.key === employerKey)
+        ?.label ?? null)
+    : null;
+```
+
+Load the definitions once per page (both are cacheable board metadata), not
+once per card. A key with no current definition or option resolves to nothing:
+drop the badge rather than printing the raw key.
+
 ## Completion gate
 
 Finish only after every applicable check passes:
@@ -107,6 +156,9 @@ Finish only after every applicable check passes:
 - Open ranges return `bound: 'from' | 'upTo'`; the application adds open-range
   chrome and composes order itself.
 - Saved jobs arrive as cards; no `fullJobToCard` conversion.
+- Card badges read `card.customFieldValues` / `card.company.customFieldValues`
+  and resolve option keys to labels through the definitions; no raw key is
+  shown and no card triggers a per-job detail fetch.
 - Salary-stat formatters receive the detail's `currency` (never invent USD).
 - Formatting changes neither salary amounts nor invents chrome words.
 
