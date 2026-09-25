@@ -56,9 +56,10 @@ const CARD: PublicJobCard = {
   isFeatured: true,
   summary: 'We build robots for every home.',
   locationLabel: null,
-  company: { slug: 'acme', name: 'Acme', logoUrl: null },
+  company: { slug: 'acme', name: 'Acme', logoUrl: null, customFieldValues: {} },
   categories: [{ slug: 'engineering', name: 'Engineering' }],
   skills: [],
+  customFieldValues: {},
   links: {
     public: 'https://acme.cavuno.com/companies/acme/jobs/senior-engineer',
   },

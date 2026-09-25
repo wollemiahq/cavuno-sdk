@@ -102,9 +102,11 @@ export type CustomFilterValue = string | number | boolean;
 export type CustomFieldFilter = { key: string; values: CustomFilterValue[] };
 export type ObjectReferenceFilter = { key: string; recordIds: string[] };
 
-type GeneratedJobsSearchBody = Schemas['PublicSearchJobsBody'];
-export type JobsSearchBody = Omit<GeneratedJobsSearchBody, 'filters'> & {
-  filters?: NonNullable<GeneratedJobsSearchBody['filters']> & {
-    customFields?: CustomFieldFilter[];
-  };
-};
+/**
+ * The `jobs.search` body, aliased from the spec like the response types.
+ * `filters.customFields` matches the job's own custom fields and
+ * `filters.companyCustomFields` the public profile fields of the job's
+ * company; both take {@link CustomFieldFilter} clauses (the tests pin that
+ * the spec shape and `CustomFieldFilter` stay identical).
+ */
+export type JobsSearchBody = Schemas['PublicSearchJobsBody'];
