@@ -1204,6 +1204,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/locations/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Complete a location pick
+         * @description Completes a location-search interaction with the same session used for suggestions, validates the selected id, and makes it available to later job or profile submissions. Call this immediately after a user picks a search result.
+         */
+        post: operations["createBoardLocationsResolve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/locations/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search locations worldwide
+         * @description Global location autocomplete for a location input (for example the office locations of a job-posting form): countries, regions, cities, and localities anywhere, not only those already used by the board’s jobs (that is `GET /places?q=`). Results are ranked; do not re-sort. Complete a picked result through `POST /locations/resolve` with its `id` and the same search session before using that id in a later submission. Rate limited per client and board.
+         */
+        get: operations["searchBoardLocations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/boards/{identifier}/me": {
         parameters: {
             query?: never;
@@ -1879,7 +1919,7 @@ export interface paths {
         put?: never;
         /**
          * Pay for / publish a held draft
-         * @description Complete a held draft by selecting billing: a paid plan returns a Stripe Checkout URL (the webhook publishes on payment); a free / bundle / subscription plan publishes immediately; an invoice plan emails a Stripe invoice. Requires an approved membership.
+         * @description Complete a held draft by selecting billing: a paid plan returns a Stripe Checkout URL (the webhook publishes on payment); a free plan publishes immediately unless the board requires free-job approval (`pending_approval`); bundle, subscription, and member-credit posts always publish immediately; an invoice plan emails a Stripe invoice, or holds an on-issue post for approval. Requires an approved membership.
          */
         post: operations["createBoardMeCompanyJobCheckout"];
         delete?: never;
@@ -4725,10 +4765,19 @@ export interface components {
                 employmentType: string;
                 remoteOption: string;
                 officeLocations: {
-                    /** @enum {string} */
+                    /**
+                     * @deprecated
+                     * @description Deprecated — send `locationId` instead (an `id` from `GET /locations/search` or `GET /places`). Still accepted.
+                     * @enum {string}
+                     */
                     provider?: "mapbox";
+                    /**
+                     * @deprecated
+                     * @description Deprecated — send `locationId` instead (an `id` from `GET /locations/search` or `GET /places`). Still accepted.
+                     */
                     providerPlaceId?: string;
-                    displayName: string;
+                    /** @description Display text for the location. Required unless `locationId` is sent; with `locationId` it defaults to the location's full name (locality, city, region, country), e.g. `Lyon, Auvergne-Rhône-Alpes, France`. */
+                    displayName?: string;
                     countryCode?: string;
                     region?: string;
                     locality?: string;
@@ -4736,6 +4785,10 @@ export interface components {
                     latitude?: number;
                     longitude?: number;
                     boundingBox?: number[];
+                    /**
+                     * @deprecated
+                     * @description Deprecated — send `locationId` instead (an `id` from `GET /locations/search` or `GET /places`). Still accepted.
+                     */
                     raw?: {
                         suggestion?: {
                             [key: string]: unknown;
@@ -4744,6 +4797,8 @@ export interface components {
                             [key: string]: unknown;
                         };
                     };
+                    /** @description Opaque location id from `GET /locations/search` or `GET /places` (`id`) — the preferred way to send a location. Resolved server-side to the full place; the other fields are then ignored except `displayName`. An unknown id returns `400 locations_invalid_id`. If the lookup is temporarily unavailable the entry is kept with `displayName` alone, or the request fails with `503 locations_unavailable` when there is none. */
+                    locationId?: string;
                 }[];
                 inOfficePeriod?: string;
                 inOfficeFrequency?: number;
@@ -4916,7 +4971,7 @@ export interface components {
             /** @enum {string} */
             object: "employer_checkout";
             /** @enum {string} */
-            status: "checkout" | "published" | "invoice_sent";
+            status: "checkout" | "published" | "pending_approval" | "invoice_sent";
             /** @description The Stripe Checkout / hosted-invoice URL, or `null`. */
             checkoutUrl: string | null;
             jobId: string;
@@ -5065,8 +5120,8 @@ export interface components {
             inOfficePeriod?: "per_week" | "per_month" | "per_year";
             /** @description How often the candidate must be in-office over `inOfficePeriod`. */
             inOfficeFrequency?: number;
-            /** @description Physical office locations associated with the job. Prefer `{query: "City, Country"}` for free-form input; `{city, country, region?, locality?}` is also accepted when you already have structured fields. Each entry is resolved server-side; a country mismatch returns `400 jobs_unresolvable_location`. */
-            officeLocations?: components["schemas"]["JobOfficeLocationInput"][];
+            /** @description Physical office locations associated with the job. Prefer `{locationId}` with an `id` from `GET /locations/search` (what a location picker returns); `{query: "City, Country"}` for free-form text and `{city, country, region?, locality?}` are also accepted and geocoded server-side (a country mismatch returns `400 jobs_unresolvable_location`). A location outside the board's job-form `allowedCountries` returns `400 jobs_constraint_violation`. */
+            officeLocations?: components["schemas"]["EmployerJobOfficeLocationInput"][];
             /** @description Collection-reference selections keyed by the configured job collection field key. Values are arrays of record IDs, including for single-select fields. On PATCH omitted keys are preserved; send null or an empty array to clear a field. */
             collectionValues?: {
                 [key: string]: string[] | unknown;
@@ -5134,6 +5189,24 @@ export interface components {
              * @description Canonical public URL for this job, or `null` when the job has no slug or no associated company slug (so a stable URL cannot be assembled). A draft carries a URL but only resolves once published.
              */
             public: string | null;
+        };
+        EmployerJobOfficeLocationInput: {
+            /** @description Opaque location id from `GET /locations/search` or `GET /places` (`id`). Resolved server-side to the full place (country, region, city, locality). An unknown id returns `400 locations_invalid_id`; `503 locations_unavailable` while the lookup is temporarily down. */
+            locationId: string;
+            /** @description Display text for the location. Defaults to the location's full name (locality, city, region, country), e.g. `Lyon, Auvergne-Rhône-Alpes, France`. */
+            displayName?: string;
+        } | {
+            /** @description Free-form location string (e.g. `"Berlin, Germany"`, `"Utrecht, Netherlands"`, `"Mountain View, California, USA"`). Resolved server-side; rejected when no high-confidence match is found. */
+            query: string;
+        } | {
+            /** @description Neighborhood or sub-locality. */
+            locality?: string;
+            /** @description City. */
+            city: string;
+            /** @description Region, state, or province. */
+            region?: string;
+            /** @description ISO 3166-1 alpha-2 country code OR recognized country name/alias. Aliases are normalized to canonical alpha-2 server-side (e.g. `US`, `USA`, `United States` → `US`; `UK`, `GB`, `United Kingdom` → `GB`). */
+            country: string;
         };
         EmployerJobStat: {
             /** @enum {string} */
@@ -5342,8 +5415,8 @@ export interface components {
             inOfficePeriod?: "per_week" | "per_month" | "per_year";
             /** @description How often the candidate must be in-office over `inOfficePeriod`. */
             inOfficeFrequency?: number;
-            /** @description Physical office locations associated with the job. Prefer `{query: "City, Country"}` for free-form input; `{city, country, region?, locality?}` is also accepted when you already have structured fields. Each entry is resolved server-side; a country mismatch returns `400 jobs_unresolvable_location`. */
-            officeLocations?: components["schemas"]["JobOfficeLocationInput"][];
+            /** @description Physical office locations associated with the job. Prefer `{locationId}` with an `id` from `GET /locations/search` (what a location picker returns); `{query: "City, Country"}` for free-form text and `{city, country, region?, locality?}` are also accepted and geocoded server-side (a country mismatch returns `400 jobs_unresolvable_location`). A location outside the board's job-form `allowedCountries` returns `400 jobs_constraint_violation`. */
+            officeLocations?: components["schemas"]["EmployerJobOfficeLocationInput"][];
             /** @description Collection-reference selections keyed by the configured job collection field key. Values are arrays of record IDs, including for single-select fields. On PATCH omitted keys are preserved; send null or an empty array to clear a field. */
             collectionValues?: {
                 [key: string]: string[] | unknown;
@@ -5446,19 +5519,6 @@ export interface components {
             /** @description Pre-formatted display name for the location, or `null` if not resolved. */
             displayName: string | null;
         };
-        JobOfficeLocationInput: {
-            /** @description Free-form location string (e.g. `"Berlin, Germany"`, `"Utrecht, Netherlands"`, `"Mountain View, California, USA"`). Resolved server-side; rejected when no high-confidence match is found. */
-            query: string;
-        } | {
-            /** @description Neighborhood or sub-locality. */
-            locality?: string;
-            /** @description City. */
-            city: string;
-            /** @description Region, state, or province. */
-            region?: string;
-            /** @description ISO 3166-1 alpha-2 country code OR recognized country name/alias. Aliases are normalized to canonical alpha-2 server-side (e.g. `US`, `USA`, `United States` → `US`; `UK`, `GB`, `United Kingdom` → `GB`). */
-            country: string;
-        };
         JobPostingBillingOptions: {
             /** @enum {string} */
             object: "job_posting_billing_options";
@@ -5552,6 +5612,12 @@ export interface components {
             /** Format: email */
             email: string;
         };
+        LocationResolveInput: {
+            /** @description Opaque id returned by location search. */
+            locationId: string;
+            /** @description The same opaque session id used for the search interaction that returned this location. */
+            session: string;
+        };
         LocationSalaryDetail: {
             /** @enum {string} */
             object: "location_salary_detail";
@@ -5574,6 +5640,8 @@ export interface components {
             } | null;
             childLocations: {
                 placeName: string;
+                /** @description Display label for the place in a salary list. A city or locality adds its subdivision code ("New York, NY", "Washington, DC") so it reads apart from the region it shares a name with; a region or country is its name. Render this rather than `placeName` in lists. */
+                placeLabel: string;
                 placeSlug: string;
                 countryCode: string;
                 avgSalaryMin: number;
@@ -5590,6 +5658,8 @@ export interface components {
                 regionSlug: string;
                 cities: {
                     placeName: string;
+                    /** @description Display label for the place in a salary list. A city or locality adds its subdivision code ("New York, NY", "Washington, DC") so it reads apart from the region it shares a name with; a region or country is its name. Render this rather than `placeName` in lists. */
+                    placeLabel: string;
                     placeSlug: string;
                     countryCode: string;
                     avgSalaryMin: number;
@@ -5618,6 +5688,8 @@ export interface components {
             }[];
             siblingLocations: {
                 placeName: string;
+                /** @description Display label for the place in a salary list. A city or locality adds its subdivision code ("New York, NY", "Washington, DC") so it reads apart from the region it shares a name with; a region or country is its name. Render this rather than `placeName` in lists. */
+                placeLabel: string;
                 placeSlug: string;
                 countryCode: string;
                 avgSalaryMin: number;
@@ -6396,6 +6468,10 @@ export interface components {
                 slug: string;
                 name: string;
                 logoUrl: string | null;
+                /** @description The company's public custom-field values of the select, boolean, and number types, keyed by field key; select values are option `key`s. Private fields and text types are omitted (the full company carries text values). `{}` when none. */
+                customFieldValues: {
+                    [key: string]: string | string[] | boolean | number;
+                };
             } | null;
             /** @description Job categories (slug + board display name). Guaranteed resolvable: every emitted slug resolves via `GET /v1/boards/:identifier/categories/:slug`. */
             categories: {
@@ -6407,6 +6483,10 @@ export interface components {
                 slug: string;
                 name: string;
             }[];
+            /** @description The job's custom-field values of the select, boolean, and number types, keyed by each field's `key`; select values are option `key`s. Resolve labels via the board's `customFields.job` definitions (see `GET /v1/boards/:identifier`). Values of fields no longer defined, and removed options, are omitted; text types are only on the full job (`PublicJob`). `{}` when none. */
+            customFieldValues: {
+                [key: string]: string | string[] | boolean | number;
+            };
             links: {
                 /**
                  * Format: uri
@@ -6424,6 +6504,25 @@ export interface components {
              * @description Canonical public URL for this job, or `null` when the job has no slug or no associated company slug (so a stable URL cannot be assembled).
              */
             public: string | null;
+        };
+        PublicLocation: {
+            /** @enum {string} */
+            object: "location";
+            /** @description Opaque location id. Complete the pick through `POST /locations/resolve` with this id and the search session before using it in a later submission. Shares its id space with `PublicPlace.id`. */
+            id: string;
+            /** @description The location’s own name, e.g. `Berlin`. */
+            name: string;
+            /** @description Name with its parent context, for display in the input once picked, e.g. `Berlin, Germany`. */
+            fullName: string;
+            /** @description The parent context alone, for a secondary line in the result list, e.g. `Germany` for Berlin or `Berlin, Germany` for Kreuzberg; `null` for a country. */
+            contextLabel: string | null;
+            /**
+             * @description Same vocabulary as `PublicPlace.placeType`: `country`, `region`, `city`, or `locality`.
+             * @enum {string}
+             */
+            placeType: "country" | "region" | "city" | "locality";
+            /** @description ISO 3166-1 alpha-2 country code, or `null` if unknown. */
+            countryCode: string | null;
         };
         PublicPlace: {
             /** @enum {string} */
@@ -6486,6 +6585,11 @@ export interface components {
                 radius?: number;
                 /** @description Public custom job fields. Clauses are AND-matched; values within a clause are OR-matched. Up to 10 clauses and 10 values per clause. */
                 customFields?: {
+                    key: string;
+                    values: (string | number | boolean)[];
+                }[];
+                /** @description Public custom company profile fields, matched against each job's company. Keys and option keys come from the board's public company profile field definitions (`GET /v1/boards/{identifier}/profile-fields/company`). Clauses are AND-matched; values within a clause are OR-matched. Up to 10 clauses and 10 values per clause. An unknown or private key, or an undefined option key, is rejected with `400 invalid_filter`. Kept separate from `customFields`, so a job field and a company field may share a key. */
+                companyCustomFields?: {
                     key: string;
                     values: (string | number | boolean)[];
                 }[];
@@ -6793,6 +6897,8 @@ export interface components {
             object: "salary_location";
             placeSlug: string;
             placeName: string;
+            /** @description Display label for the place in a salary list. A city or locality adds its subdivision code ("New York, NY", "Washington, DC") so it reads apart from the region it shares a name with; a region or country is its name. Render this rather than `placeName` in lists. */
+            placeLabel: string;
             /** @description Slug of the parent place; `null` for a top-level node. */
             parentSlug: string | null;
             avgSalaryMin: number;
@@ -6895,6 +7001,8 @@ export interface components {
             childLocations: {
                 placeSlug: string;
                 placeName: string;
+                /** @description Display label for the place in a salary list. A city or locality adds its subdivision code ("New York, NY", "Washington, DC") so it reads apart from the region it shares a name with; a region or country is its name. Render this rather than `placeName` in lists. */
+                placeLabel: string;
                 avgSalaryMin: number;
                 avgSalaryMax: number;
                 jobCount: number;
@@ -6905,6 +7013,8 @@ export interface components {
                 cities: {
                     placeSlug: string;
                     placeName: string;
+                    /** @description Display label for the place in a salary list. A city or locality adds its subdivision code ("New York, NY", "Washington, DC") so it reads apart from the region it shares a name with; a region or country is its name. Render this rather than `placeName` in lists. */
+                    placeLabel: string;
                     avgSalaryMin: number;
                     avgSalaryMax: number;
                     jobCount: number;
@@ -6913,6 +7023,8 @@ export interface components {
             otherLocations: {
                 placeSlug: string;
                 placeName: string;
+                /** @description Display label for the place in a salary list. A city or locality adds its subdivision code ("New York, NY", "Washington, DC") so it reads apart from the region it shares a name with; a region or country is its name. Render this rather than `placeName` in lists. */
+                placeLabel: string;
                 avgSalaryMin: number;
                 avgSalaryMax: number;
                 jobCount: number;
@@ -6983,6 +7095,8 @@ export interface components {
                 avgSalaryMax: number;
                 jobCount: number;
                 placeName: string;
+                /** @description Display label for the place in a salary list. A city or locality adds its subdivision code ("New York, NY", "Washington, DC") so it reads apart from the region it shares a name with; a region or country is its name. Render this rather than `placeName` in lists. */
+                placeLabel: string;
                 placeSlug: string;
                 countryCode: string;
             }[];
@@ -7308,6 +7422,8 @@ export interface components {
             childLocations: {
                 placeSlug: string;
                 placeName: string;
+                /** @description Display label for the place in a salary list. A city or locality adds its subdivision code ("New York, NY", "Washington, DC") so it reads apart from the region it shares a name with; a region or country is its name. Render this rather than `placeName` in lists. */
+                placeLabel: string;
                 avgSalaryMin: number;
                 avgSalaryMax: number;
                 jobCount: number;
@@ -7318,6 +7434,8 @@ export interface components {
                 cities: {
                     placeSlug: string;
                     placeName: string;
+                    /** @description Display label for the place in a salary list. A city or locality adds its subdivision code ("New York, NY", "Washington, DC") so it reads apart from the region it shares a name with; a region or country is its name. Render this rather than `placeName` in lists. */
+                    placeLabel: string;
                     avgSalaryMin: number;
                     avgSalaryMax: number;
                     jobCount: number;
@@ -7326,6 +7444,8 @@ export interface components {
             otherLocations: {
                 placeSlug: string;
                 placeName: string;
+                /** @description Display label for the place in a salary list. A city or locality adds its subdivision code ("New York, NY", "Washington, DC") so it reads apart from the region it shares a name with; a region or country is its name. Render this rather than `placeName` in lists. */
+                placeLabel: string;
                 avgSalaryMin: number;
                 avgSalaryMax: number;
                 jobCount: number;
@@ -7400,6 +7520,8 @@ export interface components {
                 avgSalaryMax: number;
                 jobCount: number;
                 placeName: string;
+                /** @description Display label for the place in a salary list. A city or locality adds its subdivision code ("New York, NY", "Washington, DC") so it reads apart from the region it shares a name with; a region or country is its name. Render this rather than `placeName` in lists. */
+                placeLabel: string;
                 placeSlug: string;
                 countryCode: string;
             }[];
@@ -10357,7 +10479,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description The request was malformed, a filter array exceeded the per-array cap, or the pagination window is out of range (`pagination_offset_too_large` / `pagination_invalid_cursor`). */
+            /** @description The request was malformed, a filter array exceeded the per-array cap, a `customFields` / `companyCustomFields` clause named an unknown or private field or an undefined option (`invalid_filter`), or the pagination window is out of range (`pagination_offset_too_large` / `pagination_invalid_cursor`). */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -10375,7 +10497,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description The search core is unavailable (`search_unavailable`), or one requested filter cannot be served yet on this board (`search_filter_unavailable`, with `details.filter` naming the key under `filters`, e.g. `categories`). The same search without that filter works. */
+            /** @description The search core is unavailable (`search_unavailable`), or one requested filter cannot be served yet on this board (`search_filter_unavailable`, with `details.filter` naming the key under `filters`, e.g. `categories` or `companyCustomFields`). The same search without that filter works. */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -10736,6 +10858,150 @@ export interface operations {
                 };
             };
             /** @description The search core is unavailable (`search_unavailable`). */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createBoardLocationsResolve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["LocationResolveInput"];
+            };
+        };
+        responses: {
+            /** @description The validated location. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicLocation"];
+                };
+            };
+            /** @description Malformed body or an unknown, mismatched, or unsupported location id. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Public board not found, or the board is private. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Location resolution is temporarily unavailable (locations_unavailable). */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    searchBoardLocations: {
+        parameters: {
+            query: {
+                /**
+                 * @description What the user has typed so far. Under 2 characters returns an empty list.
+                 * @example berl
+                 */
+                q: string;
+                /** @description Maximum results (1–10; default 5). */
+                limit?: number;
+                /**
+                 * @description Comma-separated ISO 3166-1 alpha-2 codes (e.g. `DE,AT`), up to 250. Restricts results to those countries — pass the board's job-form `allowedCountries` to narrow suggestions to the countries the board allows.
+                 * @example DE,AT
+                 */
+                country?: string;
+                /** @description Required opaque id (e.g. a UUID). Generate one per location-field interaction and reuse it across keystrokes until a result is picked; then generate a new one for the next interaction. Groups the requests of one search. */
+                session: string;
+            };
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        object: "list";
+                        url: string;
+                        hasMore: boolean;
+                        nextCursor: string | null;
+                        data: components["schemas"]["PublicLocation"][];
+                    };
+                };
+            };
+            /** @description Invalid query parameters (`validation_bad_request`). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Public board not found, or the board is private. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited (`rate_limited`). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Location search is temporarily unavailable (`locations_unavailable`). */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -17278,7 +17544,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Token was issued for a different board. */
+            /** @description Token was issued for a different board, or the caller has no candidate profile, e.g. an employer account (`candidate_profile_required`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -17640,7 +17906,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Token issued for a different board. */
+            /** @description Token issued for a different board, or the caller has no candidate profile, e.g. an employer account (`candidate_profile_required`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -17771,7 +18037,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Token issued for a different board. */
+            /** @description Token issued for a different board, or the caller has no candidate profile, e.g. an employer account (`candidate_profile_required`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -17909,7 +18175,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Token issued for a different board. */
+            /** @description Token issued for a different board, or the caller has no candidate profile, e.g. an employer account (`candidate_profile_required`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -18040,7 +18306,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Token issued for a different board. */
+            /** @description Token issued for a different board, or the caller has no candidate profile, e.g. an employer account (`candidate_profile_required`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -18246,7 +18512,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Token issued for a different board. */
+            /** @description Token issued for a different board, or the caller has no candidate profile, e.g. an employer account (`candidate_profile_required`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -18550,7 +18816,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Token issued for a different board. */
+            /** @description Token issued for a different board, or the caller has no candidate profile, e.g. an employer account (`candidate_profile_required`). */
             403: {
                 headers: {
                     [name: string]: unknown;
