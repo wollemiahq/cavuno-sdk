@@ -1879,7 +1879,7 @@ export interface paths {
         put?: never;
         /**
          * Pay for / publish a held draft
-         * @description Complete a held draft by selecting billing: a paid plan returns a Stripe Checkout URL (the webhook publishes on payment); a free / bundle / subscription plan publishes immediately; an invoice plan emails a Stripe invoice. Requires an approved membership.
+         * @description Complete a held draft by selecting billing: a paid plan returns a Stripe Checkout URL (the webhook publishes on payment); a free plan publishes immediately unless the board requires free-job approval (`pending_approval`); bundle, subscription, and member-credit posts always publish immediately; an invoice plan emails a Stripe invoice, or holds an on-issue post for approval. Requires an approved membership.
          */
         post: operations["createBoardMeCompanyJobCheckout"];
         delete?: never;
@@ -4916,7 +4916,7 @@ export interface components {
             /** @enum {string} */
             object: "employer_checkout";
             /** @enum {string} */
-            status: "checkout" | "published" | "invoice_sent";
+            status: "checkout" | "published" | "pending_approval" | "invoice_sent";
             /** @description The Stripe Checkout / hosted-invoice URL, or `null`. */
             checkoutUrl: string | null;
             jobId: string;
@@ -6396,6 +6396,10 @@ export interface components {
                 slug: string;
                 name: string;
                 logoUrl: string | null;
+                /** @description The company's public custom-field values of the select, boolean, and number types, keyed by field key; select values are option `key`s. Private fields and text types are omitted (the full company carries text values). `{}` when none. */
+                customFieldValues: {
+                    [key: string]: string | string[] | boolean | number;
+                };
             } | null;
             /** @description Job categories (slug + board display name). Guaranteed resolvable: every emitted slug resolves via `GET /v1/boards/:identifier/categories/:slug`. */
             categories: {
@@ -6407,6 +6411,10 @@ export interface components {
                 slug: string;
                 name: string;
             }[];
+            /** @description The job's custom-field values of the select, boolean, and number types, keyed by each field's `key`; select values are option `key`s. Resolve labels via the board's `customFields.job` definitions (see `GET /v1/boards/:identifier`). Values of fields no longer defined, and removed options, are omitted; text types are only on the full job (`PublicJob`). `{}` when none. */
+            customFieldValues: {
+                [key: string]: string | string[] | boolean | number;
+            };
             links: {
                 /**
                  * Format: uri
@@ -17278,7 +17286,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Token was issued for a different board. */
+            /** @description Token was issued for a different board, or the caller has no candidate profile, e.g. an employer account (`candidate_profile_required`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -17640,7 +17648,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Token issued for a different board. */
+            /** @description Token issued for a different board, or the caller has no candidate profile, e.g. an employer account (`candidate_profile_required`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -17771,7 +17779,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Token issued for a different board. */
+            /** @description Token issued for a different board, or the caller has no candidate profile, e.g. an employer account (`candidate_profile_required`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -17909,7 +17917,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Token issued for a different board. */
+            /** @description Token issued for a different board, or the caller has no candidate profile, e.g. an employer account (`candidate_profile_required`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -18040,7 +18048,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Token issued for a different board. */
+            /** @description Token issued for a different board, or the caller has no candidate profile, e.g. an employer account (`candidate_profile_required`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -18246,7 +18254,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Token issued for a different board. */
+            /** @description Token issued for a different board, or the caller has no candidate profile, e.g. an employer account (`candidate_profile_required`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -18550,7 +18558,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Token issued for a different board. */
+            /** @description Token issued for a different board, or the caller has no candidate profile, e.g. an employer account (`candidate_profile_required`). */
             403: {
                 headers: {
                     [name: string]: unknown;

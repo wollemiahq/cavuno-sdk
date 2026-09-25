@@ -3,6 +3,19 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.28.0 — 2026-09-24
+
+- **Custom-field values on job cards.** Every `PublicJobCard` (jobs list,
+  search, similar, company jobs, embed, recommended and saved jobs) carries
+  `customFieldValues` for the job and `company.customFieldValues` for its
+  company, keyed by field key and `{}` when empty. Only `single_select`,
+  `multi_select`, `boolean` and `number` values are included; select values
+  are option keys. Text values stay on the full job and company, and private
+  company fields are never included. Job values are checked against the
+  board's current job custom-field definitions, so values of removed fields
+  or options are left out. A listing can now render custom-field badges
+  without fetching each job.
+
 ## 4.27.0 — 2026-09-23
 
 - **Collections and profile fields.** Company and talent responses carry
@@ -61,6 +74,17 @@ types, runtime behavior, or supported integration patterns.
   job. This applies to any edit of an existing job that has an office
   location but no work arrangement, even one that changes only other fields:
   send an allowed `remoteOption` with it.
+- **Employer checkout can return `pending_approval`.** When a board requires
+  approval of free jobs, a free employer post (and an invoice post that
+  publishes on issue) is held as a draft for the operator to publish instead
+  of going live, and `POST
+  /boards/{identifier}/me/companies/{slug}/jobs/{id}/checkout` answers
+  `status: "pending_approval"` with the `jobId`. Treat it as "submitted, not
+  live": do not link the job as published. Bundle, subscription and
+  member-credit posts still publish immediately (`status: "published"`), as
+  does a free post on a board without approval. The board operator now also
+  receives the job-submission notification for employer posts, matching the
+  public posting form.
 - **`jobs_constraint_violation` errors carry structured details.**
   `error.details.violations` lists each broken rule as `{ code, path, params }`
   (for example `{ code: "custom_field_required", path: ["customFieldValues",

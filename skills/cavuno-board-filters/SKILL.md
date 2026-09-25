@@ -150,6 +150,60 @@ const { items } = await board.search.suggest({
 The host router owns URL serialization and saved-filter persistence.
 Locations come from `board.taxonomy.places` rather than a static filter export.
 
+## Filter jobs by a job custom field
+
+The operator's job custom fields arrive as definitions on
+`board.context().customFields.job`. Expose a field as a filter only when the
+operator intends it as one: keep an explicit list of filter keys in your app
+config. Do not render a dropdown for every select field automatically; most
+custom fields are details for the job page, not listing facets.
+
+```ts snippet
+const context = await board.context();
+
+// The operator picked these; everything else stays a job-page detail.
+const FILTER_FIELD_KEYS = ['work_type'];
+const filterFields = context.customFields.job.filter(
+  (field) =>
+    FILTER_FIELD_KEYS.includes(field.key) &&
+    (field.type === 'single_select' || field.type === 'multi_select'));
+
+// Controls: option KEYS are the values, option labels are the text.
+const controls = filterFields.map((field) => ({
+  key: field.key,
+  label: field.label,
+  options: (field.options ?? []).map((option) => ({
+    value: option.key,
+    label: option.label,
+  })),
+}));
+
+// URL state holds option keys (`/jobs?work_type=contract`), never labels.
+// Drop anything that is not a current option before it reaches the API.
+const customFields = filterFields.flatMap((field) => {
+  const values = searchParams
+    .getAll(field.key)
+    .filter((value) => field.options?.some((option) => option.key === value));
+  return values.length > 0 ? [{ key: field.key, values }] : [];
+});
+
+const results = await board.jobs.search({
+  query: filters.q,
+  filters: {
+    seniority: filters.seniority,
+    customFields: customFields.length > 0 ? customFields : undefined,
+  },
+  limit: 20,
+});
+```
+
+Clauses are AND-matched; values inside one clause are alternatives. Each
+request takes at most 10 clauses of 10 values. An unknown key or an option key
+the field no longer offers returns `invalid_filter`, so validate URL input
+against the definitions as above. Boolean and number fields filter the same way
+with `values: [true]` or `values: [3]`. Labels change when the operator renames
+an option; keys do not, so bookmarked URLs keep working.
+
 ## Build filters from public profile fields
 
 `board.profileFields.retrieve('company')` and `retrieve('candidate')` return only public scalar and collection-reference definitions. Use each stored field key for filtering. For a collection reference, page or search its active public choices and submit the returned record `id`; the optional `logoUrl` is display metadata.
@@ -204,6 +258,10 @@ Finish only after every applicable check passes:
 - `/jobs?category=engineering,design` sends
   `filters.categories: ['engineering', 'design']` to `jobs.search`.
 - Every paged taxonomy request forwards the previous opaque `nextCursor`.
+- Job custom-field controls exist only for keys the operator chose as
+  filters, read their options from `board.context().customFields.job`, and send
+  option keys in `filters.customFields`; an unknown option in the URL never
+  reaches the API.
 - Company and talent custom controls come from `board.profileFields`; private definitions and archived choices never become filter options.
 - Profile-filter requests use stored scalar values and returned collection entry IDs, not display labels.
 
