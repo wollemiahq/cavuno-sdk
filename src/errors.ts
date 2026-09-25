@@ -81,6 +81,7 @@ export const BOARD_API_ERROR_CODES = [
   'candidate_handle_taken',
   'candidate_job_not_found',
   'candidate_notification_preference_paused',
+  'candidate_profile_required',
   'resume_invalid_file',
   'resume_upload_forbidden',
   // Applications
