@@ -1879,7 +1879,7 @@ export interface paths {
         put?: never;
         /**
          * Pay for / publish a held draft
-         * @description Complete a held draft by selecting billing: a paid plan returns a Stripe Checkout URL (the webhook publishes on payment); a free / bundle / subscription plan publishes immediately; an invoice plan emails a Stripe invoice. Requires an approved membership.
+         * @description Complete a held draft by selecting billing: a paid plan returns a Stripe Checkout URL (the webhook publishes on payment); a free plan publishes immediately unless the board requires free-job approval (`pending_approval`); bundle, subscription, and member-credit posts always publish immediately; an invoice plan emails a Stripe invoice, or holds an on-issue post for approval. Requires an approved membership.
          */
         post: operations["createBoardMeCompanyJobCheckout"];
         delete?: never;
@@ -4916,7 +4916,7 @@ export interface components {
             /** @enum {string} */
             object: "employer_checkout";
             /** @enum {string} */
-            status: "checkout" | "published" | "invoice_sent";
+            status: "checkout" | "published" | "pending_approval" | "invoice_sent";
             /** @description The Stripe Checkout / hosted-invoice URL, or `null`. */
             checkoutUrl: string | null;
             jobId: string;
@@ -5574,6 +5574,8 @@ export interface components {
             } | null;
             childLocations: {
                 placeName: string;
+                /** @description Display label for the place in a salary list. A city or locality adds its subdivision code ("New York, NY", "Washington, DC") so it reads apart from the region it shares a name with; a region or country is its name. Render this rather than `placeName` in lists. */
+                placeLabel: string;
                 placeSlug: string;
                 countryCode: string;
                 avgSalaryMin: number;
@@ -5590,6 +5592,8 @@ export interface components {
                 regionSlug: string;
                 cities: {
                     placeName: string;
+                    /** @description Display label for the place in a salary list. A city or locality adds its subdivision code ("New York, NY", "Washington, DC") so it reads apart from the region it shares a name with; a region or country is its name. Render this rather than `placeName` in lists. */
+                    placeLabel: string;
                     placeSlug: string;
                     countryCode: string;
                     avgSalaryMin: number;
@@ -5618,6 +5622,8 @@ export interface components {
             }[];
             siblingLocations: {
                 placeName: string;
+                /** @description Display label for the place in a salary list. A city or locality adds its subdivision code ("New York, NY", "Washington, DC") so it reads apart from the region it shares a name with; a region or country is its name. Render this rather than `placeName` in lists. */
+                placeLabel: string;
                 placeSlug: string;
                 countryCode: string;
                 avgSalaryMin: number;
@@ -6396,6 +6402,10 @@ export interface components {
                 slug: string;
                 name: string;
                 logoUrl: string | null;
+                /** @description The company's public custom-field values of the select, boolean, and number types, keyed by field key; select values are option `key`s. Private fields and text types are omitted (the full company carries text values). `{}` when none. */
+                customFieldValues: {
+                    [key: string]: string | string[] | boolean | number;
+                };
             } | null;
             /** @description Job categories (slug + board display name). Guaranteed resolvable: every emitted slug resolves via `GET /v1/boards/:identifier/categories/:slug`. */
             categories: {
@@ -6407,6 +6417,10 @@ export interface components {
                 slug: string;
                 name: string;
             }[];
+            /** @description The job's custom-field values of the select, boolean, and number types, keyed by each field's `key`; select values are option `key`s. Resolve labels via the board's `customFields.job` definitions (see `GET /v1/boards/:identifier`). Values of fields no longer defined, and removed options, are omitted; text types are only on the full job (`PublicJob`). `{}` when none. */
+            customFieldValues: {
+                [key: string]: string | string[] | boolean | number;
+            };
             links: {
                 /**
                  * Format: uri
@@ -6486,6 +6500,11 @@ export interface components {
                 radius?: number;
                 /** @description Public custom job fields. Clauses are AND-matched; values within a clause are OR-matched. Up to 10 clauses and 10 values per clause. */
                 customFields?: {
+                    key: string;
+                    values: (string | number | boolean)[];
+                }[];
+                /** @description Public custom company profile fields, matched against each job's company. Keys and option keys come from the board's public company profile field definitions (`GET /v1/boards/{identifier}/profile-fields/company`). Clauses are AND-matched; values within a clause are OR-matched. Up to 10 clauses and 10 values per clause. An unknown or private key, or an undefined option key, is rejected with `400 invalid_filter`. Kept separate from `customFields`, so a job field and a company field may share a key. */
+                companyCustomFields?: {
                     key: string;
                     values: (string | number | boolean)[];
                 }[];
@@ -6793,6 +6812,8 @@ export interface components {
             object: "salary_location";
             placeSlug: string;
             placeName: string;
+            /** @description Display label for the place in a salary list. A city or locality adds its subdivision code ("New York, NY", "Washington, DC") so it reads apart from the region it shares a name with; a region or country is its name. Render this rather than `placeName` in lists. */
+            placeLabel: string;
             /** @description Slug of the parent place; `null` for a top-level node. */
             parentSlug: string | null;
             avgSalaryMin: number;
@@ -6895,6 +6916,8 @@ export interface components {
             childLocations: {
                 placeSlug: string;
                 placeName: string;
+                /** @description Display label for the place in a salary list. A city or locality adds its subdivision code ("New York, NY", "Washington, DC") so it reads apart from the region it shares a name with; a region or country is its name. Render this rather than `placeName` in lists. */
+                placeLabel: string;
                 avgSalaryMin: number;
                 avgSalaryMax: number;
                 jobCount: number;
@@ -6905,6 +6928,8 @@ export interface components {
                 cities: {
                     placeSlug: string;
                     placeName: string;
+                    /** @description Display label for the place in a salary list. A city or locality adds its subdivision code ("New York, NY", "Washington, DC") so it reads apart from the region it shares a name with; a region or country is its name. Render this rather than `placeName` in lists. */
+                    placeLabel: string;
                     avgSalaryMin: number;
                     avgSalaryMax: number;
                     jobCount: number;
@@ -6913,6 +6938,8 @@ export interface components {
             otherLocations: {
                 placeSlug: string;
                 placeName: string;
+                /** @description Display label for the place in a salary list. A city or locality adds its subdivision code ("New York, NY", "Washington, DC") so it reads apart from the region it shares a name with; a region or country is its name. Render this rather than `placeName` in lists. */
+                placeLabel: string;
                 avgSalaryMin: number;
                 avgSalaryMax: number;
                 jobCount: number;
@@ -6983,6 +7010,8 @@ export interface components {
                 avgSalaryMax: number;
                 jobCount: number;
                 placeName: string;
+                /** @description Display label for the place in a salary list. A city or locality adds its subdivision code ("New York, NY", "Washington, DC") so it reads apart from the region it shares a name with; a region or country is its name. Render this rather than `placeName` in lists. */
+                placeLabel: string;
                 placeSlug: string;
                 countryCode: string;
             }[];
@@ -7308,6 +7337,8 @@ export interface components {
             childLocations: {
                 placeSlug: string;
                 placeName: string;
+                /** @description Display label for the place in a salary list. A city or locality adds its subdivision code ("New York, NY", "Washington, DC") so it reads apart from the region it shares a name with; a region or country is its name. Render this rather than `placeName` in lists. */
+                placeLabel: string;
                 avgSalaryMin: number;
                 avgSalaryMax: number;
                 jobCount: number;
@@ -7318,6 +7349,8 @@ export interface components {
                 cities: {
                     placeSlug: string;
                     placeName: string;
+                    /** @description Display label for the place in a salary list. A city or locality adds its subdivision code ("New York, NY", "Washington, DC") so it reads apart from the region it shares a name with; a region or country is its name. Render this rather than `placeName` in lists. */
+                    placeLabel: string;
                     avgSalaryMin: number;
                     avgSalaryMax: number;
                     jobCount: number;
@@ -7326,6 +7359,8 @@ export interface components {
             otherLocations: {
                 placeSlug: string;
                 placeName: string;
+                /** @description Display label for the place in a salary list. A city or locality adds its subdivision code ("New York, NY", "Washington, DC") so it reads apart from the region it shares a name with; a region or country is its name. Render this rather than `placeName` in lists. */
+                placeLabel: string;
                 avgSalaryMin: number;
                 avgSalaryMax: number;
                 jobCount: number;
@@ -7400,6 +7435,8 @@ export interface components {
                 avgSalaryMax: number;
                 jobCount: number;
                 placeName: string;
+                /** @description Display label for the place in a salary list. A city or locality adds its subdivision code ("New York, NY", "Washington, DC") so it reads apart from the region it shares a name with; a region or country is its name. Render this rather than `placeName` in lists. */
+                placeLabel: string;
                 placeSlug: string;
                 countryCode: string;
             }[];
@@ -10357,7 +10394,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description The request was malformed, a filter array exceeded the per-array cap, or the pagination window is out of range (`pagination_offset_too_large` / `pagination_invalid_cursor`). */
+            /** @description The request was malformed, a filter array exceeded the per-array cap, a `customFields` / `companyCustomFields` clause named an unknown or private field or an undefined option (`invalid_filter`), or the pagination window is out of range (`pagination_offset_too_large` / `pagination_invalid_cursor`). */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -10375,7 +10412,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description The search core is unavailable (`search_unavailable`), or one requested filter cannot be served yet on this board (`search_filter_unavailable`, with `details.filter` naming the key under `filters`, e.g. `categories`). The same search without that filter works. */
+            /** @description The search core is unavailable (`search_unavailable`), or one requested filter cannot be served yet on this board (`search_filter_unavailable`, with `details.filter` naming the key under `filters`, e.g. `categories` or `companyCustomFields`). The same search without that filter works. */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -17278,7 +17315,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Token was issued for a different board. */
+            /** @description Token was issued for a different board, or the caller has no candidate profile, e.g. an employer account (`candidate_profile_required`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -17640,7 +17677,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Token issued for a different board. */
+            /** @description Token issued for a different board, or the caller has no candidate profile, e.g. an employer account (`candidate_profile_required`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -17771,7 +17808,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Token issued for a different board. */
+            /** @description Token issued for a different board, or the caller has no candidate profile, e.g. an employer account (`candidate_profile_required`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -17909,7 +17946,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Token issued for a different board. */
+            /** @description Token issued for a different board, or the caller has no candidate profile, e.g. an employer account (`candidate_profile_required`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -18040,7 +18077,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Token issued for a different board. */
+            /** @description Token issued for a different board, or the caller has no candidate profile, e.g. an employer account (`candidate_profile_required`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -18246,7 +18283,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Token issued for a different board. */
+            /** @description Token issued for a different board, or the caller has no candidate profile, e.g. an employer account (`candidate_profile_required`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -18550,7 +18587,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Token issued for a different board. */
+            /** @description Token issued for a different board, or the caller has no candidate profile, e.g. an employer account (`candidate_profile_required`). */
             403: {
                 headers: {
                     [name: string]: unknown;

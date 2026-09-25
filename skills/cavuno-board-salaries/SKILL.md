@@ -37,6 +37,13 @@ const companies = await board.salaries.companies.list();
 region, and city nesting from each `SalaryLocation.parentSlug`; top-level rows
 have `parentSlug: null`.
 
+Every place row in a salary response (location index nodes, `topLocations`,
+child, sibling, and other locations) carries `placeName` and `placeLabel`.
+Render `placeLabel` wherever places are listed: it tells a city from the
+region it shares a name with ("New York, NY" under "New York", "Washington,
+DC" beside "Washington"). Keep `placeName` for data you pass on, such as
+JSON-LD.
+
 ## Retrieve detail and canonicalize slugs
 
 Every axis `retrieve(slug)` accepts an inbound English or board-language slug.

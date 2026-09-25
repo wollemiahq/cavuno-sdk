@@ -1,6 +1,6 @@
 ---
 name: cavuno-board-filters
-description: Listing-filter contracts with @cavuno/board. Use for job filter controls, profile-field filters, collection choices, sort controls, listing URL validation, or taxonomy-backed filter options.
+description: Listing-filter contracts with @cavuno/board. Use for job filter controls, job and company custom-field filters, profile-field filters, collection choices, sort controls, listing URL validation, or taxonomy-backed filter options.
 ---
 
 # Listing filters
@@ -150,6 +150,60 @@ const { items } = await board.search.suggest({
 The host router owns URL serialization and saved-filter persistence.
 Locations come from `board.taxonomy.places` rather than a static filter export.
 
+## Filter jobs by a job custom field
+
+The operator's job custom fields arrive as definitions on
+`board.context().customFields.job`. Expose a field as a filter only when the
+operator intends it as one: keep an explicit list of filter keys in your app
+config. Do not render a dropdown for every select field automatically; most
+custom fields are details for the job page, not listing facets.
+
+```ts snippet
+const context = await board.context();
+
+// The operator picked these; everything else stays a job-page detail.
+const FILTER_FIELD_KEYS = ['work_type'];
+const filterFields = context.customFields.job.filter(
+  (field) =>
+    FILTER_FIELD_KEYS.includes(field.key) &&
+    (field.type === 'single_select' || field.type === 'multi_select'));
+
+// Controls: option KEYS are the values, option labels are the text.
+const controls = filterFields.map((field) => ({
+  key: field.key,
+  label: field.label,
+  options: (field.options ?? []).map((option) => ({
+    value: option.key,
+    label: option.label,
+  })),
+}));
+
+// URL state holds option keys (`/jobs?work_type=contract`), never labels.
+// Drop anything that is not a current option before it reaches the API.
+const customFields = filterFields.flatMap((field) => {
+  const values = searchParams
+    .getAll(field.key)
+    .filter((value) => field.options?.some((option) => option.key === value));
+  return values.length > 0 ? [{ key: field.key, values }] : [];
+});
+
+const results = await board.jobs.search({
+  query: filters.q,
+  filters: {
+    seniority: filters.seniority,
+    customFields: customFields.length > 0 ? customFields : undefined,
+  },
+  limit: 20,
+});
+```
+
+Clauses are AND-matched; values inside one clause are alternatives. Each
+request takes at most 10 clauses of 10 values. An unknown key or an option key
+the field no longer offers returns `invalid_filter`, so validate URL input
+against the definitions as above. Boolean and number fields filter the same way
+with `values: [true]` or `values: [3]`. Labels change when the operator renames
+an option; keys do not, so bookmarked URLs keep working.
+
 ## Build filters from public profile fields
 
 `board.profileFields.retrieve('company')` and `retrieve('candidate')` return only public scalar and collection-reference definitions. Use each stored field key for filtering. For a collection reference, page or search its active public choices and submit the returned record `id`; the optional `logoUrl` is display metadata.
@@ -189,6 +243,36 @@ void talent.data;
 
 Clauses are AND-matched. Values or record IDs inside one clause are alternatives. Unknown, private, invalid, or archived choices return `invalid_filter`; each array accepts at most 10 clauses and each clause at most 10 choices. Job search supports scalar `customFields` under `filters`, but job collection references are outside this surface.
 
+## Filter jobs by job and company custom fields
+
+`jobs.search` takes two custom-field filters. `filters.customFields` matches the job's own fields, defined in `board.context().customFields.job`. `filters.companyCustomFields` matches the public profile fields of the job's company, defined in `board.profileFields.retrieve('company')`. Both use the clause shape above; the two lists never share keys, so a job field and a company field may both be called `type`.
+
+```ts snippet
+const [context, companyFields] = await Promise.all([
+  board.context(),
+  board.profileFields.retrieve('company'),
+]);
+const opportunityType = context.customFields.job.find(
+  (field) => field.key === 'opportunity_type');
+const employerType = companyFields.definitions.find(
+  (field) => field.key === 'employer_type');
+
+const results = await board.jobs.search({
+  query: filters.q,
+  filters: {
+    customFields: [{ key: 'opportunity_type', values: ['identified'] }],
+    companyCustomFields: [{ key: 'employer_type', values: ['acco'] }],
+  },
+  limit: 20,
+});
+
+void opportunityType;
+void employerType;
+void results.data;
+```
+
+Render each dropdown from the definition's `options` in order: show `label`, submit `key`, and keep the key in the URL so shared links survive a label change. Accept only keys the current definition offers; drop anything else from a hand-typed URL. Only `jobs.search` takes these filters. A company's jobs are re-indexed automatically when its values change. Worked example: [Custom field filters and badges](https://cavuno.com/docs/sdk/cookbook/custom-field-filters-and-badges).
+
 ## Completion gate
 
 Finish only after every applicable check passes:
@@ -204,8 +288,13 @@ Finish only after every applicable check passes:
 - `/jobs?category=engineering,design` sends
   `filters.categories: ['engineering', 'design']` to `jobs.search`.
 - Every paged taxonomy request forwards the previous opaque `nextCursor`.
+- Job custom-field controls exist only for keys the operator chose as
+  filters, read their options from `board.context().customFields.job`, and send
+  option keys in `filters.customFields`; an unknown option in the URL never
+  reaches the API.
 - Company and talent custom controls come from `board.profileFields`; private definitions and archived choices never become filter options.
 - Profile-filter requests use stored scalar values and returned collection entry IDs, not display labels.
+- Job-field dropdowns send `filters.customFields` and company-field dropdowns send `filters.companyCustomFields` to `jobs.search`, both built from the current definitions; a stale option key in the URL is dropped, not sent.
 
 ## Cavuno SDK reference
 

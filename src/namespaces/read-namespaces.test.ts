@@ -4,7 +4,11 @@ import { createBoardClient } from '../index';
 
 import type { PublicTaxonomyTerm, TaxonomyListQuery } from '../index';
 import type { PublicBoard } from '../types/board';
-import type { PublicJob } from '../types/jobs';
+import type {
+  CustomFieldFilter,
+  JobsSearchBody,
+  PublicJob,
+} from '../types/jobs';
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -326,6 +330,36 @@ describe('board.jobs', () => {
         ],
       },
     });
+  });
+
+  it('sends company profile field filters apart from job field filters', async () => {
+    const spy = stubFetch({ object: 'search_result', data: [] });
+    await makeBoard().jobs.search({
+      filters: {
+        customFields: [{ key: 'type', values: ['identified'] }],
+        companyCustomFields: [
+          { key: 'type', values: ['community_controlled', 'owned'] },
+        ],
+      },
+    });
+    expect(JSON.parse(spy.mock.calls[0]![1]!.body as string)).toEqual({
+      filters: {
+        customFields: [{ key: 'type', values: ['identified'] }],
+        companyCustomFields: [
+          { key: 'type', values: ['community_controlled', 'owned'] },
+        ],
+      },
+    });
+  });
+
+  it('types both custom-field filter lists as CustomFieldFilter clauses', () => {
+    type Filters = NonNullable<JobsSearchBody['filters']>;
+    expectTypeOf<
+      NonNullable<Filters['customFields']>[number]
+    >().toEqualTypeOf<CustomFieldFilter>();
+    expectTypeOf<
+      NonNullable<Filters['companyCustomFields']>[number]
+    >().toEqualTypeOf<CustomFieldFilter>();
   });
 });
 

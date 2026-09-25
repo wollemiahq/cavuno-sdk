@@ -11,6 +11,31 @@ Anonymous methods here are token-based email unsubscribe and email-change confir
 
 The host application owns forms, file pickers, and cookie plumbing; this SDK surface supplies data operations.
 
+## Candidate screens are candidate-only
+
+A board user is either a candidate or an employer (`me.role`). Only candidates have a candidate profile. Render candidate screens and fields (the profile form, profile completeness, resume upload, experience, education, skills, and languages) only when `me.role === 'candidate'`. On the account page, give an employer account the employer profile view instead: avatar, `displayName` (the one profile field every account can update), and a link to the employer screens (`board.me.companies.*`). Never show them the empty candidate form.
+
+The API is the backstop: a profile write from an account with no candidate profile returns 403 `candidate_profile_required` before anything is saved. `displayName` alone is the one profile field every account can update. Surface this error as a message; never swallow it and report "Saved".
+
+```ts snippet
+import { isBoardApiError } from '@cavuno/board';
+
+const me = await board.me.retrieve();
+if (me.role !== 'candidate') {
+  return renderEmployerProfile(me); // avatar, displayName, link to employer screens
+}
+
+try {
+  await board.me.profile.update({ headline: 'Staff Engineer' });
+  showSaved();
+} catch (error) {
+  if (isBoardApiError(error) && error.code === 'candidate_profile_required') {
+    return showError('Only candidate accounts have a candidate profile.');
+  }
+  throw error;
+}
+```
+
 ## Account and profile
 
 Account deletion is a synchronous, irreversible cascade over the profile, collections, saved jobs, alerts, avatar, and resume. Obtain explicit confirmation before calling it.
@@ -252,6 +277,8 @@ await board.me.notificationPreferences.unsubscribeWithToken({
 
 ## Completion gate
 
+- Candidate screens render only for `me.role === 'candidate'`; an employer account gets the employer profile view (avatar, `displayName`, link to employer screens).
+- A `candidate_profile_required` 403 shows an error and never a "Saved" state.
 - The profile form follows `forms.talent`: order matches, hidden fields are absent, and required fields block save while empty.
 - Profile update is visible after retrieval.
 - Scalar field updates preserve omitted values; collection selection updates preserve every selection the user meant to keep.
