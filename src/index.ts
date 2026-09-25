@@ -12,6 +12,7 @@ import { embedNamespace } from './namespaces/embed';
 import { jobAlertsNamespace } from './namespaces/job-alerts';
 import { jobPostingNamespace } from './namespaces/job-posting';
 import { jobsNamespace } from './namespaces/jobs';
+import { locationsNamespace } from './namespaces/locations';
 import { meNamespace } from './namespaces/me';
 import { passwordNamespace } from './namespaces/password';
 import { paywallNamespace } from './namespaces/paywall';
@@ -110,6 +111,7 @@ export function createBoardClient(options: CreateBoardClientOptions) {
     password: passwordNamespace(client),
     taxonomy: taxonomyNamespace(client),
     search: searchNamespace(client),
+    locations: locationsNamespace(client),
     redirects: redirectsNamespace(client),
     jobAlerts: jobAlertsNamespace(client),
     jobPosting: jobPostingNamespace(client),
@@ -454,6 +456,11 @@ export type {
   TaxonomyListQuery,
   TaxonomyResolution,
 } from './types/taxonomy';
+export type {
+  LocationResolveInput,
+  LocationSearchQuery,
+  PublicLocation,
+} from './types/locations';
 export type {
   CompanySuggestion,
   MarketSuggestion,

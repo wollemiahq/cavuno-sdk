@@ -87,6 +87,30 @@ The list replaces the job's wording: omit it on `update` to keep what is stored,
 
 Validate `required` client-side from these entries before submitting, so the poster sees a missing field before the request.
 
+## Pick office locations
+
+Back the `location` field with `board.locations.search`, a worldwide search over countries, regions, cities, and localities. `session` is required: generate one per location-field interaction, reuse it across keystrokes and the pick-time `board.locations.resolve` call, then generate a new one for the next interaction. Renew it before 50 search requests or after 180 seconds. Pass `jobForm.location.allowedCountries` as `country` to narrow suggestions to the board's allowed countries.
+
+```ts snippet
+const session = crypto.randomUUID();
+const { data: locations } = await board.locations.search({
+  q: 'berl',
+  session,
+  country: jobForm.location.allowedCountries?.join(','),
+});
+
+const picked = locations[0];
+if (picked) {
+  const location = await board.locations.resolve({
+    locationId: picked.id,
+    session,
+  });
+  submission.officeLocations.push({ locationId: location.id });
+}
+```
+
+Show `fullName` in the input once picked and `contextLabel` as the secondary line in the result list. Resolve the picked `id` with the same session before committing the selection, then send the resolved `id` as `locationId` in the later job submission. `board.taxonomy.places.list({ q })` ids are accepted as `locationId` too. An id the server does not recognise throws `locations_invalid_id`, and `locations_unavailable` means the search is temporarily down, so let the poster retry.
+
 ## Resolve a logo
 
 Both logo paths return a stored `publicUrl` for `create`. The SDK owns multipart encoding.
