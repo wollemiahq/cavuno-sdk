@@ -4075,6 +4075,15 @@ export interface components {
             /** Format: date-time */
             expiresAt: string;
         };
+        AudienceAttribution: {
+            channel?: string;
+            source?: string;
+            campaign?: string;
+            location?: string;
+            browser?: string;
+            os?: string;
+            device?: string;
+        };
         Block: {
             /** @enum {string} */
             object: "block";
@@ -4150,10 +4159,12 @@ export interface components {
             /** @description Minimum 8 characters. */
             password: string;
             displayName: string;
+            audienceAttribution?: components["schemas"]["AudienceAttribution"];
             /** @description True only when the person ticked a marketing checkbox your UI displayed with its disclosure wording. Omit when no checkbox was shown; false and absent both record nothing. */
             marketingConsent?: boolean;
         };
         BoardAuthRequestMagicLinkBody: {
+            audienceAttribution?: components["schemas"]["AudienceAttribution"];
             /** Format: email */
             email: string;
             /** @description Optional same-origin path to carry through the email link. */
@@ -4698,6 +4709,9 @@ export interface components {
         };
         ConvertSourcedCandidateBody: {
             stage: string;
+        };
+        CreateAlertBody: components["schemas"]["AlertBody"] & {
+            audienceAttribution?: components["schemas"]["AudienceAttribution"];
         };
         CreateApplyApprovalBody: {
             sessionKey: string;
@@ -7630,6 +7644,7 @@ export interface components {
             /** @enum {string} */
             channel: "messageEmails" | "applicationEmails" | "recommendedJobEmails";
             subscribed: boolean;
+            audienceAttribution?: components["schemas"]["AudienceAttribution"];
         };
         UpdatePasswordBody: {
             currentPassword: string;
@@ -8013,6 +8028,8 @@ export interface operations {
     getBoardAuthOauth: {
         parameters: {
             query?: {
+                /** @description JSON-encoded captured audience context. */
+                audienceAttribution?: string;
                 /** @description Optional same-origin path carried through the provider round trip. */
                 returnTo?: string;
                 /** @description Role profile to create when the handshake signs up a new user; defaults to `candidate`. Gated on that role being enabled for the board, and fixed at authorize time. */
@@ -9632,6 +9649,7 @@ export interface operations {
                     email: string;
                     /** @enum {boolean} */
                     consent: true;
+                    audienceAttribution?: components["schemas"]["AudienceAttribution"];
                     /** @enum {string} */
                     frequency?: "weekly";
                     filters?: {
@@ -11425,7 +11443,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AlertBody"];
+                "application/json": components["schemas"]["CreateAlertBody"];
             };
         };
         responses: {

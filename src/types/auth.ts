@@ -17,6 +17,8 @@ export type RequestMagicLinkBody = Schemas['BoardAuthRequestMagicLinkBody'];
 export type ConsumeMagicLinkBody = Schemas['BoardAuthConsumeMagicLinkBody'];
 export type OAuthProvider = 'google' | 'linkedin';
 export type OAuthAuthorizationQuery = {
+  /** JSON-encoded audience evidence captured after analytics consent. */
+  audienceAttribution?: string;
   returnTo?: string;
   /**
    * Role profile to create when the handshake signs up a NEW user; defaults
