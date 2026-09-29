@@ -232,6 +232,16 @@ export function blogAuthorPath(authorSlug: string): string {
 }
 
 /**
+ * Candidate public profile (`/p/<handle>`). Always the default shape: a board
+ * that serves profiles elsewhere (e.g. `/@<handle>`, declared through the
+ * `talentProfile` route role) builds its links with its own helper, not this.
+ * Only the handle is encoded.
+ */
+export function talentProfilePath(handle: string): string {
+  return `/p/${encodePathSegment(handle)}`;
+}
+
+/**
  * Static top-level board paths (indexed marketing + index surfaces). Kept
  * here so the sitemap and consumers share one definition of the chrome
  * routes too.

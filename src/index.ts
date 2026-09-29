@@ -298,6 +298,7 @@ export type {
 export type {
   Alert,
   AlertBody,
+  CreateAlertBody,
   Application,
   ApplicationsListQuery,
   ApplyBody,
@@ -500,3 +501,5 @@ export type {
   ProfileChoiceQuery,
   ProfileFieldEntity,
 } from './types/profile-fields';
+
+export type { AudienceAttribution } from './types/audience';

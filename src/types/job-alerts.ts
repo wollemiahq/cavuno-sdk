@@ -4,6 +4,7 @@
 // request bodies (not registered components), so there is nothing to
 // alias — these are the SDK's input contract.
 import type { Schemas } from './_spec';
+import type { AudienceAttribution } from './audience';
 
 export type JobAlertFrequency = 'weekly';
 
@@ -26,6 +27,7 @@ export type JobAlertFiltersInput = {
 
 /** Body for `jobAlerts.subscribe`. `consent` must be `true` (server-enforced). */
 export type JobAlertSubscribeInput = {
+  audienceAttribution?: AudienceAttribution;
   email: string;
   consent: true;
   frequency?: JobAlertFrequency;

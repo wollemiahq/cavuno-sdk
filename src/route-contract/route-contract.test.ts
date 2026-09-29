@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   CANONICAL_MANIFEST,
   compileManifest,
+  compileManifestFromTree,
   extractCavunoPageMarker,
   ROLE_PARAM_REGISTRY,
   REQUIRED_ROLES,
@@ -30,6 +31,7 @@ const HARDCODED_CANONICAL_ROLES: Record<RouteRole, string> = {
   blogPost: '/blog/:postSlug',
   blogTag: '/blog/tag/:tagSlug',
   blogAuthor: '/blog/author/:authorSlug',
+  talentProfile: '/p/:handle',
   home: '/',
   jobs: '/jobs',
   companies: '/companies',
@@ -61,7 +63,7 @@ function canonicalRouteEntries(): RouteEntry[] {
 describe('route-contract compiler', () => {
   // ──  / F6a ────────────────────────────────────────────────────────
   describe('starter canonical set compiles to identity', () => {
-    it('CANONICAL_MANIFEST.roles matches hard-coded literals (all 31)', () => {
+    it('CANONICAL_MANIFEST.roles matches hard-coded literals (all 32)', () => {
       expect(Object.keys(CANONICAL_MANIFEST.roles).sort()).toEqual(
         Object.keys(HARDCODED_CANONICAL_ROLES).sort(),
       );
@@ -629,6 +631,119 @@ describe('route-contract compiler', () => {
           );
         }
       }
+    });
+  });
+
+  // ── : candidate profile role ──────────────────────────────────
+  describe('talentProfile role', () => {
+    const REQUIRED_ONLY: RouteEntry[] = [
+      {
+        template: '/companies/:companySlug/jobs/:jobSlug',
+        sourcePath: 'jd.tsx',
+      },
+      { template: '/alerts/manage', sourcePath: 'am.tsx' },
+      { template: '/alerts/confirm', sourcePath: 'ac.tsx' },
+    ];
+
+    it('infers /p/:handle and a moved /@:handle from the unique handle signature', () => {
+      for (const template of ['/p/:handle', '/@:handle']) {
+        const result = compileManifest([
+          ...REQUIRED_ONLY,
+          { template, sourcePath: 'profile.tsx' },
+        ]);
+        expect(result.manifest.roles.talentProfile).toBe(template);
+        expect(result.blockingMissing).toEqual([]);
+      }
+    });
+
+    it('is optional: a board without a profile page only warns', () => {
+      const result = compileManifest(REQUIRED_ONLY);
+      expect(REQUIRED_ROLES).not.toContain('talentProfile');
+      expect(result.blockingMissing).toEqual([]);
+      expect(result.warnings).toContain(
+        "optional role 'talentProfile' is unassigned",
+      );
+    });
+
+    it("reads the 'talentProfile' cavunoPage marker", () => {
+      expect(
+        extractCavunoPageMarker("export const cavunoPage = 'talentProfile';"),
+      ).toBe('talentProfile');
+      expect(
+        extractCavunoPageMarker("export const cavunoPage = 'talent-profile';"),
+      ).toBe('talentProfile');
+    });
+
+    it('validates /@:handle and rejects a bare /:handle', () => {
+      expect(
+        validateManifest({ version: 1, roles: { talentProfile: '/@:handle' } })
+          .ok,
+      ).toBe(true);
+      expect(
+        validateManifest({
+          version: 1,
+          roles: { talentProfile: '/candidates/:handle' },
+        }).ok,
+      ).toBe(true);
+
+      for (const template of ['/:handle', '/:handle/']) {
+        const result = validateManifest({
+          version: 1,
+          roles: { talentProfile: template },
+        });
+        expect(result.ok, template).toBe(false);
+        if (!result.ok) {
+          expect(result.errors[0]).toMatchObject({
+            code: 'invalid_template',
+            role: 'talentProfile',
+          });
+        }
+      }
+    });
+
+    it('scopes the bare-param rule to talentProfile', () => {
+      expect(
+        validateManifest({
+          version: 1,
+          roles: { jobsCategory: '/:categorySlug' },
+        }).ok,
+      ).toBe(true);
+    });
+
+    it('drops a marked bare /:handle with a warning, never blocking publish', () => {
+      const result = compileManifest(
+        [...REQUIRED_ONLY, { template: '/:handle', sourcePath: 'h.tsx' }],
+        new Map<string, RouteRole>([['h.tsx', 'talentProfile']]),
+      );
+      expect(result.manifest.roles.talentProfile).toBeUndefined();
+      expect(result.blockingMissing).toEqual([]);
+      expect(
+        result.warnings.some((w) => w.includes("role 'talentProfile'")),
+      ).toBe(true);
+    });
+
+    it('compiles a TanStack @{$handle}.tsx file to /@:handle; [.] endpoints stay skipped', () => {
+      const result = compileManifestFromTree([
+        { path: 'src/routes/__root.tsx', contents: '' },
+        {
+          path: 'src/routes/companies.$companySlug.jobs.$jobSlug.tsx',
+          contents: '',
+        },
+        { path: 'src/routes/alerts.manage.tsx', contents: '' },
+        { path: 'src/routes/alerts.confirm.tsx', contents: '' },
+        { path: 'src/routes/blog.$postSlug.tsx', contents: '' },
+        { path: 'src/routes/blog.og.{$postSlug}[.]json.ts', contents: '' },
+        { path: 'src/routes/blog.og.{$postSlug}[.]json.tsx', contents: '' },
+        {
+          path: 'src/routes/@{$handle}.tsx',
+          contents: "export const cavunoPage = 'talentProfile';",
+        },
+      ]);
+
+      expect(result.manifest.roles.talentProfile).toBe('/@:handle');
+      expect(result.manifest.roles.blogPost).toBe('/blog/:postSlug');
+      expect(result.ambiguities).toEqual([]);
+      expect(result.blockingMissing).toEqual([]);
     });
   });
 
