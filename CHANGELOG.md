@@ -3,6 +3,12 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.29.1 — 2026-09-29
+
+- `@cavuno/board/well-known` no longer pulls the route-contract role
+  registry into browser bundles that walk their route tree. 4.29.0 added
+  about 2 KiB to such app shells; this returns them to their 4.28 size.
+
 ## 4.29.0 — 2026-09-29
 
 - **Candidate profile route.** `talentProfilePath(handle)` from
