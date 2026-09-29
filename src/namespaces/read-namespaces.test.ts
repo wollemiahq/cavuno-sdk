@@ -162,6 +162,7 @@ describe('board.context()', () => {
         xUrl: null,
         facebookUrl: null,
         linkedinUrl: null,
+        instagramUrl: null,
       },
     };
     const spy = stubFetch(context);
