@@ -379,5 +379,16 @@ describe('well-known endpoint', () => {
         }
       }
     });
+
+    it('the browser route-tree walker imports only types from route-contract', () => {
+      // A runtime import would pull the route-contract role registry into
+      // every app shell that reports its routes from the browser.
+      const dir = dirname(fileURLToPath(import.meta.url));
+      const text = readFileSync(join(dir, 'tanstack.ts'), 'utf8');
+      const runtime = text.match(
+        /^import\s+(?!type\b)[^;]*from\s+['"][^'"]*route-contract[^'"]*['"]/gm,
+      );
+      expect(runtime).toBeNull();
+    });
   });
 });

@@ -24,9 +24,19 @@
  * the generated routeTree without instantiating a router.
  */
 
-import { tanStackBraceSegmentToPattern } from '../route-contract/enumerate/tanstack';
-
 import type { RouteEntry } from '../route-contract';
+
+/**
+ * `prefix{$param}` → `prefix:param` (e.g. `@{$handle}` → `@:handle`); null for
+ * optional groups, several groups, or text after the group. Mirrors the
+ * route-contract enumerator's rule, kept local on purpose: a runtime import
+ * from `../route-contract` pulls that module's role registry into every app
+ * bundle that walks its route tree in the browser.
+ */
+function braceSegmentToPattern(segment: string): string | null {
+  const match = /^([^{}$:]*)\{\$([A-Za-z_][A-Za-z0-9_]*)\}$/.exec(segment);
+  return match ? `${match[1]}:${match[2]}` : null;
+}
 
 /**
  * Minimal structural type for a TanStack route-tree node.
@@ -139,7 +149,7 @@ export function tanStackPathToUrlPattern(path: string): string {
   const converted = segments.map((seg) => {
     if (seg === '') return seg;
     if (seg === '$') return '*';
-    if (seg.includes('{')) return tanStackBraceSegmentToPattern(seg) ?? seg;
+    if (seg.includes('{')) return braceSegmentToPattern(seg) ?? seg;
     // Optional params: `$param?` — strip trailing `?` on the name.
     if (seg.startsWith('$') && seg.endsWith('?')) {
       return `:${seg.slice(1, -1)}`;
