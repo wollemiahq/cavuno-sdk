@@ -8,6 +8,7 @@ import type {
   AddApplicantNoteBody,
   Alert,
   AlertBody,
+  CreateAlertBody,
   Application,
   ApplicationsListQuery,
   Block,
@@ -1730,7 +1731,7 @@ export function meNamespace(client: BoardClient) {
        *   remoteOptions: ['remote'],
        * });
        */
-      create(body: AlertBody, options?: FetchOptions) {
+      create(body: CreateAlertBody, options?: FetchOptions) {
         return client.fetch<Alert>('/me/alerts', {
           ...options,
           method: 'POST',

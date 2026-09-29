@@ -3,6 +3,18 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.29.0 — 2026-09-29
+
+- **Candidate profile route.** `talentProfilePath(handle)` from
+  `@cavuno/board/paths` builds the default profile address, `/p/{handle}`.
+  The route contract gains an optional `talentProfile` role (param `handle`),
+  so a board can serve profiles at another shape with fixed text around the
+  handle, such as `/@{handle}`, and mark that route with
+  `export const cavunoPage = 'talentProfile'`. A profile address that is only
+  the handle (`/{handle}`) is rejected. Route templates may now contain `@`,
+  and TanStack route files with a `prefix{$param}` segment (for example
+  `@{$handle}.tsx`) are recognised.
+
 ## 4.28.0 — 2026-09-25
 
 - **Resolve global location selections.** `board.locations.search` finds places

@@ -24,6 +24,8 @@
  * the generated routeTree without instantiating a router.
  */
 
+import { tanStackBraceSegmentToPattern } from '../route-contract/enumerate/tanstack';
+
 import type { RouteEntry } from '../route-contract';
 
 /**
@@ -126,6 +128,9 @@ function templateFromNode(node: TanStackRouteNode): string | null {
  * Convert a TanStack path template to URLPattern `:param` / `*` form.
  *   `/jobs/$categorySlug` → `/jobs/:categorySlug`
  *   `/files/$`            → `/files/*`
+ *   `/@{$handle}`         → `/@:handle`
+ * A brace segment that has no faithful `:param` form (optional `{-$x}`,
+ * or a suffix that would extend the param name) is left as written.
  */
 export function tanStackPathToUrlPattern(path: string): string {
   if (path === '/' || path === '') return '/';
@@ -134,6 +139,7 @@ export function tanStackPathToUrlPattern(path: string): string {
   const converted = segments.map((seg) => {
     if (seg === '') return seg;
     if (seg === '$') return '*';
+    if (seg.includes('{')) return tanStackBraceSegmentToPattern(seg) ?? seg;
     // Optional params: `$param?` — strip trailing `?` on the name.
     if (seg.startsWith('$') && seg.endsWith('?')) {
       return `:${seg.slice(1, -1)}`;

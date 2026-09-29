@@ -13,6 +13,7 @@ import {
   companyMarketPath,
   companyPath,
   companySalaryPath,
+  encodePathSegment,
   jobDetailPath,
   jobsCategoryPath,
   jobsLocationPath,
@@ -20,6 +21,7 @@ import {
   salaryLocationPath,
   salarySkillPath,
   salaryTitlePath,
+  talentProfilePath,
 } from '../paths';
 import {
   createBoardLinkResolver,
@@ -48,6 +50,7 @@ const SAMPLE_PARAMS: Record<string, string> = {
   postSlug: 'hello-world',
   tagSlug: 'announcements',
   authorSlug: 'jane',
+  handle: 'jane-doe',
 };
 
 /** Canonical path via the paths helpers / BOARD_PATHS — equivalence oracle. */
@@ -79,6 +82,8 @@ function canonicalHelperPath(role: RouteRole): string {
       return blogTagPath(SAMPLE_PARAMS.tagSlug!);
     case 'blogAuthor':
       return blogAuthorPath(SAMPLE_PARAMS.authorSlug!);
+    case 'talentProfile':
+      return talentProfilePath(SAMPLE_PARAMS.handle!);
     case 'home':
     case 'jobs':
     case 'companies':
@@ -308,6 +313,24 @@ describe('createBoardLinkResolver', () => {
     expect(r.source).toBe('canonical');
     expect(r.fallback).toBe('missing-param');
     assertNoColonTokens(r);
+  });
+
+  //the resolver substitutes params verbatim — the caller encodes
+  // the handle once (encodePathSegment), the template's fixed text is kept.
+  it('resolves a moved talentProfile template without re-encoding the handle', () => {
+    const resolver = createBoardLinkResolver([
+      layer('declared', { talentProfile: '/@:handle' }),
+    ]);
+    expect(
+      resolver.pathFor('talentProfile', {
+        handle: encodePathSegment('jane doe'),
+      }),
+    ).toEqual({ path: '/@jane%20doe', source: 'declared' });
+    expect(
+      createBoardLinkResolver([]).pathFor('talentProfile', {
+        handle: encodePathSegment('jane doe'),
+      }),
+    ).toEqual({ path: talentProfilePath('jane doe'), source: 'canonical' });
   });
 
   it('skips empty-string role templates and consults the next layer', () => {

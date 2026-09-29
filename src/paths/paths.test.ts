@@ -23,6 +23,7 @@ import {
   salarySkillPath,
   salaryTitlePath,
   suggestionPath,
+  talentProfilePath,
 } from './index';
 
 /**
@@ -63,6 +64,15 @@ describe('canonical board paths', () => {
     expect(blogPostPath('hello')).toBe('/blog/hello');
     expect(blogTagPath('news')).toBe('/blog/tag/news');
     expect(blogAuthorPath('jane')).toBe('/blog/author/jane');
+  });
+
+  it('builds the candidate profile path, encoding only the handle', () => {
+    expect(talentProfilePath('jane')).toBe('/p/jane');
+    expect(talentProfilePath('jane doe')).toBe('/p/jane%20doe');
+    // Already-encoded input is not double-encoded.
+    expect(talentProfilePath('jane%20doe')).toBe('/p/jane%20doe');
+    // Template form stays a route-contract token.
+    expect(talentProfilePath(':handle')).toBe('/p/:handle');
   });
 
   it('exposes the static chrome paths', () => {

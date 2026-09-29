@@ -7,8 +7,18 @@ import type {
   ValidateManifestResult,
 } from './types';
 
-/** Path-template charset after structural checks (//, ?#, segments). */
-const TEMPLATE_CHARSET_RE = /^[A-Za-z0-9/_.:-]+$/;
+/**
+ * Path-template charset after structural checks (//, ?#, segments).
+ * `@` allows fixed text such as `/@:handle` around a param.
+ */
+const TEMPLATE_CHARSET_RE = /^[A-Za-z0-9/_.:@-]+$/;
+
+/**
+ * Roles whose template must carry fixed text besides the params. A profile
+ * address that is only `/:handle` would collide with every board page
+ * (`/jobs`, `/about`) and lose to any page added later.
+ */
+const FIXED_TEXT_ROLES: ReadonlySet<RouteRole> = new Set(['talentProfile']);
 
 /**
  * Per-role template checks shared by validateManifest and compileManifest.
@@ -19,10 +29,11 @@ const TEMPLATE_CHARSET_RE = /^[A-Za-z0-9/_.:-]+$/;
  * - must start with '/' but NOT '//'; no '//' anywhere
  * - no '.' or '..' path segments
  * - no '?', '#', or whitespace
- * - charset limited to [A-Za-z0-9\-_/:.]
+ * - charset limited to [A-Za-z0-9\-_/:.@]
  * - params referenced by a template must be in ROLE_PARAM_REGISTRY[role]
  * - static / empty-registry roles must have zero `:` tokens
  * - parameterized roles must retain at least one registry param
+ * - `talentProfile` must carry fixed text around its param (not `/:handle`)
  */
 export function checkRoleTemplate(
   role: RouteRole,
@@ -131,9 +142,25 @@ export function checkRoleTemplate(
         role,
       });
     }
+
+    if (FIXED_TEXT_ROLES.has(role) && isParamsOnly(template)) {
+      errors.push({
+        code: 'invalid_template',
+        message: `role '${role}' template must carry fixed text around its params (e.g. '/p/:handle' or '/@:handle'), got ${JSON.stringify(template)}`,
+        role,
+      });
+    }
   }
 
   return errors;
+}
+
+/** True when nothing but `:param` tokens and slashes makes up the template. */
+function isParamsOnly(template: string): boolean {
+  return (
+    template.replace(/:[A-Za-z_][A-Za-z0-9_]*/g, '').replace(/\//g, '')
+      .length === 0
+  );
 }
 
 /**
