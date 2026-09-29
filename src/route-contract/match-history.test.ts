@@ -21,6 +21,20 @@ describe('matchPathToTemplate', () => {
     ).toEqual({ companySlug: 'acme', jobSlug: 'eng-1' });
   });
 
+  it('captures a param with fixed text around it', () => {
+    expect(matchPathToTemplate('/@:handle', '/@jane')).toEqual({
+      handle: 'jane',
+    });
+    expect(matchPathToTemplate('/@:handle', '/jane')).toBeNull();
+    expect(matchPathToTemplate('/@:handle', '/@')).toBeNull();
+  });
+
+  it('keeps whole-segment capture for params that are not identifiers', () => {
+    expect(matchPathToTemplate('/items/:id=integer', '/items/42')).toEqual({
+      'id=integer': '42',
+    });
+  });
+
   it('requires literal segments to match exactly', () => {
     expect(
       matchPathToTemplate(

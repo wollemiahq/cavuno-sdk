@@ -5,6 +5,8 @@
  *   - `index` → parent path (`src/routes/index.tsx` → `/`)
  *   - dots nest (`jobs.index.tsx` → `/jobs`)
  *   - `$param` → dynamic segment (`jobs.$jobId.tsx` → `/jobs/:jobId`)
+ *   - `prefix{$param}` → param with fixed text before it (`@{$handle}.tsx` →
+ *     `/@:handle`); optional `{-$param}` groups are not supported (skipped)
  *   - `__root` is layout only (skipped)
  *   - `-` prefix excludes the file/folder
  *   - `_` prefix is a pathless layout segment (stripped from the URL)
@@ -41,10 +43,10 @@ function pathToRoute(filePath: string): DerivedRoute | null {
   if (rel === 'route' || rel.endsWith('/route') || rel.endsWith('.route')) {
     return null;
   }
-  // TanStack escape syntax ([.] literal dots, {$param} groups) marks
-  // file-style endpoints; naive dot-splitting would shred them into
-  // garbage segments, and none of them belong in a page navigator.
-  if (rel.includes('[') || rel.includes('{')) return null;
+  // TanStack escape syntax ([.] literal dots) marks file-style endpoints
+  // (`blog.og.{$postSlug}[.]json.ts`); naive dot-splitting would shred them
+  // into garbage segments, and none of them belong in a page navigator.
+  if (rel.includes('[')) return null;
 
   // Directory segments (`/`) and flat-nesting segments (`.`) both
   // become URL segments under TanStack file routing.
@@ -67,6 +69,14 @@ function pathToRoute(filePath: string): DerivedRoute | null {
       hadIndex = true;
       continue;
     }
+    if (seg.includes('{') || seg.includes('}')) {
+      const pattern = tanStackBraceSegmentToPattern(seg);
+      if (pattern === null) return null;
+      hasDynamic = true;
+      hadConcrete = true;
+      urlSegments.push(pattern);
+      continue;
+    }
     if (seg.startsWith('$')) {
       hasDynamic = true;
       hadConcrete = true;
@@ -86,4 +96,23 @@ function pathToRoute(filePath: string): DerivedRoute | null {
 
   const path = urlSegments.length === 0 ? '/' : `/${urlSegments.join('/')}`;
   return { path, navigable: !hasDynamic, sourcePath: normalized };
+}
+
+/**
+ * Convert one TanStack brace-param segment (`prefix{$param}`) to URLPattern
+ * form (`prefix:param`), e.g. `@{$handle}` → `@:handle`.
+ *
+ * Returns null for anything else: optional groups (`{-$param}`), more than
+ * one group, or any text after the group. Suffixed segments are file-style
+ * endpoints (`{$postSlug}.json`); read as `:postSlug.json` they would share
+ * a page role's param signature and make that role ambiguous.
+ */
+export function tanStackBraceSegmentToPattern(segment: string): string | null {
+  const match = /^([^{}$:]*)\{\$([A-Za-z_][A-Za-z0-9_]*)\}([^{}$:]*)$/.exec(
+    segment,
+  );
+  if (match === null) return null;
+  const [, prefix = '', name = '', suffix = ''] = match;
+  if (suffix !== '') return null;
+  return `${prefix}:${name}`;
 }

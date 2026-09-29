@@ -161,6 +161,7 @@ export type ConversationsListQuery = {
 export type Alert = Schemas['Alert'];
 /** Create/replace body for `board.me.alerts.create` / `board.me.alerts.update`. */
 export type AlertBody = Schemas['AlertBody'];
+export type CreateAlertBody = Schemas['CreateAlertBody'];
 
 // ── Applications ──────────────────────────────────────────
 /** The candidate's own view of an application they submitted. */

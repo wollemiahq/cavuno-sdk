@@ -23,6 +23,7 @@ import {
   salaryLocationPath,
   salarySkillPath,
   salaryTitlePath,
+  talentProfilePath,
 } from '../paths';
 
 import type { ManifestV1 } from './types';
@@ -43,6 +44,8 @@ export type RouteRole =
   | 'blogPost'
   | 'blogTag'
   | 'blogAuthor'
+  /** One candidate's public profile; optional, never required. */
+  | 'talentProfile'
   // BOARD_PATHS statics
   | 'home'
   | 'jobs'
@@ -82,6 +85,7 @@ export const ROLE_PARAM_REGISTRY: Record<RouteRole, readonly string[]> = {
   blogPost: ['postSlug'],
   blogTag: ['tagSlug'],
   blogAuthor: ['authorSlug'],
+  talentProfile: ['handle'],
   home: [],
   jobs: [],
   companies: [],
@@ -141,6 +145,7 @@ export const CANONICAL_MANIFEST: ManifestV1 = {
     blogPost: blogPostPath(':postSlug'),
     blogTag: blogTagPath(':tagSlug'),
     blogAuthor: blogAuthorPath(':authorSlug'),
+    talentProfile: talentProfilePath(':handle'),
     home: BOARD_PATHS.home,
     jobs: BOARD_PATHS.jobs,
     companies: BOARD_PATHS.companies,

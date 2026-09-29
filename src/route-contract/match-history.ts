@@ -3,8 +3,10 @@
  *.
  *
  * Segment-wise matcher (no RegExp construction from templates). Templates
- * are validated at write time but stay defensive here: any segment that
- * does not start with ':' is a literal.
+ * are validated at write time but stay defensive here: a segment starting
+ * with ':' is a whole-segment param, a segment with fixed text before a
+ * `:name` (`@:handle`) captures what follows that text, and anything else
+ * is a literal.
  */
 
 import { BOARD_PATHS } from '../paths';
@@ -34,6 +36,7 @@ export const ROLE_INDEX_PATHS: Record<RouteRole, string> = {
   blogTag: BOARD_PATHS.blog,
   blogAuthor: BOARD_PATHS.blog,
   blog: BOARD_PATHS.blog,
+  talentProfile: BOARD_PATHS.talent,
   home: BOARD_PATHS.home,
   jobs: BOARD_PATHS.jobs,
   companies: BOARD_PATHS.companies,
@@ -64,6 +67,9 @@ function splitSegments(path: string): string[] {
   return withoutTrailing.split('/');
 }
 
+/** Fixed text, then a `:name` param, then optional fixed text (`@:handle`). */
+const PREFIXED_PARAM_RE = /^([^:]+):([A-Za-z_][A-Za-z0-9_]*)(.*)$/;
+
 /**
  * Segment-wise match of `pathname` against a URLPattern-style `:param` template.
  * Returns captured params or null.
@@ -92,15 +98,28 @@ export function matchPathToTemplate(
     const tSeg = templateSegs[i]!;
     const pSeg = pathSegs[i]!;
 
+    let name: string | null = null;
+    let value = pSeg;
     if (tSeg.startsWith(':') && tSeg.length > 1) {
-      if (pSeg.length === 0) return null;
+      name = tSeg.slice(1);
+    } else {
+      const prefixed = PREFIXED_PARAM_RE.exec(tSeg);
+      if (prefixed) {
+        const [, prefix = '', param = '', suffix = ''] = prefixed;
+        if (!pSeg.startsWith(prefix) || !pSeg.endsWith(suffix)) return null;
+        name = param;
+        value = pSeg.slice(prefix.length, pSeg.length - suffix.length);
+      }
+    }
+    if (name !== null) {
+      if (value.length === 0) return null;
       // Reject path separators inside a capture (defense in depth).
-      if (pSeg.includes('/') || pSeg.includes('\\')) return null;
-      params[tSeg.slice(1)] = pSeg;
+      if (value.includes('/') || value.includes('\\')) return null;
+      params[name] = value;
       continue;
     }
 
-    // Literal (defensive: never treat non-':' segments as patterns).
+    // Literal: no param token in this segment.
     if (tSeg !== pSeg) return null;
   }
 

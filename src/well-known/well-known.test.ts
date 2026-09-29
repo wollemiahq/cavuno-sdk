@@ -11,6 +11,7 @@ import {
   createWellKnownHandler,
   emitWellKnownManifest,
   routeEntriesFromTanStackRouteTree,
+  tanStackPathToUrlPattern,
   type TanStackRouteNode,
 } from './index';
 
@@ -33,6 +34,7 @@ const HARDCODED_CANONICAL_ROLES: Record<RouteRole, string> = {
   blogPost: '/blog/:postSlug',
   blogTag: '/blog/tag/:tagSlug',
   blogAuthor: '/blog/author/:authorSlug',
+  talentProfile: '/p/:handle',
   home: '/',
   jobs: '/jobs',
   companies: '/companies',
@@ -259,6 +261,38 @@ describe('well-known endpoint', () => {
       expect(templates.some((t) => t.includes('_auth'))).toBe(false);
       // Empty technical node skipped.
       expect(templates).not.toContain('');
+    });
+
+    //TanStack keeps `{$param}` literally in fullPath
+    // (`@{$handle}.tsx` → fullPath `/@{$handle}`).
+    it('converts prefix{$param} segments; leaves unsupported braces as written', () => {
+      expect(tanStackPathToUrlPattern('/@{$handle}')).toBe('/@:handle');
+      expect(tanStackPathToUrlPattern('/people/{$handle}')).toBe(
+        '/people/:handle',
+      );
+      // Suffixed segments are file-style endpoints, not pages: left as
+      // written so they never compete with a page role's signature.
+      expect(tanStackPathToUrlPattern('/blog/og/{$postSlug}.json')).toBe(
+        '/blog/og/{$postSlug}.json',
+      );
+      expect(tanStackPathToUrlPattern('/{$handle}profile')).toBe(
+        '/{$handle}profile',
+      );
+      // Optional groups are not supported.
+      expect(tanStackPathToUrlPattern('/{-$lang}/about')).toBe(
+        '/{-$lang}/about',
+      );
+
+      const entries = routeEntriesFromTanStackRouteTree({
+        id: '__root__',
+        children: [
+          { id: '/@{$handle}', path: '@{$handle}', fullPath: '/@{$handle}' },
+        ],
+      });
+      expect(entries).toEqual([{ template: '/@:handle' }]);
+      expect(compileManifest(entries).manifest.roles.talentProfile).toBe(
+        '/@:handle',
+      );
     });
   });
 

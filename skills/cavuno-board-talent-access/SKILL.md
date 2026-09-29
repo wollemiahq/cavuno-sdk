@@ -135,6 +135,13 @@ const named = await board.talent.retrieve('jane-doe');
 const opaque = await board.talent.retrieve('bu_candidate');
 ```
 
+The profile route may move to another shape with fixed text around the handle, for example `src/routes/@{$handle}.tsx` for `/@jane`. When you move it:
+
+- Keep `export const cavunoPage = 'talentProfile'` on the profile route file, so links Cavuno builds (webhooks, admin links) follow the new address.
+- Keep `/p/$handle` working as a permanent (301) redirect to the same value on the new route.
+- Build every profile link (cards, messages, canonical tag, JSON-LD) through one helper that encodes only the handle, never the fixed text.
+- Never serve a bare `/$handle` at the root: it collides with board pages and is rejected as a profile address.
+
 ## Completion gate
 
 - `retrieve()` drives the Message-vs-upsell CTA and remaining-credit hints.
