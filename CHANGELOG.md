@@ -3,6 +3,13 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.30.0 — 2026-09-29
+
+- Company profiles and board settings can include an Instagram profile link.
+  Company and board responses expose `instagramUrl`, and the board SDK types
+  include it in company, employer, settings, and public board context data.
+  Instagram handles and profile URLs resolve to a canonical HTTPS link.
+
 ## 4.29.1 — 2026-09-29
 
 - `@cavuno/board/well-known` no longer pulls the route-contract role

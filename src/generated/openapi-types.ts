@@ -4732,6 +4732,8 @@ export interface components {
             linkedinUrl?: string | null;
             /** @description Facebook company page URL. `null` or `""` means not set. */
             facebookUrl?: string | null;
+            /** @description Instagram profile URL or handle. `null` or `""` means not set. */
+            instagramUrl?: string | null;
             /** @description Canonical market slugs assigned to the company. Pass an empty array to clear all markets. */
             markets?: string[];
             /** @description The company's display name. */
@@ -5062,6 +5064,7 @@ export interface components {
             xUrl: string | null;
             linkedinUrl: string | null;
             facebookUrl: string | null;
+            instagramUrl: string | null;
             logoUrl: string | null;
             /** @description Whether company admins may delete this company. Mirrors the board Features toggle `employerCompanyDeletionEnabled`. Absent board config defaults to `true`. When `false`, DELETE returns 403 `company_deletion_disabled` and clients should hide the danger zone. */
             deletionEnabled: boolean;
@@ -6223,6 +6226,8 @@ export interface components {
                 facebookUrl: string | null;
                 /** @description LinkedIn profile URL, sanitized to absolute http(s). Null when unset or non-http(s). */
                 linkedinUrl: string | null;
+                /** @description Instagram profile URL. Null when unset or invalid. */
+                instagramUrl: string | null;
             };
         };
         PublicCompaniesSearchBody: {
@@ -7620,6 +7625,7 @@ export interface components {
             xUrl?: string;
             linkedinUrl?: string;
             facebookUrl?: string;
+            instagramUrl?: string;
         };
         UpdateExperienceBody: {
             title?: string;

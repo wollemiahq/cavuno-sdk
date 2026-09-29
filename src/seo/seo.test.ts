@@ -98,6 +98,7 @@ const BOARD = {
     xUrl: null,
     facebookUrl: null,
     linkedinUrl: null,
+    instagramUrl: null,
   },
 } satisfies PublicBoard;
 
