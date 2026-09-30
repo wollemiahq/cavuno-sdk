@@ -743,6 +743,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/feeds/{file}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieve a job aggregator feed
+         * @description Returns one of the board's job aggregator feeds as XML, the file an aggregator such as Indeed or Jooble crawls. A board serves each feed on its own host at `/feeds/<slug>.xml`; this endpoint is what that route answers with. `HEAD` returns the same headers without a body. Every response carries `X-Robots-Tag: noindex` and, for a known feed, `X-Cavuno-Feed: boards_<id>/<slug>`. A built feed returns `200` with an `ETag`; send it back in `If-None-Match` for a `304`. A feed that exists but has no file yet returns `503 feed_not_ready` with `Retry-After`, never an empty feed. A name that is not a feed returns `404 feeds_not_found`. Feeds of a password-protected board are not served.
+         */
+        get: operations["getBoardFeed"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/boards/{identifier}/job-alerts": {
         parameters: {
             query?: never;
@@ -9628,6 +9648,56 @@ export interface operations {
                 };
             };
             /** @description The search core is unavailable (`search_unavailable`). */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getBoardFeed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                /** @description Feed file name, `<slug>.xml`: lower-case letters and digits in hyphen-separated runs, at most 64 characters (e.g. `indeed.xml`). The operator copies it from the dashboard. */
+                file: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The feed file. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/xml": string;
+                };
+            };
+            /** @description The `If-None-Match` ETag matches the current file. */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No such feed (`feeds_not_found`), or the board is not public (`boards_not_found`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The feed has no file yet (`feed_not_ready`). Retry after the `Retry-After` seconds. */
             503: {
                 headers: {
                     [name: string]: unknown;
