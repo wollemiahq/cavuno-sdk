@@ -68,6 +68,9 @@ export const BOARD_API_ERROR_CODES = [
   'blog_post_not_found',
   'blog_author_not_found',
   'blog_tag_not_found',
+  // Job aggregator feeds
+  'feeds_not_found',
+  'feed_not_ready',
   // Talent directory
   'talent_not_found',
   'talent_directory_not_found',
