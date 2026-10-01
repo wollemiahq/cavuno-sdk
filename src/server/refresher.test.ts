@@ -47,7 +47,7 @@ function unauthorized(): BoardApiError {
   });
 }
 
-describe('createSessionRefresher (single-flight)', () => {
+describe('createSessionRefresher', () => {
   it('maps a successful rotation to a BoardSession (wire boardUser/object dropped)', async () => {
     const refreshFn = vi.fn().mockResolvedValue(ROTATED_WIRE);
     const refresh = createSessionRefresher(boardWith(refreshFn));
@@ -55,7 +55,7 @@ describe('createSessionRefresher (single-flight)', () => {
     const next = await refresh(SESSION);
 
     expect(refreshFn).toHaveBeenCalledWith({ refreshToken: 'brt_old' });
-    // The exact BoardSession shape — nothing extra rides along into the
+    // The exact BoardSession shape: nothing extra rides along into the
     // cookie (boardUser would bloat it past header limits).
     expect(next).toEqual({
       accessToken: 'new.jwt',
@@ -64,55 +64,47 @@ describe('createSessionRefresher (single-flight)', () => {
     });
   });
 
-  it('dedupes concurrent calls for the same refreshToken — ONE rotation, same promise', async () => {
-    // The rotation race: refresh tokens are single-use,
-    // so two concurrent refreshes burn the pair — the loser 401s and the
-    // user is signed out mid-session. Both callers must share one flight.
-    let release!: (value: BoardAuthSession) => void;
-    const refreshFn = vi.fn().mockReturnValue(
-      new Promise<BoardAuthSession>((resolve) => {
-        release = resolve;
-      }),
-    );
+  it('holds no shared state: concurrent calls for one session each call auth.refresh', async () => {
+    // Concurrent refreshes converge server-side (the same token re-presented
+    // within the grace window returns the same successor refresh token), so
+    // the client keeps no in-flight slot to share between callers.
+    const refreshFn = vi.fn().mockResolvedValue(ROTATED_WIRE);
     const refresh = createSessionRefresher(boardWith(refreshFn));
 
-    const first = refresh(SESSION);
-    const second = refresh(SESSION);
-    release(ROTATED_WIRE);
-    const [a, b] = await Promise.all([first, second]);
+    const [a, b] = await Promise.all([refresh(SESSION), refresh(SESSION)]);
 
-    expect(refreshFn).toHaveBeenCalledTimes(1);
+    expect(refreshFn).toHaveBeenCalledTimes(2);
+    expect(refreshFn).toHaveBeenNthCalledWith(1, { refreshToken: 'brt_old' });
+    expect(refreshFn).toHaveBeenNthCalledWith(2, { refreshToken: 'brt_old' });
     expect(a).toEqual(b);
-    expect(a).toEqual({
+  });
+
+  it('a refresh that never settles does not block a later call for the same token', async () => {
+    // Regression: on Workers a fetch belongs to the request that started it.
+    // If that request is cancelled, the refresh promise never settles. A
+    // later request presenting the same refresh token must still complete
+    // instead of awaiting the abandoned promise forever.
+    const refreshFn = vi
+      .fn()
+      .mockReturnValueOnce(new Promise<BoardAuthSession>(() => {}))
+      .mockResolvedValueOnce(ROTATED_WIRE);
+    const refresh = createSessionRefresher(boardWith(refreshFn));
+
+    let firstSettled = false;
+    void refresh(SESSION).finally(() => {
+      firstSettled = true;
+    });
+
+    await expect(refresh(SESSION)).resolves.toEqual({
       accessToken: 'new.jwt',
       refreshToken: 'brt_new',
       expiresAt: 1781303600000,
     });
-  });
-
-  it('does NOT dedupe across different refreshTokens (per-token flight)', async () => {
-    const refreshFn = vi.fn().mockResolvedValue(ROTATED_WIRE);
-    const refresh = createSessionRefresher(boardWith(refreshFn));
-
-    await Promise.all([
-      refresh(SESSION),
-      refresh({ ...SESSION, refreshToken: 'brt_other' }),
-    ]);
-
     expect(refreshFn).toHaveBeenCalledTimes(2);
+    expect(firstSettled).toBe(false);
   });
 
-  it('sequential calls after settle re-invoke auth.refresh (slot cleared)', async () => {
-    const refreshFn = vi.fn().mockResolvedValue(ROTATED_WIRE);
-    const refresh = createSessionRefresher(boardWith(refreshFn));
-
-    await refresh(SESSION);
-    await refresh(SESSION);
-
-    expect(refreshFn).toHaveBeenCalledTimes(2);
-  });
-
-  it('returns null on a 401 (burned single-use token — caller signs out, never loops)', async () => {
+  it('returns null on a 401 (expired or revoked token: caller signs out, never loops)', async () => {
     const refreshFn = vi.fn().mockRejectedValue(unauthorized());
     const refresh = createSessionRefresher(boardWith(refreshFn));
 
@@ -133,7 +125,7 @@ describe('createSessionRefresher (single-flight)', () => {
     await expect(refresh(SESSION)).resolves.toBeNull();
   });
 
-  it('rethrows non-401 errors and clears the in-flight slot', async () => {
+  it('rethrows non-401 errors, and a retry makes a fresh attempt', async () => {
     const boom = new TypeError('fetch failed');
     const refreshFn = vi
       .fn()
@@ -142,8 +134,6 @@ describe('createSessionRefresher (single-flight)', () => {
     const refresh = createSessionRefresher(boardWith(refreshFn));
 
     await expect(refresh(SESSION)).rejects.toBe(boom);
-    // The slot must be cleared in finally — a retry gets a FRESH attempt,
-    // not the cached rejection.
     await expect(refresh(SESSION)).resolves.toEqual({
       accessToken: 'new.jwt',
       refreshToken: 'brt_new',
