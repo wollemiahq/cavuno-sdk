@@ -1,5 +1,5 @@
 {
-  "version": "4.31.0",
+  "version": "4.31.1",
   "skills": [
     {
       "name": "cavuno-board-account",
@@ -59,7 +59,7 @@
     },
     {
       "name": "cavuno-board-filters",
-      "description": "Listing-filter contracts with @cavuno/board. Use for job filter controls, profile-field filters, collection choices, sort controls, listing URL validation, or taxonomy-backed filter options.",
+      "description": "Listing-filter contracts with @cavuno/board. Use for job filter controls, job and company custom-field filters, profile-field filters, collection choices, sort controls, listing URL validation, or taxonomy-backed filter options.",
       "path": "skills/cavuno-board-filters/SKILL.md",
       "framework": null,
       "category": "core"
@@ -136,7 +136,7 @@
     },
     {
       "name": "cavuno-board-server-sessions",
-      "description": "Wire Cavuno server sessions and board-password access. Use when a server-rendered app needs httpOnly cookies, per-request bearer headers, single-flight refresh, grant cookies, or safe redirect-back handling.",
+      "description": "Wire Cavuno server sessions and board-password access. Use when a server-rendered app needs httpOnly cookies, per-request bearer headers, session refresh, grant cookies, or safe redirect-back handling.",
       "path": "skills/cavuno-board-server-sessions/SKILL.md",
       "framework": null,
       "category": "core"

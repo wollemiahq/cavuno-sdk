@@ -1,6 +1,6 @@
 ---
 name: cavuno-board-server-sessions
-description: Wire Cavuno server sessions and board-password access. Use when a server-rendered app needs httpOnly cookies, per-request bearer headers, single-flight refresh, grant cookies, or safe redirect-back handling.
+description: Wire Cavuno server sessions and board-password access. Use when a server-rendered app needs httpOnly cookies, per-request bearer headers, session refresh, grant cookies, or safe redirect-back handling.
 ---
 
 # Wire server sessions
@@ -11,7 +11,7 @@ The server contract has three invariants:
 
 1. One module-scoped board client uses server-default `nostore`.
 2. Each request reads an app-owned httpOnly cookie and passes credentials in that call's headers.
-3. One module-scoped `createSessionRefresher(board)` coordinates refreshes within the process or isolate.
+3. One module-scoped `createSessionRefresher(board)` refreshes expiring sessions. It holds no state between requests.
 
 ## 1. Persist the board-user session
 
@@ -41,7 +41,7 @@ const clearedCookie = clearSessionCookie();
 
 ## 2. Resolve one fresh session per request
 
-Refresh tokens rotate once. Create the refresher beside the shared client so concurrent requests using the same refresh token await one rotation. `isExpiringSoon` selects sessions within the proactive five-minute window.
+Refresh tokens rotate on use. Create the refresher beside the shared client. Each call performs its own refresh; concurrent requests presenting the same refresh token within a short grace window receive the same successor refresh token, so they converge without client-side coordination. `isExpiringSoon` selects sessions within the proactive five-minute window.
 
 ```ts snippet
 import {
@@ -68,9 +68,9 @@ async function resolveSession(cookieHeader: string | null) {
 }
 ```
 
-A rotated session is written back before the response completes. A `null` result represents a 401 from a burned or revoked token: clear the cookie and continue signed out. Network, 5xx, and 429 failures rethrow to the app's error boundary. The helper deduplicates within one process or isolate; separate deployment instances can still race.
+A rotated session is written back before the response completes. A `null` result represents a 401 from a burned or revoked token: clear the cookie and continue signed out. Network, 5xx, and 429 failures rethrow to the app's error boundary. The helper keeps no in-flight promise between requests: on edge runtimes such as Cloudflare Workers, a promise started by a request that is later cancelled never settles, and sharing it would hang every later request for that session.
 
-**Complete when:** two simultaneous resolutions for one expiring session invoke one rotation in the process, both observe the same result, success writes the rotated pair, and `null` produces one clear-cookie response with no refresh retry.
+**Complete when:** two simultaneous resolutions for one expiring session both succeed with the same refresh token, success writes the rotated pair, and `null` produces one clear-cookie response with no refresh retry.
 
 ## 3. Authenticate each SDK call
 

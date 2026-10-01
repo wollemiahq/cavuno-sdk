@@ -13,8 +13,8 @@
  * - the board-password grant codec (`__Host-cavuno_board_access`) + the
  *   open-redirect guards, tested against the hosted board's
  *   `validate-redirect-path`;
- * - `createSessionRefresher` — the single-flight rotation helper for the
- *   single-use refresh token.
+ * - `createSessionRefresher`: the refresh-token rotation helper. It holds no
+ *   state across requests; concurrent refreshes converge server-side.
  */
 export {
   SESSION_COOKIE_NAME,

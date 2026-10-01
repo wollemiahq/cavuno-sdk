@@ -48,7 +48,7 @@ Use `cavuno-board-format`, `cavuno-board-filters`, and `cavuno-board-search-sugg
 
 Use `cavuno-board-auth` for board-user registration, login, verification, recovery, and browser storage. In a server-rendered app, use `cavuno-board-server-sessions` as the authority for the httpOnly session cookie, per-call bearer header, and `createSessionRefresher`. Use `cavuno-board-errors` for typed failure branches and board-password grants.
 
-**Complete when:** an authenticated `board.me.retrieve()` succeeds, logout returns the app to a signed-out state, and concurrent server requests share the server skill's single-flight refresher.
+**Complete when:** an authenticated `board.me.retrieve()` succeeds, logout returns the app to a signed-out state, and server requests refresh expiring sessions through the server skill's module-scoped refresher.
 
 ## 5. Add only the enabled surfaces
 

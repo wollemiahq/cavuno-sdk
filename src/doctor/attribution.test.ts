@@ -8,6 +8,9 @@ describe('Cavuno attribution HTML', () => {
     '<a href=https://www.cavuno.com>Cavuno</a>',
     '<A HREF="https://cavuno&#46;com">Bereitgestellt von Cavuno</A>',
     '<a href="https://cavuno.com"><img src="/brand.svg" alt="Cavuno"></a>',
+    '<template id="B:2"></template><div hidden id="S:2"><footer><a href="https://cavuno.com">Cavuno</a></footer></div><script>$RC("B:2","S:2")</script>',
+    '<template id="B:1"></template><div hidden id="S:1"><a href="https://cavuno.com">Cavuno</a></div><script>$RR("B:1","S:1",[["/_next/static/css/a.css","high"]])</script>',
+    '<template id="P:3"></template><div hidden id="S:3"><a href="https://cavuno.com">Cavuno</a></div><script>$RS("S:3","P:3")</script>',
   ])('accepts a real backlink: %s', (html) => {
     expect(hasCrawlableCavunoBacklink(html)).toBe(true);
   });
@@ -30,6 +33,12 @@ describe('Cavuno attribution HTML', () => {
     '<a style="visibility:hidden" href="https://cavuno.com">Cavuno</a>',
     '<a style="opacity:0" href="https://cavuno.com">Cavuno</a>',
     '<a href="https://cavuno.com.example.org">Cavuno</a>',
+    '<div hidden id="S:2"><a href="https://cavuno.com">Cavuno</a></div>',
+    '<div hidden id="S:2"><a href="https://cavuno.com">Cavuno</a></div><script>$RC("B:2","S:3")</script>',
+    '<div hidden id="S:2"><a href="https://cavuno.com">Cavuno</a></div><p>$RC("B:2","S:2")</p>',
+    '<div hidden id="P:3"><a href="https://cavuno.com">Cavuno</a></div><script>$RS("S:3","P:3")</script>',
+    '<div hidden id="S:2"><a hidden href="https://cavuno.com">Cavuno</a></div><script>$RC("B:2","S:2")</script>',
+    '<div hidden id="S:2" style="display:none"><a href="https://cavuno.com">Cavuno</a></div><script>$RC("B:2","S:2")</script>',
   ])('rejects missing, inert or explicitly hidden links: %s', (html) => {
     expect(hasCrawlableCavunoBacklink(html)).toBe(false);
   });
