@@ -152,7 +152,7 @@ export interface paths {
         };
         /**
          * Build an OAuth provider authorization URL
-         * @description Return a Google or LinkedIn authorization URL for candidate or employer OAuth. `pk_...` Board API requests complete back to the publishable key registered origin at `/auth/oauth-complete`; slug/`boards_...` requests keep the hosted-board fallback. Request-provided origins are never trusted.
+         * @description Return a Google or LinkedIn authorization URL for candidate or employer OAuth. `pk_...` Board API requests complete back to the publishable key registered origin at `/auth/oauth-complete`; slug/`boards_...` requests keep the hosted-board fallback. Request-provided origins are never trusted on their own: `developmentOrigin` only selects one of the board’s registered development origins.
          */
         get: operations["getBoardAuthOauth"];
         put?: never;
@@ -217,6 +217,46 @@ export interface paths {
          * @description Consume a password-reset token (1-hour TTL, single-use, delivered by email) and set a new password. On success every outstanding session dies: access JWTs and the refresh-token chain are invalidated, and the caller signs in again with the new password. Every rejection (unknown, expired, already-used, wrong-type, or cross-board token) is the single opaque 401 `board_auth_invalid_token`; request a fresh reset email to recover.
          */
         post: operations["createBoardAuthResetPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/auth/sso/link-proof": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Consume an SSO link proof
+         * @description Consume the emailed proof that links an SSO sign-in to an existing account whose email the provider did not vouch for, and receive the bearer pair. Send the `linkProof` token from the email with the random secret established in the initiating browser before authorization (not the URL's `linkProofBinding` hash); the proof completes only in that browser. Tokens last 15 minutes and are single-use; a browser mismatch does not use the token up.
+         */
+        post: operations["createBoardAuthSsoLinkProof"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/auth/sso/{connectionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Build an SSO connection authorization URL
+         * @description Return the authorization URL of one of the board's enabled SSO connections (OpenID Connect or OAuth 2.0 + userinfo), for candidate or employer sign-in. After the provider round trip, `pk_...` Board API requests complete back to the publishable key registered origin at `/auth/oauth-complete` (slug/`boards_...` requests use the hosted-board fallback). Request-provided origins are never trusted on their own: `developmentOrigin` only selects one of the board’s registered development origins. On success the completion URL carries `token` (exchange it at `/auth/oauth/exchange`), `method=sso`, `role`, `returnTo`, and `isNew=1` for a new account. When an existing account must first prove its inbox, the completion URL instead carries `status=sso_link_proof_sent` and `linkProofBinding`: that value is a deprecated hash acknowledgment, never a secret to save. Retain the initiating browser secret and send it with the emailed token to `/auth/sso/link-proof`. Failures land on `/auth/sign-in?error=` with one of `sso_state_invalid`, `sso_cancelled`, `sso_failed`, `sso_connection_unavailable`, `sso_not_provisioned`, `sso_email_required`, `sso_account_disabled`, `sso_identity_linked_elsewhere`, `sso_link_proof_rate_limited`, `sso_development_origin_not_allowed_for_email`, or `role_disabled`.
+         */
+        get: operations["getBoardAuthSso"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -735,6 +775,26 @@ export interface paths {
          * @description Returns published jobs for the named public board, ranked by the hosted search core (featured jobs first) and paginated with job catalog `count`/`limit`/`offset`. Identical to `GET /boards/{identifier}/jobs` EXCEPT it is **ungated**. The candidate paywall never applies, so the full page is always returned and there is no `gatedCount` (it powers the public "Powered by Cavuno" embed widget). The board password wall and plan-entitlement gate still apply. `limit` defaults to 8 and is clamped to a maximum of 50.
          */
         get: operations["listBoardEmbedJobs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/feeds/{file}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieve a job aggregator feed
+         * @description Returns one of the board's job aggregator feeds as XML, the file an aggregator such as Indeed or Jooble crawls. A board serves each feed on its own host at `/feeds/<slug>.xml`; this endpoint is what that route answers with. `HEAD` returns the same headers without a body. Every response carries `X-Robots-Tag: noindex` and, for a known feed, `X-Cavuno-Feed: boards_<id>/<slug>`. A built feed returns `200` with an `ETag`; send it back in `If-None-Match` for a `304`. A feed that exists but has no file yet returns `503 feed_not_ready` with `Retry-After`, never an empty feed. A name that is not a feed returns `404 feeds_not_found`. Feeds of a password-protected board are not served.
+         */
+        get: operations["getBoardFeed"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4120,6 +4180,8 @@ export interface components {
         BoardAuthForgotPasswordBody: {
             /** Format: email */
             email: string;
+            /** @description Send the email link to this development origin instead of the board's production origin, for example `http://localhost:5173` while testing a self-hosted frontend. Only accepted with a publishable-key (`pk_...`) identifier (else 400 `board_development_origin_requires_publishable_key`), and only for a localhost development origin: email links can be requested for anyone's address, so a registered https preview returns 400 `board_development_origin_not_allowed_for_email`. It must be one of the board's development origins; otherwise the request fails with 400 `board_development_origin_not_registered`. */
+            developmentOrigin?: string;
         };
         BoardAuthLoginBody: {
             /** Format: email */
@@ -4139,6 +4201,8 @@ export interface components {
         };
         BoardAuthOAuthExchangeBody: {
             token: string;
+            /** @description For SSO, the random secret established in the initiating browser before requesting authorization. Required for SSO tokens; never read it from a completion URL. */
+            browserBinding?: string;
         };
         BoardAuthRefreshBody: {
             refreshToken: string;
@@ -4162,6 +4226,8 @@ export interface components {
             audienceAttribution?: components["schemas"]["AudienceAttribution"];
             /** @description True only when the person ticked a marketing checkbox your UI displayed with its disclosure wording. Omit when no checkbox was shown; false and absent both record nothing. */
             marketingConsent?: boolean;
+            /** @description Send the email link to this development origin instead of the board's production origin, for example `http://localhost:5173` while testing a self-hosted frontend. Only accepted with a publishable-key (`pk_...`) identifier (else 400 `board_development_origin_requires_publishable_key`), and only for a localhost development origin: email links can be requested for anyone's address, so a registered https preview returns 400 `board_development_origin_not_allowed_for_email`. It must be one of the board's development origins; otherwise the request fails with 400 `board_development_origin_not_registered`. */
+            developmentOrigin?: string;
         };
         BoardAuthRequestMagicLinkBody: {
             audienceAttribution?: components["schemas"]["AudienceAttribution"];
@@ -4174,6 +4240,8 @@ export interface components {
              * @enum {string}
              */
             intent?: "sign_in";
+            /** @description Send the email link to this development origin instead of the board's production origin, for example `http://localhost:5173` while testing a self-hosted frontend. Only accepted with a publishable-key (`pk_...`) identifier (else 400 `board_development_origin_requires_publishable_key`), and only for a localhost development origin: email links can be requested for anyone's address, so a registered https preview returns 400 `board_development_origin_not_allowed_for_email`. It must be one of the board's development origins; otherwise the request fails with 400 `board_development_origin_not_registered`. */
+            developmentOrigin?: string;
         };
         BoardAuthResetPasswordBody: {
             token: string;
@@ -4192,6 +4260,20 @@ export interface components {
             boardUser: components["schemas"]["BoardUser"];
             /** @description Present on OAuth exchange and magic-link consume. True when this exchange created the board user account (candidate or employer); false when it authenticated an existing account. */
             isNewUser?: boolean;
+        };
+        BoardAuthSsoAuthorizationUrl: {
+            /** @enum {string} */
+            object: "sso_authorization_url";
+            /** @description The SSO connection ID. */
+            connectionId: string;
+            /** Format: uri */
+            authorizeUrl: string;
+        };
+        BoardAuthSsoLinkProofBody: {
+            /** @description The `linkProof` token from the emailed link. */
+            token: string;
+            /** @description The random secret established in the initiating browser BEFORE authorization. Completion URLs contain only its hash; never save their `linkProofBinding` as the secret. Without the matching value the proof is refused with `board_auth_sso_browser_mismatch`. */
+            browserBinding?: string;
         };
         BoardAuthVerifyEmailBody: {
             token: string;
@@ -4279,6 +4361,19 @@ export interface components {
             definition: components["schemas"]["ProfileCustomFieldDefinition"];
         };
         BoardProfileFormField: components["schemas"]["BoardFormBuiltinField"] | components["schemas"]["BoardProfileFormCustomField"] | components["schemas"]["BoardProfileFormCollectionField"];
+        BoardRoleSignIn: {
+            /** @description Deprecated: true when only SSO connections are available. Inspect methods and ssoConnections instead. */
+            ssoRequired: boolean;
+            /** @description Which built-in sign-in methods are switched on for this role. All `false` when sign-in for the role is switched off. All `false` with SSO connections listed means the role signs in only with SSO. */
+            methods: {
+                password: boolean;
+                magicLink: boolean;
+                google: boolean;
+                linkedin: boolean;
+            };
+            /** @description SSO connections switched on for this role, in the order the operator created them. */
+            ssoConnections: components["schemas"]["BoardSignInSsoConnection"][];
+        };
         BoardSeo: {
             /** @enum {string} */
             object: "board_seo";
@@ -4297,6 +4392,19 @@ export interface components {
             manifest: {
                 name: string;
             };
+        };
+        BoardSignInSsoConnection: {
+            /** @description SSO connection ID. Pass it to `GET /boards/{identifier}/auth/sso/{connectionId}` to start sign-in. */
+            id: string;
+            /** @description Operator-chosen display name of the identity provider, e.g. "Acme Members". Render the button as "Continue with {label}". */
+            label: string;
+            /** @description Absolute URL of the provider logo, or `null` when unset. */
+            logoUrl: string | null;
+            /**
+             * @description Deprecated: infer SSO-only sign-in from methods and ssoConnections.
+             * @enum {string}
+             */
+            mode: "available" | "required";
         };
         BoardSitemap: {
             /** @enum {string} */
@@ -6137,6 +6245,11 @@ export interface components {
                 /** @description Whether posting a job on this board requires an active membership. When `true`, render the join gate in place of the anonymous post form: the platform rejects a create from a company with no contributing assignment (`membership_required`). Absent board config defaults to `false`. This flag is board policy and is safe to read anonymously; a signed-in employer's own standing rides their company billing options. */
                 requiresMembership: boolean;
             };
+            /** @description Sign-in options per role: the built-in methods and SSO connections switched on for that role. Render the sign-in page from this instead of hard-coding providers; any other method is refused with `board_auth_method_unavailable`. */
+            signIn: {
+                candidate: components["schemas"]["BoardRoleSignIn"];
+                employer: components["schemas"]["BoardRoleSignIn"];
+            };
             analytics: {
                 ga4MeasurementId: string | null;
                 gtmId: string | null;
@@ -7790,6 +7903,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description Credentials are valid, but password sign-in is switched off for the user's role. The sign-in method is switched off for the role being signed into (`board_auth_method_unavailable`). `details.availableMethods` lists what that role can use instead: `methods` (built-in method keys: `password`, `magicLink`, `google`, `linkedin`) and `ssoConnectionIds`. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Board not found (nonexistent or private). */
             404: {
                 headers: {
@@ -7876,7 +7998,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Candidate registration is disabled for an unknown email (`board_auth_registration_disabled`). */
+            /** @description Candidate registration is disabled for an unknown email (`board_auth_registration_disabled`). The sign-in method is switched off for the role being signed into (`board_auth_method_unavailable`). `details.availableMethods` lists what that role can use instead: `methods` (built-in method keys: `password`, `magicLink`, `google`, `linkedin`) and `ssoConnectionIds`. */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -7939,7 +8061,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Candidate registration/sign-in is disabled for this board (`board_auth_registration_disabled`). */
+            /** @description Candidate registration/sign-in is disabled for this board (`board_auth_registration_disabled`). The sign-in method is switched off for the role being signed into (`board_auth_method_unavailable`). `details.availableMethods` lists what that role can use instead: `methods` (built-in method keys: `password`, `magicLink`, `google`, `linkedin`) and `ssoConnectionIds`. */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -8002,7 +8124,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Candidate registration/sign-in is disabled for this board (`board_auth_registration_disabled`). */
+            /** @description Candidate registration/sign-in is disabled for this board (`board_auth_registration_disabled`). The sign-in method is switched off for the role being signed into (`board_auth_method_unavailable`). `details.availableMethods` lists what that role can use instead: `methods` (built-in method keys: `password`, `magicLink`, `google`, `linkedin`) and `ssoConnectionIds`. */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -8040,6 +8162,8 @@ export interface operations {
                 returnTo?: string;
                 /** @description Role profile to create when the handshake signs up a new user; defaults to `candidate`. Gated on that role being enabled for the board, and fixed at authorize time. */
                 role?: "candidate" | "employer";
+                /** @description Complete sign-in on this development origin instead of the board's production origin, for example `http://localhost:5173` or a preview deployment. It must be one of the board's development origins, and it is checked again when the provider redirects back: an origin removed in between fails the sign-in rather than landing anywhere else. Only accepted with a publishable-key (`pk_...`) identifier (else 400 `board_development_origin_requires_publishable_key`). An unregistered value returns 400 `board_development_origin_not_registered`. */
+                developmentOrigin?: string;
             };
             header?: never;
             path: {
@@ -8060,7 +8184,7 @@ export interface operations {
                     "application/json": components["schemas"]["BoardAuthOAuthAuthorizationUrl"];
                 };
             };
-            /** @description Unsupported provider or role (`validation_bad_request`). */
+            /** @description Unsupported provider or role (`validation_bad_request`), a `developmentOrigin` that is not one of the board’s development origins (`board_development_origin_not_registered`), or a `developmentOrigin` sent without a publishable-key identifier (`board_development_origin_requires_publishable_key`). */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -8069,7 +8193,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Sign-ups for the requested role are disabled on this board (`board_auth_registration_disabled`). */
+            /** @description Sign-ups for the requested role are disabled on this board (`board_auth_registration_disabled`). The sign-in method is switched off for the role being signed into (`board_auth_method_unavailable`). `details.availableMethods` lists what that role can use instead: `methods` (built-in method keys: `password`, `magicLink`, `google`, `linkedin`) and `ssoConnectionIds`. */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -8177,7 +8301,7 @@ export interface operations {
                     "application/json": components["schemas"]["BoardAuthSession"];
                 };
             };
-            /** @description Sign-ups for the requested role are disabled on this board (`board_auth_registration_disabled`). */
+            /** @description Sign-ups for the requested role are disabled on this board (`board_auth_registration_disabled`). The sign-in method is switched off for the role being signed into (`board_auth_method_unavailable`). `details.availableMethods` lists what that role can use instead: `methods` (built-in method keys: `password`, `magicLink`, `google`, `linkedin`) and `ssoConnectionIds`. */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -8258,6 +8382,157 @@ export interface operations {
             };
             /** @description Rate limited (`rate_limited`): 10 requests per minute per IP, plus 5 attempts per 15 minutes per IP. */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createBoardAuthSsoLinkProof: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BoardAuthSsoLinkProofBody"];
+            };
+        };
+        responses: {
+            /** @description Identity linked and signed in. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BoardAuthSession"];
+                };
+            };
+            /** @description Invalid token (`board_auth_invalid_token`): unknown, expired, already used, or issued for a different board. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Opened in a different browser than the sign-in started in (`board_auth_sso_browser_mismatch`); the connection admits only existing accounts (`board_auth_sso_not_provisioned`); or sign-in is disabled for this account or role (`board_auth_registration_disabled`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board not found (`boards_not_found`), or the SSO connection is no longer enabled (`board_auth_sso_connection_not_found`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The SSO identity is already linked to another account (`board_auth_sso_identity_linked_elsewhere`). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited (`rate_limited`): 10 requests per minute per IP. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getBoardAuthSso: {
+        parameters: {
+            query?: {
+                /** @description SHA-256 hex of a random secret established in the initiating browser before authorization. Required at runtime: omission returns board_auth_sso_browser_mismatch. The returned URL first sets an independent HttpOnly callback cookie, then redirects to the provider. Send the original secret only in exchange or link-proof POST bodies. */
+                browserBindingHash?: string;
+                /** @description Optional same-origin path carried through the provider round trip. */
+                returnTo?: string;
+                /** @description Role to sign in as, or to create when the sign-in creates an account; defaults to `candidate`. Refused when the connection is off for that role or the role is disabled on the board. */
+                role?: "candidate" | "employer";
+                /** @description Complete sign-in on this development origin instead of the board's production origin, for example `http://localhost:5173` or a preview deployment. It must be one of the board's development origins, and it is checked again when the provider redirects back: an origin removed in between fails the sign-in rather than landing anywhere else. Only accepted with a publishable-key (`pk_...`) identifier (else 400 `board_development_origin_requires_publishable_key`). An unregistered value returns 400 `board_development_origin_not_registered`. The inbox-proof email is an email link, so it can only target a localhost development origin: on any other development origin, a sign-in that needs one fails with `error=sso_development_origin_not_allowed_for_email`. */
+                developmentOrigin?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                /** @description The SSO connection ID. */
+                connectionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Provider authorization URL. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BoardAuthSsoAuthorizationUrl"];
+                };
+            };
+            /** @description Invalid connection ID or role (`validation_bad_request`), a `developmentOrigin` that is not one of the board’s development origins (`board_development_origin_not_registered`), or a `developmentOrigin` sent without a publishable-key identifier (`board_development_origin_requires_publishable_key`). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The connection is off for the requested role (`board_auth_sso_role_unavailable`), or sign-ups for the role are disabled on this board (`board_auth_registration_disabled`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board not found (`boards_not_found`), or the SSO connection is unknown or not enabled (`board_auth_sso_connection_not_found`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited (`rate_limited`): 10 requests per minute per IP. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The provider could not be reached or its configuration is invalid (`board_auth_sso_provider_unavailable`). */
+            502: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9638,6 +9913,56 @@ export interface operations {
             };
         };
     };
+    getBoardFeed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                /** @description Feed file name, `<slug>.xml`: lower-case letters and digits in hyphen-separated runs, at most 64 characters (e.g. `indeed.xml`). The operator copies it from the dashboard. */
+                file: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The feed file. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/xml": string;
+                };
+            };
+            /** @description The `If-None-Match` ETag matches the current file. */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No such feed (`feeds_not_found`), or the board is not public (`boards_not_found`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The feed has no file yet (`feed_not_ready`). Retry after the `Retry-After` seconds. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     createBoardJobAlert: {
         parameters: {
             query?: never;
@@ -10763,6 +11088,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApplyIntent"];
+                };
+            };
+            /** @description The board requires sign-in to apply and the caller is anonymous (`applications_guest_not_allowed`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Board or externally applicable job not found. */

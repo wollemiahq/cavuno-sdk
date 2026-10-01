@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { BoardApiError, isUnauthorized } from '../errors';
 import { createBoardClient } from '../index';
+import { ssoLinkProofBindingStore } from '../sso';
 import {
   ACCESS_TOKEN_KEY,
   REFRESH_TOKEN_KEY,
@@ -52,6 +53,7 @@ function makeBoard(storage = resolveStorage('memory')) {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
 describe('auth.login', () => {
@@ -323,5 +325,134 @@ describe('auth.verifyEmailWithCode + resendVerification', () => {
     expect(spy.mock.calls[0]![1]!.body).toBeUndefined();
     const headers = spy.mock.calls[0]![1]!.headers as Headers;
     expect(headers.get('authorization')).toBe('Bearer jwt');
+  });
+});
+
+describe('auth SSO', () => {
+  it('retains the initiating secret for a delayed callback proof and expires after the combined window', async () => {
+    vi.useFakeTimers();
+    const startedAt = new Date('2026-01-01T00:00:00Z');
+    vi.setSystemTime(startedAt);
+    vi.stubGlobal('localStorage', resolveStorage('memory'));
+    const spy = stubFetch(jsonResponse(SESSION));
+    const { board } = makeBoard();
+    await board.auth.getSsoAuthorizationUrl('conn_1');
+    const bindings = ssoLinkProofBindingStore('acme-jobs');
+    const secret = bindings.read()!;
+
+    // Provider/MFA finishes at minute eight, within the ten-minute state
+    // lifetime. Its proof email is valid until minute twenty-three.
+    vi.setSystemTime(startedAt.getTime() + 8 * 60 * 1000);
+    bindings.save('callback-url-binding');
+    // Open the email eight minutes later in the initiating browser.
+    vi.setSystemTime(startedAt.getTime() + 16 * 60 * 1000);
+    expect(bindings.read()).toBe(secret);
+    await board.auth.consumeSsoLinkProof({ token: 'callback-proof' });
+    expect(JSON.parse(spy.mock.calls[1]![1]!.body as string)).toEqual({
+      token: 'callback-proof',
+      browserBinding: secret,
+    });
+
+    vi.setSystemTime(startedAt.getTime() + 25 * 60 * 1000 - 1);
+    expect(bindings.read()).toBe(secret);
+    vi.setSystemTime(startedAt.getTime() + 25 * 60 * 1000);
+    expect(bindings.read()).toBeNull();
+    bindings.save('emailed-url-binding');
+    expect(bindings.read()).toBeNull();
+  });
+
+  it('establishes browser proof before authorization and exchanges only the retained secret after a transplanted URL', async () => {
+    const local = resolveStorage('memory');
+    vi.stubGlobal('localStorage', local);
+    const spy = stubFetch(jsonResponse(SESSION));
+    const { board } = makeBoard();
+    await board.auth.getSsoAuthorizationUrl('conn_1');
+    const bindings = ssoLinkProofBindingStore('acme-jobs');
+    const secret = bindings.read()!;
+    expect(secret).toMatch(/^[0-9a-f]{64}$/);
+    const digest = await globalThis.crypto.subtle.digest(
+      'SHA-256',
+      new TextEncoder().encode(secret),
+    );
+    const challenge = Array.from(new Uint8Array(digest), (byte) =>
+      byte.toString(16).padStart(2, '0'),
+    ).join('');
+    expect(
+      new URL(spy.mock.calls[0]![0]).searchParams.get('browserBindingHash'),
+    ).toBe(challenge);
+    expect(spy.mock.calls[0]![0]).not.toContain(secret);
+    bindings.save('attacker-completion-binding');
+    await board.auth.exchangeOAuth({ token: 't1' });
+    expect(JSON.parse(spy.mock.calls[1]![1]!.body as string)).toEqual({
+      token: 't1',
+      browserBinding: secret,
+    });
+  });
+
+  it('getSsoAuthorizationUrl GETs the connection-keyed route with role and returnTo', async () => {
+    const spy = stubFetch(
+      jsonResponse({
+        object: 'sso_authorization_url',
+        connectionId: 'conn_1',
+        authorizeUrl: 'https://idp.example.org/authorize?state=x',
+      }),
+    );
+    const { board } = makeBoard();
+    const result = await board.auth.getSsoAuthorizationUrl('conn_1', {
+      role: 'employer',
+      returnTo: '/dashboard',
+      browserBindingHash: 'a'.repeat(64),
+    });
+    expect(spy.mock.calls[0]![0]).toBe(
+      'https://api.cavuno.com/v1/boards/acme-jobs/auth/sso/conn_1?role=employer&returnTo=%2Fdashboard&browserBindingHash=' +
+        'a'.repeat(64),
+    );
+    expect(spy.mock.calls[0]![1]!.method).toBe('GET');
+    expect(result.authorizeUrl).toBe(
+      'https://idp.example.org/authorize?state=x',
+    );
+  });
+
+  it('consumeSsoLinkProof POSTs token + binding and persists the session', async () => {
+    const spy = stubFetch(jsonResponse(SESSION));
+    const { board, storage } = makeBoard();
+    const session = await board.auth.consumeSsoLinkProof({
+      token: 'proof',
+      browserBinding: 'binding',
+    });
+    expect(spy.mock.calls[0]![0]).toBe(
+      'https://api.cavuno.com/v1/boards/acme-jobs/auth/sso/link-proof',
+    );
+    expect(spy.mock.calls[0]![1]!.method).toBe('POST');
+    expect(spy.mock.calls[0]![1]!.body).toBe(
+      '{"token":"proof","browserBinding":"binding"}',
+    );
+    expect(session).toEqual(SESSION);
+    expect(await storage.getItem(ACCESS_TOKEN_KEY)).toBe('access-jwt');
+  });
+
+  it('surfaces a browser mismatch as a typed error and stores nothing', async () => {
+    stubFetch(
+      jsonResponse(
+        {
+          error: {
+            code: 'board_auth_sso_browser_mismatch',
+            message:
+              'Open this link on the device where you started signing in',
+            requestId: 'req_1',
+          },
+        },
+        403,
+      ),
+    );
+    const { board, storage } = makeBoard();
+    const error = await board.auth
+      .consumeSsoLinkProof({ token: 'proof' })
+      .catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(BoardApiError);
+    expect((error as BoardApiError).code).toBe(
+      'board_auth_sso_browser_mismatch',
+    );
+    expect(await storage.getItem(ACCESS_TOKEN_KEY)).toBeNull();
   });
 });

@@ -3,6 +3,23 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.31.0 — 2026-10-01
+
+- Board SSO supports candidate and employer sign-in through OpenID Connect and
+  OAuth providers. Frontends can start sign-in, complete a one-time handoff, and
+  verify an emailed proof, with completion bound to the browser that started it.
+  Board context exposes the available sign-in methods for each role.
+
+- Development origins support local and preview frontends without changing the
+  board's public address. Employer accounts can be deactivated and reactivated
+  through the Board API.
+
+- Publish XML job feeds on your board's own domain for job aggregators, with
+  filters, directly posted or published job selection, and tagged job links.
+
+- PATCH requests can clear author links, canonical URLs, and seniority values.
+  External apply intents respect the board's registration wall.
+
 ## 4.30.0 — 2026-09-29
 
 - Company profiles and board settings can include an Instagram profile link.

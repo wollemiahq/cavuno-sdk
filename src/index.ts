@@ -106,7 +106,7 @@ export function createBoardClient(options: CreateBoardClientOptions) {
     embed: embedNamespace(client),
     companies: companiesNamespace(client),
     blog: blogNamespace(client),
-    auth: authNamespace(client),
+    auth: authNamespace(client, options.board),
     me: meNamespace(client),
     password: passwordNamespace(client),
     taxonomy: taxonomyNamespace(client),
@@ -138,10 +138,17 @@ export {
   isForbidden,
   isNotFound,
   isRateLimited,
+  isSsoBrowserMismatch,
+  isSsoRequired,
+  isSignInMethodUnavailable,
   isUnauthorized,
   isValidationError,
 } from './errors';
-export type { BoardApiErrorCode } from './errors';
+export type {
+  AvailableSignInMethods,
+  BoardApiErrorCode,
+  BuiltInSignInMethod,
+} from './errors';
 export {
   ACCESS_TOKEN_KEY,
   BOARD_ACCESS_GRANT_KEY,
@@ -162,6 +169,20 @@ export {
   resolveApplyDecision,
 } from './apply-derive';
 export type { ApplyAction, ApplyDecisionState } from './apply-derive';
+// Sign-in completion helpers (OAuth + SSO) — pure, framework-neutral.
+export {
+  SIGN_IN_REDIRECT_ERROR_CODES,
+  SSO_LINK_PROOF_BINDING_TTL_MS,
+  parseOAuthCompletion,
+  ssoLinkProofBindingStore,
+} from './sso';
+export type {
+  BindingStorage,
+  OAuthCompletion,
+  SignInRedirectErrorCode,
+  SignInRole,
+  SsoLinkProofBindingStore,
+} from './sso';
 
 export type {
   BoardAuthSession,
@@ -178,6 +199,9 @@ export type {
   RegisterBody,
   RequestMagicLinkBody,
   ResetPasswordBody,
+  SsoAuthorizationQuery,
+  SsoAuthorizationUrl,
+  SsoLinkProofBody,
   VerifyEmailBody,
 } from './types/auth';
 export type {
@@ -187,6 +211,8 @@ export type {
   BoardFormLockReason,
   BoardJobFormField,
   BoardProfileFormField,
+  BoardRoleSignIn,
+  BoardSignInSsoConnection,
   CustomFieldDefinition,
   CustomFieldOption,
   CustomFieldType,
@@ -195,6 +221,7 @@ export type {
   PublicBoardAnalytics,
   PublicBoardFeatures,
   PublicBoardJobForm,
+  PublicBoardSignIn,
 } from './types/board';
 export type { BoardSeo } from './types/seo';
 export type { EmbedJobsQuery } from './types/embed';

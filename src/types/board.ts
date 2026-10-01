@@ -17,6 +17,20 @@ export type PublicBoardAds = PublicBoard['ads'];
 export type PublicBoardJobForm = PublicBoard['jobForm'];
 
 /**
+ * Sign-in options per role from `board.context().signIn`: which built-in
+ * methods to offer and the board's SSO connections. Render the sign-in page
+ * from this instead of hard-coding providers.
+ */
+export type PublicBoardSignIn = PublicBoard['signIn'];
+/** One role's sign-in options (`signIn.candidate` / `signIn.employer`). */
+export type BoardRoleSignIn = Schemas['BoardRoleSignIn'];
+/**
+ * An SSO connection offered to a role. Start sign-in with
+ * `board.auth.getSsoAuthorizationUrl(connection.id, { role })`.
+ */
+export type BoardSignInSsoConnection = Schemas['BoardSignInSsoConnection'];
+
+/**
  * The operator's job, company and talent forms from
  * `board.context().forms`: one ordered field list per form. Render each list
  * in order, skip entries with `visible: false`, draw built-ins by `key` with
