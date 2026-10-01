@@ -1,3 +1,4 @@
+import { ssoLinkProofBindingStore } from '../sso';
 import { REFRESH_TOKEN_KEY, clearSession, writeSession } from '../storage';
 
 import type { BoardClient, FetchOptions } from '../client';
@@ -15,11 +16,15 @@ import type {
   RefreshBody,
   RegisterBody,
   ResetPasswordBody,
+  SsoAuthorizationQuery,
+  SsoAuthorizationUrl,
+  SsoLinkProofBody,
   VerifyEmailBody,
 } from '../types/auth';
 import type { CompanyMembership, ConfirmWorkEmailBody } from '../types/me';
 
-export function authNamespace(client: BoardClient) {
+export function authNamespace(client: BoardClient, board = '') {
+  const ssoProof = () => ssoLinkProofBindingStore(board);
   async function persist(session: BoardAuthSession): Promise<BoardAuthSession> {
     await writeSession(client.storage, session);
     return session;
@@ -291,7 +296,83 @@ export function authNamespace(client: BoardClient) {
         {
           ...options,
           method: 'POST',
-          body,
+          body: {
+            ...body,
+            browserBinding:
+              body.browserBinding ?? ssoProof().read() ?? undefined,
+          },
+        },
+      );
+      return persist(session);
+    },
+
+    /**
+     * Build the authorization URL for one of the board's SSO connections
+     * (ids from `board.context()` → `signIn.<role>.ssoConnections`). The SDK
+     * returns the URL; the host app owns browser navigation. The provider
+     * round trip completes on your `/auth/oauth-complete` page — read it
+     * with `parseOAuthCompletion`.
+     *
+     * @example
+     * const { authorizeUrl } = await board.auth.getSsoAuthorizationUrl(
+     *   connection.id,
+     *   { role: 'candidate', returnTo: '/account' },
+     * );
+     * window.location.href = authorizeUrl;
+     */
+    async getSsoAuthorizationUrl(
+      connectionId: string,
+      query?: SsoAuthorizationQuery,
+      options?: FetchOptions,
+    ) {
+      let browserBindingHash = query?.browserBindingHash;
+      if (!browserBindingHash) {
+        const secret = ssoProof().begin();
+        const digest = await globalThis.crypto.subtle.digest(
+          'SHA-256',
+          new TextEncoder().encode(secret),
+        );
+        browserBindingHash = Array.from(new Uint8Array(digest), (byte) =>
+          byte.toString(16).padStart(2, '0'),
+        ).join('');
+      }
+      return client.fetch<SsoAuthorizationUrl>(
+        `/auth/sso/${encodeURIComponent(connectionId)}`,
+        {
+          ...options,
+          method: 'GET',
+          query: { ...query, browserBindingHash },
+        },
+      );
+    },
+
+    /**
+     * Finish an SSO sign-in that had to prove the inbox first: send the
+     * emailed `linkProof` token with the `linkProofBinding` this browser
+     * kept when the sign-in started (`ssoLinkProofBindingStore`). Persists
+     * the returned bearer pair. Opened in another browser, it fails with
+     * `board_auth_sso_browser_mismatch` (`isSsoBrowserMismatch`) and the
+     * link stays usable where the sign-in started.
+     *
+     * @example
+     * const bindings = ssoLinkProofBindingStore(boardKey);
+     * await board.auth.consumeSsoLinkProof({
+     *   token: completion.linkProof,
+     *   browserBinding: bindings.read() ?? undefined,
+     * });
+     * bindings.clear();
+     */
+    async consumeSsoLinkProof(body: SsoLinkProofBody, options?: FetchOptions) {
+      const session = await client.fetch<BoardAuthSession>(
+        '/auth/sso/link-proof',
+        {
+          ...options,
+          method: 'POST',
+          body: {
+            ...body,
+            browserBinding:
+              body.browserBinding ?? ssoProof().read() ?? undefined,
+          },
         },
       );
       return persist(session);

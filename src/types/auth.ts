@@ -26,6 +26,42 @@ export type OAuthAuthorizationQuery = {
    * role is fixed at authorize time and cannot be changed on the callback.
    */
   role?: 'candidate' | 'employer';
+  /**
+   * Complete sign-in on one of the board's development origins instead of
+   * its production origin, for example `window.location.origin` while you
+   * run the frontend on `http://localhost:5173`. The origin must be
+   * registered for the board (Settings → SDK → Development origins, or the
+   * Operator API); otherwise the call fails with
+   * `board_development_origin_not_registered`. Only accepted when the client
+   * identifies the board with a publishable key (`pk_...`); otherwise the
+   * call fails with `board_development_origin_requires_publishable_key`.
+   */
+  developmentOrigin?: string;
 };
 export type OAuthAuthorizationUrl = Schemas['BoardAuthOAuthAuthorizationUrl'];
 export type OAuthExchangeBody = Schemas['BoardAuthOAuthExchangeBody'];
+export type SsoAuthorizationQuery = {
+  /** SHA-256 hex of a secret already established in the initiating browser. The browser SDK supplies this automatically; server callers must retain the raw secret securely for completion. */
+  browserBindingHash?: string;
+  /** Board-relative path to land on after sign-in; defaults to `/`. */
+  returnTo?: string;
+  /**
+   * Role being signed into; defaults to `candidate`. Also the role profile
+   * created when the sign-in makes a NEW user.
+   */
+  role?: 'candidate' | 'employer';
+  /**
+   * Complete sign-in on one of the board's development origins instead of
+   * its production origin, for example `window.location.origin` while you
+   * run the frontend on `http://localhost:5173`. Same rules as
+   * `OAuthAuthorizationQuery.developmentOrigin`: the origin must be
+   * registered for the board, and the client must identify the board with a
+   * publishable key (`pk_...`). When an existing account has to confirm its
+   * inbox first, the confirmation email is an email link, so it can only
+   * target a localhost development origin; elsewhere that sign-in lands on
+   * `/auth/sign-in?error=sso_development_origin_not_allowed_for_email`.
+   */
+  developmentOrigin?: string;
+};
+export type SsoAuthorizationUrl = Schemas['BoardAuthSsoAuthorizationUrl'];
+export type SsoLinkProofBody = Schemas['BoardAuthSsoLinkProofBody'];
