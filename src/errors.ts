@@ -35,6 +35,9 @@ export const BOARD_API_ERROR_CODES = [
   'board_auth_invalid_token',
   'board_auth_registration_disabled',
   'board_auth_token_expired',
+  'board_development_origin_not_allowed_for_email',
+  'board_development_origin_not_registered',
+  'board_development_origin_requires_publishable_key',
   'invalid_current_password',
   'no_password',
   'same_email',
@@ -68,6 +71,9 @@ export const BOARD_API_ERROR_CODES = [
   'blog_post_not_found',
   'blog_author_not_found',
   'blog_tag_not_found',
+  // Job aggregator feeds
+  'feeds_not_found',
+  'feed_not_ready',
   // Talent directory
   'talent_not_found',
   'talent_directory_not_found',

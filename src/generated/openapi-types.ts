@@ -152,7 +152,7 @@ export interface paths {
         };
         /**
          * Build an OAuth provider authorization URL
-         * @description Return a Google or LinkedIn authorization URL for candidate or employer OAuth. `pk_...` Board API requests complete back to the publishable key registered origin at `/auth/oauth-complete`; slug/`boards_...` requests keep the hosted-board fallback. Request-provided origins are never trusted.
+         * @description Return a Google or LinkedIn authorization URL for candidate or employer OAuth. `pk_...` Board API requests complete back to the publishable key registered origin at `/auth/oauth-complete`; slug/`boards_...` requests keep the hosted-board fallback. Request-provided origins are never trusted on their own: `developmentOrigin` only selects one of the board’s registered development origins.
          */
         get: operations["getBoardAuthOauth"];
         put?: never;
@@ -735,6 +735,26 @@ export interface paths {
          * @description Returns published jobs for the named public board, ranked by the hosted search core (featured jobs first) and paginated with job catalog `count`/`limit`/`offset`. Identical to `GET /boards/{identifier}/jobs` EXCEPT it is **ungated**. The candidate paywall never applies, so the full page is always returned and there is no `gatedCount` (it powers the public "Powered by Cavuno" embed widget). The board password wall and plan-entitlement gate still apply. `limit` defaults to 8 and is clamped to a maximum of 50.
          */
         get: operations["listBoardEmbedJobs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/feeds/{file}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieve a job aggregator feed
+         * @description Returns one of the board's job aggregator feeds as XML, the file an aggregator such as Indeed or Jooble crawls. A board serves each feed on its own host at `/feeds/<slug>.xml`; this endpoint is what that route answers with. `HEAD` returns the same headers without a body. Every response carries `X-Robots-Tag: noindex` and, for a known feed, `X-Cavuno-Feed: boards_<id>/<slug>`. A built feed returns `200` with an `ETag`; send it back in `If-None-Match` for a `304`. A feed that exists but has no file yet returns `503 feed_not_ready` with `Retry-After`, never an empty feed. A name that is not a feed returns `404 feeds_not_found`. Feeds of a password-protected board are not served.
+         */
+        get: operations["getBoardFeed"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4120,6 +4140,8 @@ export interface components {
         BoardAuthForgotPasswordBody: {
             /** Format: email */
             email: string;
+            /** @description Send the email link to this development origin instead of the board's production origin, for example `http://localhost:5173` while testing a self-hosted frontend. Only accepted with a publishable-key (`pk_...`) identifier (else 400 `board_development_origin_requires_publishable_key`), and only for a localhost development origin: email links can be requested for anyone's address, so a registered https preview returns 400 `board_development_origin_not_allowed_for_email`. It must be one of the board's development origins; otherwise the request fails with 400 `board_development_origin_not_registered`. */
+            developmentOrigin?: string;
         };
         BoardAuthLoginBody: {
             /** Format: email */
@@ -4162,6 +4184,8 @@ export interface components {
             audienceAttribution?: components["schemas"]["AudienceAttribution"];
             /** @description True only when the person ticked a marketing checkbox your UI displayed with its disclosure wording. Omit when no checkbox was shown; false and absent both record nothing. */
             marketingConsent?: boolean;
+            /** @description Send the email link to this development origin instead of the board's production origin, for example `http://localhost:5173` while testing a self-hosted frontend. Only accepted with a publishable-key (`pk_...`) identifier (else 400 `board_development_origin_requires_publishable_key`), and only for a localhost development origin: email links can be requested for anyone's address, so a registered https preview returns 400 `board_development_origin_not_allowed_for_email`. It must be one of the board's development origins; otherwise the request fails with 400 `board_development_origin_not_registered`. */
+            developmentOrigin?: string;
         };
         BoardAuthRequestMagicLinkBody: {
             audienceAttribution?: components["schemas"]["AudienceAttribution"];
@@ -4174,6 +4198,8 @@ export interface components {
              * @enum {string}
              */
             intent?: "sign_in";
+            /** @description Send the email link to this development origin instead of the board's production origin, for example `http://localhost:5173` while testing a self-hosted frontend. Only accepted with a publishable-key (`pk_...`) identifier (else 400 `board_development_origin_requires_publishable_key`), and only for a localhost development origin: email links can be requested for anyone's address, so a registered https preview returns 400 `board_development_origin_not_allowed_for_email`. It must be one of the board's development origins; otherwise the request fails with 400 `board_development_origin_not_registered`. */
+            developmentOrigin?: string;
         };
         BoardAuthResetPasswordBody: {
             token: string;
@@ -8040,6 +8066,8 @@ export interface operations {
                 returnTo?: string;
                 /** @description Role profile to create when the handshake signs up a new user; defaults to `candidate`. Gated on that role being enabled for the board, and fixed at authorize time. */
                 role?: "candidate" | "employer";
+                /** @description Complete sign-in on this development origin instead of the board's production origin, for example `http://localhost:5173` or a preview deployment. It must be one of the board's development origins, and it is checked again when the provider redirects back: an origin removed in between fails the sign-in rather than landing anywhere else. Only accepted with a publishable-key (`pk_...`) identifier (else 400 `board_development_origin_requires_publishable_key`). An unregistered value returns 400 `board_development_origin_not_registered`. */
+                developmentOrigin?: string;
             };
             header?: never;
             path: {
@@ -8060,7 +8088,7 @@ export interface operations {
                     "application/json": components["schemas"]["BoardAuthOAuthAuthorizationUrl"];
                 };
             };
-            /** @description Unsupported provider or role (`validation_bad_request`). */
+            /** @description Unsupported provider or role (`validation_bad_request`), a `developmentOrigin` that is not one of the board’s development origins (`board_development_origin_not_registered`), or a `developmentOrigin` sent without a publishable-key identifier (`board_development_origin_requires_publishable_key`). */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -9638,6 +9666,56 @@ export interface operations {
             };
         };
     };
+    getBoardFeed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                /** @description Feed file name, `<slug>.xml`: lower-case letters and digits in hyphen-separated runs, at most 64 characters (e.g. `indeed.xml`). The operator copies it from the dashboard. */
+                file: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The feed file. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/xml": string;
+                };
+            };
+            /** @description The `If-None-Match` ETag matches the current file. */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No such feed (`feeds_not_found`), or the board is not public (`boards_not_found`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The feed has no file yet (`feed_not_ready`). Retry after the `Retry-After` seconds. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     createBoardJobAlert: {
         parameters: {
             query?: never;
@@ -10763,6 +10841,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApplyIntent"];
+                };
+            };
+            /** @description The board requires sign-in to apply and the caller is anonymous (`applications_guest_not_allowed`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Board or externally applicable job not found. */
