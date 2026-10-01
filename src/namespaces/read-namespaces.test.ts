@@ -155,6 +155,28 @@ describe('board.context()', () => {
       },
       talentAccessModel: null,
       posting: { requiresMembership: false },
+      signIn: {
+        candidate: {
+          ssoRequired: false,
+          methods: {
+            password: true,
+            magicLink: true,
+            google: true,
+            linkedin: true,
+          },
+          ssoConnections: [],
+        },
+        employer: {
+          ssoRequired: false,
+          methods: {
+            password: true,
+            magicLink: true,
+            google: true,
+            linkedin: true,
+          },
+          ssoConnections: [],
+        },
+      },
       contact: {
         email: null,
         legalName: null,

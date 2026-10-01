@@ -35,6 +35,18 @@ export const BOARD_API_ERROR_CODES = [
   'board_auth_invalid_token',
   'board_auth_registration_disabled',
   'board_auth_token_expired',
+  'board_development_origin_not_allowed_for_email',
+  'board_development_origin_not_registered',
+  'board_development_origin_requires_publishable_key',
+  // Board-user SSO sign-in
+  'sso_required', // Deprecated; retained for older API responses.
+  'board_auth_method_unavailable',
+  'board_auth_sso_connection_not_found',
+  'board_auth_sso_role_unavailable',
+  'board_auth_sso_provider_unavailable',
+  'board_auth_sso_browser_mismatch',
+  'board_auth_sso_not_provisioned',
+  'board_auth_sso_identity_linked_elsewhere',
   'invalid_current_password',
   'no_password',
   'same_email',
@@ -68,6 +80,9 @@ export const BOARD_API_ERROR_CODES = [
   'blog_post_not_found',
   'blog_author_not_found',
   'blog_tag_not_found',
+  // Job aggregator feeds
+  'feeds_not_found',
+  'feed_not_ready',
   // Talent directory
   'talent_not_found',
   'talent_directory_not_found',
@@ -291,5 +306,100 @@ export function isFreeEmailWebsiteError(e: unknown): e is BoardApiError {
     isBoardApiError(e) &&
     e.status === 422 &&
     e.code === 'employer_free_email_website'
+  );
+}
+
+/** Built-in sign-in method keys, as used in `signIn.<role>.methods`. */
+export type BuiltInSignInMethod =
+  | 'password'
+  | 'magicLink'
+  | 'google'
+  | 'linkedin';
+
+/**
+ * What a role can sign in with instead, from
+ * `board_auth_method_unavailable` → `details.availableMethods`.
+ */
+export interface AvailableSignInMethods {
+  /**
+   * Built-in methods switched on for the role. Kept open: new method keys
+   * may ship, so ignore any you do not render.
+   */
+  methods: Array<BuiltInSignInMethod | (string & {})>;
+  /** SSO connections switched on for the role. */
+  ssoConnectionIds: string[];
+}
+
+/** @deprecated Use isSignInMethodUnavailable and details.availableMethods. */
+export function isSsoRequired(
+  e: unknown,
+): e is BoardApiError & { details: { connectionIds: string[] } } {
+  if (!isBoardApiError(e) || e.status !== 403) return false;
+  const ids = (e.details as { connectionIds?: unknown } | undefined)
+    ?.connectionIds;
+  return (
+    Array.isArray(ids) &&
+    ids.every((id) => typeof id === 'string') &&
+    (e.code === 'sso_required' ||
+      (isSignInMethodUnavailable(e) &&
+        e.details.availableMethods.methods.length === 0))
+  );
+}
+
+/**
+ * The sign-in method is switched off for the role being signed into
+ * (`board_auth_method_unavailable`, 403). Password, magic link, Google,
+ * LinkedIn and SSO can each be switched off per role, so any sign-in call
+ * may be refused. `details.availableMethods` lists what the role can use
+ * instead: built-in `methods` and `ssoConnectionIds` — match the ids
+ * against `signIn.<role>.ssoConnections` from `board.context()`. Both lists
+ * are empty when the role has no way to sign in.
+ *
+ * @example
+ * try {
+ *   await board.auth.login({ email, password });
+ * } catch (e) {
+ *   if (isSignInMethodUnavailable(e)) {
+ *     const { methods, ssoConnectionIds } = e.details.availableMethods;
+ *     showSignInOptions(methods, ssoConnectionIds);
+ *   } else throw e;
+ * }
+ */
+export function isSignInMethodUnavailable(e: unknown): e is BoardApiError & {
+  details: { availableMethods: AvailableSignInMethods };
+} {
+  if (
+    !isBoardApiError(e) ||
+    e.status !== 403 ||
+    e.code !== 'board_auth_method_unavailable'
+  ) {
+    return false;
+  }
+  const available = (e.details as { availableMethods?: unknown } | undefined)
+    ?.availableMethods;
+  if (!available || typeof available !== 'object') return false;
+  const { methods, ssoConnectionIds } = available as {
+    methods?: unknown;
+    ssoConnectionIds?: unknown;
+  };
+  return (
+    Array.isArray(methods) &&
+    methods.every((m) => typeof m === 'string') &&
+    Array.isArray(ssoConnectionIds) &&
+    ssoConnectionIds.every((id) => typeof id === 'string')
+  );
+}
+
+/**
+ * An SSO link-proof link was opened in a different browser than the one
+ * that started the sign-in (`board_auth_sso_browser_mismatch`, 403). Ask
+ * the user to open the link on the device where they started signing in;
+ * the emailed link stays usable there.
+ */
+export function isSsoBrowserMismatch(e: unknown): e is BoardApiError {
+  return (
+    isBoardApiError(e) &&
+    e.status === 403 &&
+    e.code === 'board_auth_sso_browser_mismatch'
   );
 }
