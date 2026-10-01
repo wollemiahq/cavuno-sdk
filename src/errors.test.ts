@@ -9,6 +9,9 @@ import {
   isForbidden,
   isNotFound,
   isRateLimited,
+  isSsoBrowserMismatch,
+  isSsoRequired,
+  isSignInMethodUnavailable,
   isUnauthorized,
   isValidationError,
 } from './errors';
@@ -116,5 +119,118 @@ describe('isBoardApiError structural predicate', () => {
     expect(isBoardApiError(foreign)).toBe(true);
     const impostor = Object.assign(new Error('x'), { name: 'BoardApiError' });
     expect(isBoardApiError(impostor)).toBe(false);
+  });
+});
+
+describe('SSO guards', () => {
+  it('isSignInMethodUnavailable matches board_auth_method_unavailable and narrows details', () => {
+    const err = new BoardApiError({
+      status: 403,
+      code: 'board_auth_method_unavailable',
+      message: 'This sign-in method is not available',
+      details: {
+        availableMethods: {
+          methods: ['magicLink', 'google'],
+          ssoConnectionIds: ['conn_a'],
+        },
+      },
+      raw: {},
+    });
+    expect(isSignInMethodUnavailable(err)).toBe(true);
+    if (isSignInMethodUnavailable(err)) {
+      expect(err.details.availableMethods).toEqual({
+        methods: ['magicLink', 'google'],
+        ssoConnectionIds: ['conn_a'],
+      });
+    }
+    const ssoOnly = new BoardApiError({
+      status: 403,
+      code: 'board_auth_method_unavailable',
+      message: 'x',
+      details: { availableMethods: { methods: [], ssoConnectionIds: ['c'] } },
+      raw: {},
+    });
+    expect(isSignInMethodUnavailable(ssoOnly)).toBe(true);
+  });
+
+  it('isSignInMethodUnavailable rejects other codes and malformed details', () => {
+    const withDetails = (details: unknown) =>
+      new BoardApiError({
+        status: 403,
+        code: 'board_auth_method_unavailable',
+        message: 'x',
+        details,
+        raw: {},
+      });
+    expect(
+      isSignInMethodUnavailable(
+        makeError(403, 'board_auth_method_unavailable'),
+      ),
+    ).toBe(false);
+    expect(isSignInMethodUnavailable(withDetails({}))).toBe(false);
+    expect(
+      isSignInMethodUnavailable(
+        withDetails({ availableMethods: { methods: ['password'] } }),
+      ),
+    ).toBe(false);
+    expect(
+      isSignInMethodUnavailable(
+        withDetails({
+          availableMethods: { methods: [1], ssoConnectionIds: [] },
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      isSignInMethodUnavailable(
+        withDetails({
+          availableMethods: { methods: [], ssoConnectionIds: [42] },
+        }),
+      ),
+    ).toBe(false);
+    expect(isSignInMethodUnavailable(makeError(403, 'auth_forbidden'))).toBe(
+      false,
+    );
+    expect(
+      isSignInMethodUnavailable(new Error('board_auth_method_unavailable')),
+    ).toBe(false);
+  });
+
+  it('isSsoBrowserMismatch matches only the browser-mismatch code', () => {
+    expect(
+      isSsoBrowserMismatch(makeError(403, 'board_auth_sso_browser_mismatch')),
+    ).toBe(true);
+    expect(
+      isSsoBrowserMismatch(makeError(403, 'board_auth_sso_not_provisioned')),
+    ).toBe(false);
+  });
+});
+
+describe('deprecated isSsoRequired compatibility', () => {
+  it('recognizes older responses and the current SSO-only error envelope', () => {
+    for (const [code, details] of [
+      ['sso_required', { connectionIds: ['conn_1'] }],
+      [
+        'board_auth_method_unavailable',
+        {
+          connectionIds: ['conn_1'],
+          availableMethods: { methods: [], ssoConnectionIds: ['conn_1'] },
+        },
+      ],
+    ] as const) {
+      const error = new BoardApiError({
+        status: 403,
+        code,
+        message: 'SSO only',
+        details,
+        requestId: 'req_compat',
+        raw: null,
+      });
+      expect(isSsoRequired(error)).toBe(true);
+      if (isSsoRequired(error))
+        expect(error.details.connectionIds).toEqual(['conn_1']);
+    }
+    expect(isSsoRequired(makeError(403, 'board_auth_method_unavailable'))).toBe(
+      false,
+    );
   });
 });
