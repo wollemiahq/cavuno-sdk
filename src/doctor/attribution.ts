@@ -16,10 +16,41 @@ function attribute(node: Element, name: string): string | undefined {
   return node.attrs.find((attr) => attr.name === name)?.value;
 }
 
-function hidden(node: Element): boolean {
+/**
+ * React streams a late Suspense segment into `<div hidden id="S:n">` and an
+ * inline script moves it into the page (`$RC("B:n","S:n")`,
+ * `$RR("B:n","S:n",[…])` with stylesheets, or `$RS("S:n","P:n")`), so
+ * browsers and crawlers render it. Collect the segment ids those scripts reveal.
+ */
+const STREAMED_REVEAL =
+  /\$R[CR]\(\s*"[^"]+"\s*,\s*"([^"]+)"|\$RS\(\s*"([^"]+)"/g;
+
+function revealedSegmentIds(root: Node): Set<string> {
+  const ids = new Set<string>();
+  function visit(node: Node): void {
+    if ('tagName' in node && node.tagName === 'script') {
+      for (const child of node.childNodes) {
+        if (child.nodeName !== '#text') continue;
+        const text = (child as DefaultTreeAdapterTypes.TextNode).value;
+        for (const match of text.matchAll(STREAMED_REVEAL)) {
+          ids.add((match[1] ?? match[2])!);
+        }
+      }
+      return;
+    }
+    if ('childNodes' in node) node.childNodes.forEach(visit);
+  }
+  visit(root);
+  return ids;
+}
+
+function hidden(node: Element, revealed: ReadonlySet<string>): boolean {
+  const id = attribute(node, 'id');
+  const streamedSegment =
+    node.tagName === 'div' && id !== undefined && revealed.has(id);
   if (
     NON_RENDERED.has(node.tagName) ||
-    attribute(node, 'hidden') !== undefined ||
+    (attribute(node, 'hidden') !== undefined && !streamedSegment) ||
     attribute(node, 'inert') !== undefined ||
     attribute(node, 'aria-hidden')?.toLowerCase() === 'true'
   )
@@ -47,30 +78,36 @@ function hidden(node: Element): boolean {
   });
 }
 
-function hasContent(node: Node): boolean {
+function hasContent(node: Node, revealed: ReadonlySet<string>): boolean {
   if (node.nodeName === '#text')
     return /\S/.test((node as DefaultTreeAdapterTypes.TextNode).value);
   if ('tagName' in node) {
-    if (hidden(node)) return false;
+    if (hidden(node, revealed)) return false;
     if (node.tagName === 'img') return Boolean(attribute(node, 'alt')?.trim());
     if (node.tagName === 'svg' && attribute(node, 'aria-label')?.trim())
       return true;
   }
-  return 'childNodes' in node && node.childNodes.some(hasContent);
+  return (
+    'childNodes' in node &&
+    node.childNodes.some((child) => hasContent(child, revealed))
+  );
 }
 
 /**
  * Inspect actual HTML elements, not marker strings or serialized scripts.
- * Reject explicit hiding on the link or its ancestors. This static diagnostic
- * does not evaluate external stylesheets or client-side changes.
+ * Reject explicit hiding on the link or its ancestors, except a React streamed
+ * segment that an inline reveal script puts on the page. This static
+ * diagnostic does not evaluate external stylesheets or other client changes.
  */
 export function hasCrawlableCavunoBacklink(html: string): boolean {
+  const root = parse(html);
+  const revealed = revealedSegmentIds(root);
   function visit(node: Node): boolean {
     if ('tagName' in node) {
-      if (hidden(node)) return false;
+      if (hidden(node, revealed)) return false;
       if (node.tagName === 'a') {
         const href = attribute(node, 'href');
-        if (href !== undefined && hasContent(node)) {
+        if (href !== undefined && hasContent(node, revealed)) {
           try {
             const url = new URL(href);
             if (
@@ -86,5 +123,5 @@ export function hasCrawlableCavunoBacklink(html: string): boolean {
     }
     return 'childNodes' in node && node.childNodes.some(visit);
   }
-  return visit(parse(html));
+  return visit(root);
 }

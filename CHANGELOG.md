@@ -3,6 +3,20 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.31.1 — 2026-10-01
+
+- `createSessionRefresher` no longer shares an in-flight refresh between
+  requests. On Cloudflare Workers, a refresh started by a request that was
+  then cancelled could stay pending forever, and later requests for that
+  session waited on it. Each call now performs its own refresh; the refresh
+  endpoint returns the same successor refresh token for a token re-presented
+  within a short grace window, so concurrent refreshes converge on one
+  session. To avoid duplicate refresh calls, collapse them within a single
+  incoming request, never across requests.
+
+- The attribution check counts a footer backlink that React streams in a late
+  Suspense segment as visible, matching how browsers and crawlers render it.
+
 ## 4.31.0 — 2026-10-01
 
 - Board SSO supports candidate and employer sign-in through OpenID Connect and

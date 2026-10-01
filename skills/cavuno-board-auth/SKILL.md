@@ -58,7 +58,7 @@ try {
 }
 ```
 
-On SSR, use the module-scoped `createSessionRefresher` pattern in `cavuno-board-server-sessions`; it is the single source of truth for concurrency, cookies, retry limits, and per-call authorization headers.
+On SSR, use the module-scoped `createSessionRefresher` pattern in `cavuno-board-server-sessions`; it is the single source of truth for cookies, retry limits, and per-call authorization headers.
 
 **Complete when:** concurrent expiry paths share one rotation and the original operation is attempted at most once after a successful refresh.
 
