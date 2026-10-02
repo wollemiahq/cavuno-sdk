@@ -6000,6 +6000,12 @@ export interface components {
             intervalUnit: string | null;
             intervalCount: number | null;
             isDefault: boolean;
+            /** @description The effective candidate permissions granted by this offer. Offers without configured candidate permissions grant full access. */
+            entitlements?: {
+                listings: boolean;
+                matches: boolean;
+                job_alerts: boolean;
+            };
         };
         Plan: {
             /** @enum {string} */
@@ -6278,6 +6284,8 @@ export interface components {
                 nativeApplications: boolean;
                 /** @description Whether applicant↔employer messaging is enabled on the board. `false` means the `me/conversations` route family rejects with `messaging_disabled` (403). Hide inbox/dock/Message CTAs. */
                 messaging: boolean;
+                /** @description Whether the board's public contact form is live. Matches `enabled` on `GET /v1/boards/{identifier}/contact`, so chrome can decide whether to link to the contact page from this context alone. When `false`, `POST /contact` rejects. */
+                contactPage: boolean;
             };
             /**
              * @description How the operator charges employers for the candidate directory. `paid_messaging` leaves profiles fully visible and spends a credit on a first cold message; `paid_unlocks_and_messaging` also redacts directory cards and gates the opaque `/p/{id}` profile route behind an unlock credit. `null` means the operator has not chosen explicitly, in which case infer it from the published `talent_access` plans: any plan granting profile unlocks means `paid_unlocks_and_messaging`, otherwise `paid_messaging`. The paywall is inert regardless when the board publishes no talent plan. An anonymous viewer has no entitlement read to derive this from, so it ships here rather than only on `me/talent-access`.
