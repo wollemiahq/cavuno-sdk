@@ -3,6 +3,23 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.32.0 — 2026-10-02
+
+- Registration accepts an optional `returnTo`, a same-origin path carried
+  through the verification email link, so someone who signs up partway
+  through a task (for example, applying to a job) lands back where they
+  started after verifying. Resending the verification email accepts the same
+  field: `auth.resendVerification({ body: { returnTo } })`. Unsafe values are
+  ignored.
+
+- Board context includes `features.contactPage`, which matches whether the
+  board's public contact form is live, so a frontend can decide whether to
+  link to the contact page without a separate request.
+
+- Candidate offers include `entitlements` (`listings`, `matches`,
+  `job_alerts`), the candidate permissions each offer grants. Offers without
+  configured permissions grant full access.
+
 ## 4.31.1 — 2026-10-01
 
 - `createSessionRefresher` no longer shares an in-flight refresh between
