@@ -60,6 +60,7 @@ export function authNamespace(client: BoardClient, board = '') {
      *   email: 'a@b.com',
      *   password: 'hunter22',
      *   displayName: 'Ada',
+     *   returnTo: '/jobs/123', // carried by the verification link
      * });
      */
     async register(body: RegisterBody, options?: FetchOptions) {
@@ -181,10 +182,13 @@ export function authNamespace(client: BoardClient, board = '') {
 
     /**
      * Re-send the verification email (fresh code + magic link) to the signed-in
-     * board user. Resolves void (204); no-op if already verified.
+     * board user. Resolves void (204); no-op if already verified. Send
+     * `body: { returnTo }` to keep a same-origin return path on the new link,
+     * as `register({ returnTo })` does.
      *
      * @example
      * await board.auth.resendVerification();
+     * await board.auth.resendVerification({ body: { returnTo: '/jobs/123' } });
      */
     resendVerification(options?: FetchOptions) {
       return client.fetch<void>('/auth/verify-email/resend', {

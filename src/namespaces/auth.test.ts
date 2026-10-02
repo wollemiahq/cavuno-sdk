@@ -326,6 +326,16 @@ describe('auth.verifyEmailWithCode + resendVerification', () => {
     const headers = spy.mock.calls[0]![1]!.headers as Headers;
     expect(headers.get('authorization')).toBe('Bearer jwt');
   });
+
+  it('resendVerification sends a returnTo body when given one', async () => {
+    const spy = stubFetch(new Response(null, { status: 204 }));
+    const { board, storage } = makeBoard();
+    await storage.setItem(ACCESS_TOKEN_KEY, 'jwt');
+
+    await board.auth.resendVerification({ body: { returnTo: '/jobs/123' } });
+
+    expect(spy.mock.calls[0]![1]!.body).toBe('{"returnTo":"/jobs/123"}');
+  });
 });
 
 describe('auth SSO', () => {

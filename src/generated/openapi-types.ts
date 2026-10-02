@@ -194,7 +194,7 @@ export interface paths {
         put?: never;
         /**
          * Board-user registration
-         * @description Create a board user (candidate or employer) with email + password and receive the bearer pair: registration signs the user in; email verification is non-blocking. A verification email (link + 6-digit code) is sent in the background; the link points at the board’s own URL (`/auth/verify-email?token=…` on its custom primary domain when one is set), so headless frontends on that domain should implement the route and feed the token to `POST /auth/verify-email`. An email that already belongs to a job-alert subscriber upgrades that subscriber to the requested role and clears any prior email verification.
+         * @description Create a board user (candidate or employer) with email + password and receive the bearer pair: registration signs the user in; email verification is non-blocking. A verification email (link + 6-digit code) is sent in the background; the link points at the board’s own URL (`/auth/verify-email?token=…` on its custom primary domain when one is set), so headless frontends on that domain should implement the route and feed the token to `POST /auth/verify-email`. Pass `returnTo` to have the link carry it as `&returnTo=…`, so the route can send the person back where they started; an unsafe path is dropped. An email that already belongs to a job-alert subscriber upgrades that subscriber to the requested role and clears any prior email verification.
          */
         post: operations["createBoardAuthRegister"];
         delete?: never;
@@ -314,7 +314,7 @@ export interface paths {
         put?: never;
         /**
          * Resend the verification email
-         * @description Re-send the verification email (a fresh 6-digit code + magic link) to the authenticated board user. Resolves void (204). Rate limited.
+         * @description Re-send the verification email (a fresh 6-digit code + magic link) to the authenticated board user. Pass `returnTo` to have the link carry it, as on registration; the body is optional. Resolves void (204). Rate limited.
          */
         post: operations["createBoardAuthVerifyEmailResend"];
         delete?: never;
@@ -4249,6 +4249,8 @@ export interface components {
             marketingConsent?: boolean;
             /** @description Send the email link to this development origin instead of the board's production origin, for example `http://localhost:5173` while testing a self-hosted frontend. Only accepted with a publishable-key (`pk_...`) identifier (else 400 `board_development_origin_requires_publishable_key`), and only for a localhost development origin: email links can be requested for anyone's address, so a registered https preview returns 400 `board_development_origin_not_allowed_for_email`. It must be one of the board's development origins; otherwise the request fails with 400 `board_development_origin_not_registered`. */
             developmentOrigin?: string;
+            /** @description Optional same-origin path to carry through the email link. */
+            returnTo?: string;
         };
         BoardAuthRequestMagicLinkBody: {
             audienceAttribution?: components["schemas"]["AudienceAttribution"];
@@ -4263,6 +4265,10 @@ export interface components {
             intent?: "sign_in";
             /** @description Send the email link to this development origin instead of the board's production origin, for example `http://localhost:5173` while testing a self-hosted frontend. Only accepted with a publishable-key (`pk_...`) identifier (else 400 `board_development_origin_requires_publishable_key`), and only for a localhost development origin: email links can be requested for anyone's address, so a registered https preview returns 400 `board_development_origin_not_allowed_for_email`. It must be one of the board's development origins; otherwise the request fails with 400 `board_development_origin_not_registered`. */
             developmentOrigin?: string;
+        };
+        BoardAuthResendVerificationBody: {
+            /** @description Optional same-origin path to carry through the email link. */
+            returnTo?: string;
         };
         BoardAuthResetPasswordBody: {
             token: string;
@@ -6000,6 +6006,12 @@ export interface components {
             intervalUnit: string | null;
             intervalCount: number | null;
             isDefault: boolean;
+            /** @description The effective candidate permissions granted by this offer. Offers without configured candidate permissions grant full access. */
+            entitlements?: {
+                listings: boolean;
+                matches: boolean;
+                job_alerts: boolean;
+            };
         };
         Plan: {
             /** @enum {string} */
@@ -6278,6 +6290,8 @@ export interface components {
                 nativeApplications: boolean;
                 /** @description Whether applicant↔employer messaging is enabled on the board. `false` means the `me/conversations` route family rejects with `messaging_disabled` (403). Hide inbox/dock/Message CTAs. */
                 messaging: boolean;
+                /** @description Whether the board's public contact form is live. Matches `enabled` on `GET /v1/boards/{identifier}/contact`, so chrome can decide whether to link to the contact page from this context alone. When `false`, `POST /contact` rejects. */
+                contactPage: boolean;
             };
             /**
              * @description How the operator charges employers for the candidate directory. `paid_messaging` leaves profiles fully visible and spends a credit on a first cold message; `paid_unlocks_and_messaging` also redacts directory cards and gates the opaque `/p/{id}` profile route behind an unlock credit. `null` means the operator has not chosen explicitly, in which case infer it from the published `talent_access` plans: any plan granting profile unlocks means `paid_unlocks_and_messaging`, otherwise `paid_messaging`. The paywall is inert regardless when the board publishes no talent plan. An anonymous viewer has no entitlement read to derive this from, so it ships here rather than only on `me/talent-access`.
@@ -8700,7 +8714,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["BoardAuthResendVerificationBody"];
+            };
+        };
         responses: {
             /** @description Email queued (or already verified: no-op). */
             204: {
