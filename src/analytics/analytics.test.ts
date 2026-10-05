@@ -85,7 +85,7 @@ describe('@cavuno/board/analytics', () => {
       'https://cavuno.com/api/analytics/collect',
     );
     expect(DEFAULT_SCRIPT_URL).toBe(
-      'https://cavuno.com/js/metrics.js?v=1.7.1-cavuno.1',
+      'https://cavuno.com/js/metrics.js?v=1.7.1-cavuno.2',
     );
     expect(PENDING_TENANT_ID).toBe('boards_pending');
     expect(JSON.stringify(analytics)).not.toMatch(/tinybird/i);

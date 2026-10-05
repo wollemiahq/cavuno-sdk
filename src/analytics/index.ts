@@ -156,6 +156,12 @@ function injectScript(state: InstalledState, scriptUrl: string): void {
 /**
  * Load the Cavuno-hosted metrics script and remember collect credentials.
  * Safe to call once per page; subsequent calls update collect targets only.
+ *
+ * The script sets a first-party `session-id` cookie (a random identifier
+ * that expires after 30 minutes without activity) and sends page view,
+ * engagement, and web-vital events. Where your board requires cookie consent
+ * (`analytics.cookieConsentRequired` from `board.context()`), call `install`
+ * only after the visitor accepts. Until it runs, `track` sends nothing.
  */
 export function install(options: AnalyticsInstallOptions): void {
   const publishableKey = options.publishableKey.trim();
