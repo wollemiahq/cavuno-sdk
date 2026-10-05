@@ -110,7 +110,7 @@ describe('board.context()', () => {
         location: { visible: true, allowedCountries: null },
         sponsorship: { visible: true },
         workArrangement: { allowedOptions: [] },
-        employmentType: { allowedOptions: [] },
+        employmentType: { allowedOptions: [], customTypes: [], order: [] },
       },
       customFields: {
         jobCollections: [],
@@ -681,6 +681,7 @@ describe('method conventions', () => {
       status: 'published',
       companyId: 'companies_1',
       employmentType: 'full_time',
+      customEmploymentType: null,
       remoteOption: 'remote',
       seniority: 'senior',
       salaryMin: 1,

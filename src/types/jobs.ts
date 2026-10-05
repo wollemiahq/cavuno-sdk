@@ -34,6 +34,13 @@ export type OfficeLocation = Schemas['JobOfficeLocation'];
 
 export type RemoteOption = NonNullable<PublicJob['remoteOption']>;
 export type EmploymentType = NonNullable<PublicJob['employmentType']>;
+/**
+ * A job's custom employment type (e.g. `Casual`): show its `label` in place
+ * of the built-in `employmentType`, which is its Google equivalent.
+ */
+export type JobCustomEmploymentType = NonNullable<
+  PublicJob['customEmploymentType']
+>;
 export type Seniority = NonNullable<PublicJob['seniority']>;
 /** Candidate-facing result ordering; `relevance` is the default. */
 export type JobSort = NonNullable<Schemas['PublicSearchJobsBody']['sort']>;
@@ -77,7 +84,13 @@ export type JobsListQuery = {
    */
   companySlug?: string[];
   remoteOption?: RemoteOption[];
+  /** Built-in types; each matches jobs of that type with no custom type. */
   employmentType?: EmploymentType[];
+  /**
+   * Custom employment type keys (`board.context().jobForm.employmentType
+   * .customTypes`), ORed with `employmentType`. Up to 10.
+   */
+  customEmploymentType?: string[];
   seniority?: Seniority[];
   /** Result ordering. Absent ⇒ `relevance` (the featured-ranked browse). */
   sort?: JobSort;

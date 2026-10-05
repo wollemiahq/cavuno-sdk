@@ -15,6 +15,14 @@ export type PublicBoardFeatures = PublicBoard['features'];
 export type PublicBoardAnalytics = PublicBoard['analytics'];
 export type PublicBoardAds = PublicBoard['ads'];
 export type PublicBoardJobForm = PublicBoard['jobForm'];
+/**
+ * One of the board's custom employment types from
+ * `board.context().jobForm.employmentType.customTypes`. Offer it in the
+ * posting form next to the built-ins when `offered` is true, in
+ * `jobForm.employmentType.order`; send `key` as `customEmploymentType`
+ * and `employmentType` (its built-in Google equivalent) together.
+ */
+export type BoardCustomEmploymentType = Schemas['BoardCustomEmploymentType'];
 
 /**
  * Sign-in options per role from `board.context().signIn`: which built-in
