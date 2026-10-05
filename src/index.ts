@@ -207,6 +207,7 @@ export type {
 export type {
   BoardFormBuiltinField,
   BoardFormField,
+  BoardCustomEmploymentType,
   BoardFormLayout,
   BoardFormLockReason,
   BoardJobFormField,
@@ -297,6 +298,7 @@ export type {
 export type {
   EducationRequirement,
   EmploymentType,
+  JobCustomEmploymentType,
   JobCompany,
   JobCollectionChoiceList,
   JobCollectionChoiceQuery,

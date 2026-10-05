@@ -3,6 +3,31 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.35.0 — 2026-10-05
+
+- Boards can define custom employment types, such as "Casual", each with a
+  built-in type as its Google equivalent. Jobs gain
+  `customEmploymentType: { key, label } | null`; `employmentType` still holds
+  the built-in type, which is what Google for Jobs markup and job feeds use.
+  Show `customEmploymentType.label` when it is set.
+
+- The board context lists a board's custom types under
+  `jobForm.employmentType.customTypes` (`key`, `label`, `employmentType`,
+  `offered`) and the full display order under `jobForm.employmentType.order`.
+  `allowedOptions` and `customTypes` are returned in that order. Types that
+  are not offered stay listed so existing jobs keep their label.
+
+- Job search and listing accept a `customEmploymentType` filter (keys). A
+  built-in `employmentType` filter value now matches jobs of that type that
+  have no custom type, so "Part-time" does not return "Casual" jobs.
+
+- Job posting and employer job writes accept `customEmploymentType` (a key);
+  the matching built-in type is set automatically.
+
+- Links to non-image files in public company custom fields are signed and
+  expire after at least 24 hours, so they work on password-protected boards.
+  Request fresh company data rather than storing these links.
+
 ## 4.34.0 — 2026-10-05
 
 - Added `analytics.recordConsent` to record a visitor's cookie-banner choice

@@ -4312,6 +4312,16 @@ export interface components {
             enabled: boolean;
             boardName: string;
         };
+        BoardCustomEmploymentType: {
+            /** @description Stable key. Send it as `customEmploymentType` when posting a job, and filter jobs by it. */
+            key: string;
+            /** @description Display name, e.g. `Casual`. */
+            label: string;
+            /** @description The custom type's Google equivalent: a built-in employment type. Send it as `employmentType` alongside the key; it is what Google for Jobs and job feeds see. */
+            employmentType: string;
+            /** @description Whether posters can pick this type. An un-offered type still labels the jobs that already use it; leave it out of a posting form. */
+            offered: boolean;
+        };
         BoardFormBuiltinField: {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -4941,6 +4951,8 @@ export interface components {
                 title: string;
                 description: string;
                 employmentType: string;
+                /** @description Key of one of the board's custom employment types (board context `jobForm.employmentType.customTypes`). `employmentType` must be the Google equivalent of that type; an unknown key, a type with `offered: false`, or a different `employmentType` returns `400`. */
+                customEmploymentType?: string;
                 remoteOption: string;
                 officeLocations: {
                     /**
@@ -5237,10 +5249,12 @@ export interface components {
             /** @description URL-friendly slug for the job. Auto-generated from `title` when omitted. */
             slug?: string;
             /**
-             * @description Employment type of the role.
+             * @description Employment type of the role. When `customEmploymentType` is also sent, this must be the Google equivalent of that custom type (or be omitted: the server sets it). Sending a built-in type without `customEmploymentType` clears any custom type on the job.
              * @enum {string}
              */
             employmentType?: "full_time" | "part_time" | "contract" | "internship" | "temporary" | "volunteer" | "other";
+            /** @description Key of one of the board's custom employment types (`GET /v1/settings/job-form` → `employmentType.customTypes`). The job is saved with the Google equivalent of that type as its built-in `employmentType`, which is what Google for Jobs and feeds see. An unknown key, a type the board no longer offers (`offered: false`), or an `employmentType` that differs from its Google equivalent returns `400 jobs_constraint_violation`. Pass `null` to clear the custom type and keep the built-in; omitted means unchanged. */
+            customEmploymentType?: string | null;
             /**
              * @description **Required.** Whether the role is on-site, hybrid, or fully remote: one of `on_site`, `hybrid`, `remote`. Omitting it or sending `null` returns `400`. It is not valid on its own either: `on_site` and `hybrid` require at least one `officeLocations` entry, and `remote` requires `remotePermits` (use `[{"type":"worldwide","value":"worldwide"}]` for anywhere; `remoteTimezones` then auto-derives on POST).
              * @enum {string}
@@ -5429,10 +5443,17 @@ export interface components {
             /** @description Identifier of the company the job belongs to, or `null` if no company is attached. */
             companyId: string | null;
             /**
-             * @description Employment type of the role, or `null` if not specified.
+             * @description Employment type of the role, or `null` if not specified. For a job with a custom employment type, this is the Google equivalent of the custom type.
              * @enum {string|null}
              */
             employmentType: "full_time" | "part_time" | "contract" | "internship" | "temporary" | "volunteer" | "other" | null;
+            /** @description The board's custom employment type for this job (for example `Casual`), or `null` when the job uses a built-in type only. A deleted custom type reads back as `null` and the job shows its built-in `employmentType`. */
+            customEmploymentType: {
+                /** @description Stable key of the custom employment type. Never changes. */
+                key: string;
+                /** @description Display name of the custom employment type, as configured. */
+                label: string;
+            } | null;
             /**
              * @description Whether the role is on-site, hybrid, or fully remote. `null` only on older jobs saved without one; create requires it and `PATCH` cannot clear it.
              * @enum {string|null}
@@ -5532,10 +5553,12 @@ export interface components {
             /** @description URL-friendly slug for the job. Auto-generated from `title` when omitted. */
             slug?: string;
             /**
-             * @description Employment type of the role.
+             * @description Employment type of the role. When `customEmploymentType` is also sent, this must be the Google equivalent of that custom type (or be omitted: the server sets it). Sending a built-in type without `customEmploymentType` clears any custom type on the job.
              * @enum {string}
              */
             employmentType?: "full_time" | "part_time" | "contract" | "internship" | "temporary" | "volunteer" | "other";
+            /** @description Key of one of the board's custom employment types (`GET /v1/settings/job-form` → `employmentType.customTypes`). The job is saved with the Google equivalent of that type as its built-in `employmentType`, which is what Google for Jobs and feeds see. An unknown key, a type the board no longer offers (`offered: false`), or an `employmentType` that differs from its Google equivalent returns `400 jobs_constraint_violation`. Pass `null` to clear the custom type and keep the built-in; omitted means unchanged. */
+            customEmploymentType?: string | null;
             /**
              * @description Whether the role is on-site, hybrid, or fully remote. Omitted means unchanged; `null` returns `400` because a job's workplace type can be changed but not cleared. **Never valid on its own:** `on_site` and `hybrid` require at least one `officeLocations` entry, and `remote` requires `remotePermits` (use `[{"type":"worldwide","value":"worldwide"}]` for anywhere; `remoteTimezones` then auto-derives on POST). Sending it alone returns `400`.
              * @enum {string}
@@ -6394,8 +6417,12 @@ export interface components {
                     allowedOptions: string[];
                 };
                 employmentType: {
-                    /** @description Employment types the board accepts, fully resolved like `seniority.allowedOptions`. A single entry means the form must collapse the field. */
+                    /** @description Built-in employment types the board accepts, fully resolved like `seniority.allowedOptions` and sorted by `order`. Empty when the board offers only custom types (`customTypes`). When the built-ins and offered custom types together come to a single option, the form must collapse the field. */
                     allowedOptions: string[];
+                    /** @description The board's custom employment types, sorted by `order`, offered or not. Offer the `offered` ones next to `allowedOptions` in a posting form's employment type picker; use all of them to label jobs. Always an array (empty when the board defines none). */
+                    customTypes: components["schemas"]["BoardCustomEmploymentType"][];
+                    /** @description The board's employment type display order: every built-in value and every custom type key, each once. Sort a posting form's employment type picker by it. */
+                    order: string[];
                 };
             };
             forms: components["schemas"]["BoardForms"];
@@ -6477,10 +6504,17 @@ export interface components {
             /** @description Identifier of the company the job belongs to, or `null` if no company is attached. */
             companyId: string | null;
             /**
-             * @description Employment type of the role, or `null` if not specified.
+             * @description Employment type of the role, or `null` if not specified. For a job with a custom employment type, this is the Google equivalent of the custom type.
              * @enum {string|null}
              */
             employmentType: "full_time" | "part_time" | "contract" | "internship" | "temporary" | "volunteer" | "other" | null;
+            /** @description The board's custom employment type for this job (for example `Casual`), or `null` when the job uses a built-in type only. A deleted custom type reads back as `null` and the job shows its built-in `employmentType`. */
+            customEmploymentType: {
+                /** @description Stable key of the custom employment type. Never changes. */
+                key: string;
+                /** @description Display name of the custom employment type, as configured. */
+                label: string;
+            } | null;
             /**
              * @description Whether the role is on-site, hybrid, or fully remote. `null` only on older jobs saved without one; create requires it and `PATCH` cannot clear it.
              * @enum {string|null}
@@ -6649,8 +6683,18 @@ export interface components {
              * @description ISO 8601 publish timestamp, or `null` if unpublished.
              */
             publishedAt: string | null;
-            /** @enum {string|null} */
+            /**
+             * @description Built-in employment type. For a job with a custom employment type, the Google equivalent of that type.
+             * @enum {string|null}
+             */
             employmentType: "full_time" | "part_time" | "contract" | "internship" | "temporary" | "volunteer" | "other" | null;
+            /** @description The board's custom employment type for this job (show its `label` instead of the built-in), or `null`. */
+            customEmploymentType: {
+                /** @description Stable key of the custom employment type. Never changes. */
+                key: string;
+                /** @description Display name of the custom employment type, as configured. */
+                label: string;
+            } | null;
             /** @enum {string|null} */
             remoteOption: "on_site" | "hybrid" | "remote" | null;
             /** @description Display region label for remote jobs (e.g. "United States", "Worldwide"); `null` for non-remote jobs. */
@@ -6766,8 +6810,10 @@ export interface components {
                 companySlug?: string[];
                 /** @description Only return jobs with any of the given remote-work options. Up to 10 values. */
                 remoteOption?: ("on_site" | "hybrid" | "remote")[];
-                /** @description Only return jobs with any of the given employment types. Up to 10 values. */
+                /** @description Only return jobs with any of the given built-in employment types. Up to 10 values. A built-in value matches jobs of that type that have no custom employment type: a job with a custom type matches only through `customEmploymentType`. Combined with `customEmploymentType` as a union. */
                 employmentType?: ("full_time" | "part_time" | "contract" | "internship" | "temporary" | "volunteer" | "other")[];
+                /** @description Only return jobs with any of the given custom employment type keys (the board's `customTypes`). Up to 10 values. Combined with `employmentType` as a union: a job matches when it has one of these custom types OR one of the given built-in types and no custom type. */
+                customEmploymentType?: string[];
                 /** @description Only return jobs at any of the given seniority levels. Up to 10 values. */
                 seniority?: ("entry_level" | "associate" | "mid_level" | "senior" | "lead" | "principal" | "director" | "executive")[];
                 /** @description Only return jobs tagged with any of the given category slugs. Up to 10 values. Accepts the `sourceSlug` or the board-language `canonicalSlug` from `GET /v1/boards/{identifier}/categories`, or a `slug` from a job card's `categories`. Unknown slugs match no jobs. */
@@ -9987,8 +10033,10 @@ export interface operations {
                 companyId?: string[];
                 /** @description Only return jobs with any of the given remote-work options. Repeat the param for multiple values (up to 10). */
                 remoteOption?: ("on_site" | "hybrid" | "remote")[];
-                /** @description Only return jobs with any of the given employment types. Repeat the param for multiple values (up to 10). */
+                /** @description Only return jobs with any of the given built-in employment types. Repeat the param for multiple values (up to 10). A built-in value matches jobs of that type that have no custom employment type; combined with `customEmploymentType` as a union. */
                 employmentType?: ("full_time" | "part_time" | "contract" | "internship" | "temporary" | "volunteer" | "other")[];
+                /** @description Only return jobs with any of the given custom employment type keys (board context `jobForm.employmentType.customTypes`). Repeat the param for multiple values (up to 10). Combined with `employmentType` as a union. */
+                customEmploymentType?: string[];
                 /** @description Only return jobs at any of the given seniority levels. Repeat the param for multiple values (up to 10). */
                 seniority?: ("entry_level" | "associate" | "mid_level" | "senior" | "lead" | "principal" | "director" | "executive")[];
                 /** @description Only return jobs near the place with this slug (geo radius search). Unresolvable slugs are ignored. */
@@ -10857,8 +10905,10 @@ export interface operations {
                 companySlug?: string[];
                 /** @description Only return jobs with any of the given remote-work options. Repeat the param for multiple values (up to 10). */
                 remoteOption?: ("on_site" | "hybrid" | "remote")[];
-                /** @description Only return jobs with any of the given employment types. Repeat the param for multiple values (up to 10). */
+                /** @description Only return jobs with any of the given built-in employment types. Repeat the param for multiple values (up to 10). A built-in value matches jobs of that type that have no custom employment type; combined with `customEmploymentType` as a union. */
                 employmentType?: ("full_time" | "part_time" | "contract" | "internship" | "temporary" | "volunteer" | "other")[];
+                /** @description Only return jobs with any of the given custom employment type keys (board context `jobForm.employmentType.customTypes`). Repeat the param for multiple values (up to 10). Combined with `employmentType` as a union. */
+                customEmploymentType?: string[];
                 /** @description Only return jobs at any of the given seniority levels. Repeat the param for multiple values (up to 10). */
                 seniority?: ("entry_level" | "associate" | "mid_level" | "senior" | "lead" | "principal" | "director" | "executive")[];
                 /** @description Result ordering. `relevance` (default) is the featured-ranked browse; `newest` orders by publish date and `salary_high` by salary (no-salary jobs last). Any explicit sort unpins featured jobs. */
