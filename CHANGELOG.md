@@ -3,6 +3,17 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.33.0 — 2026-10-04
+
+- The default analytics script URL now includes a version query, so browsers
+  load tracker updates instead of reusing a cached copy for up to a week.
+  Boards that pass their own `scriptUrl` are unaffected.
+
+- The analytics tracker reports the visitor's raw browser timezone, a small
+  set of automation hints, and one `engagement` event per page view on the
+  first click, key press, touch, or scroll. These feed bot filtering in board
+  analytics; no new configuration is needed.
+
 ## 4.32.0 — 2026-10-02
 
 - Registration accepts an optional `returnTo`, a same-origin path carried
