@@ -16,7 +16,10 @@ export type EmbedJobsQuery = {
   /** Repeated param (up to 10) — OR-matched. Repeat `companyId` per value. */
   companyId?: string[];
   remoteOption?: RemoteOption[];
+  /** Built-in types; each matches jobs of that type with no custom type. */
   employmentType?: EmploymentType[];
+  /** Custom employment type keys, ORed with `employmentType`. Up to 10. */
+  customEmploymentType?: string[];
   seniority?: Seniority[];
   /** Place slug for a geo radius search; unresolvable slugs are ignored. */
   location?: string;
