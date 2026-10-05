@@ -3,6 +3,26 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.34.0 — 2026-10-05
+
+- Added `analytics.recordConsent` to record a visitor's cookie-banner choice
+  (accepted, denied, or withdrawn) as proof of consent. It works without
+  `install` and sets no cookies.
+
+- The default analytics script URL points at a new tracker version. On boards
+  that require cookie consent, load the tracker with `analytics.install()`
+  only after the visitor accepts.
+
+- Jobs can have the status `pending_approval`: the job is waiting for an
+  operator to approve it and is not public, like a draft. Approve it with
+  `POST /v1/jobs/:id/publish` and reject it with `DELETE /v1/jobs/:id`.
+  Code that switches on job status should handle the new value.
+
+- Public company responses include `customFieldMedia`, which resolves files
+  in public image gallery and file custom fields to
+  `{ id, name, contentType, sizeBytes, url }`, keyed by field key. Use `url`
+  to render them.
+
 ## 4.33.0 — 2026-10-04
 
 - The default analytics script URL now includes a version query, so browsers

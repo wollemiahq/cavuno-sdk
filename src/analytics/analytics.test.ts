@@ -9,6 +9,7 @@ import {
   analytics,
   install,
   matchAnalyticsWellKnown,
+  recordConsent,
   track,
 } from './index';
 
@@ -85,7 +86,7 @@ describe('@cavuno/board/analytics', () => {
       'https://cavuno.com/api/analytics/collect',
     );
     expect(DEFAULT_SCRIPT_URL).toBe(
-      'https://cavuno.com/js/metrics.js?v=1.7.1-cavuno.1',
+      'https://cavuno.com/js/metrics.js?v=1.7.1-cavuno.2',
     );
     expect(PENDING_TENANT_ID).toBe('boards_pending');
     expect(JSON.stringify(analytics)).not.toMatch(/tinybird/i);
@@ -172,6 +173,104 @@ describe('@cavuno/board/analytics', () => {
     expect(typeof g.CavunoAnalytics?.trackEvent).toBe('function');
     g.CavunoAnalytics!.trackEvent('page_hit', { pathname: '/' });
     expect(fetchMock).toHaveBeenCalled();
+  });
+
+  describe('recordConsent', () => {
+    const PK = 'pk_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+    const CONSENT_ID = '3F2B8C1E-9A4D-4E6B-8C2F-1D5E7A9B0C3D';
+
+    it('posts a consent record to central collect without install', () => {
+      recordConsent({
+        publishableKey: PK,
+        consentId: CONSENT_ID,
+        choice: 'denied',
+        bannerVersion: ' 2026-10-01 ',
+      });
+
+      expect(scripts).toHaveLength(0);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe(DEFAULT_COLLECT_URL);
+      expect(init.method).toBe('POST');
+      expect(init.keepalive).toBe(true);
+      expect(init.credentials).toBe('omit');
+      expect(init.headers).toMatchObject({
+        Authorization: `Bearer ${PK}`,
+        'Content-Type': 'application/json',
+      });
+      expect(JSON.parse(init.body as string)).toEqual({
+        publishableKey: PK,
+        action: 'consent',
+        payload: {
+          consent_id: CONSENT_ID.toLowerCase(),
+          choice: 'denied',
+          banner_version: '2026-10-01',
+        },
+      });
+    });
+
+    it('honours a custom collect URL and is exposed on analytics', () => {
+      analytics.recordConsent({
+        publishableKey: PK,
+        consentId: CONSENT_ID,
+        choice: 'withdrawn',
+        bannerVersion: 'v2',
+        collectUrl: `${WELL_KNOWN_COLLECT_PATH}/`,
+      });
+
+      const [url] = fetchMock.mock.calls[0] as [string];
+      expect(url).toBe(WELL_KNOWN_COLLECT_PATH);
+    });
+
+    it('sends no session id even after install', () => {
+      install({ publishableKey: PK });
+      fetchMock.mockClear();
+
+      recordConsent({
+        publishableKey: PK,
+        consentId: CONSENT_ID,
+        choice: 'accepted',
+        bannerVersion: 'v1',
+      });
+
+      const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(init.body as string).not.toMatch(/session/i);
+    });
+
+    it('swallows network failures', async () => {
+      fetchMock.mockRejectedValueOnce(new Error('offline'));
+      expect(() =>
+        recordConsent({
+          publishableKey: PK,
+          consentId: CONSENT_ID,
+          choice: 'accepted',
+          bannerVersion: 'v1',
+        }),
+      ).not.toThrow();
+      await Promise.resolve();
+    });
+
+    it.each([
+      ['a non-publishable key', { publishableKey: 'sk_live_x' }],
+      ['a non-UUID consent id', { consentId: 'abc' }],
+      ['an unknown choice', { choice: 'maybe' }],
+      ['an empty banner version', { bannerVersion: '  ' }],
+      [
+        'a banner version over 128 characters',
+        { bannerVersion: 'v'.repeat(129) },
+      ],
+    ])('throws on %s and sends nothing', (_label, override) => {
+      expect(() =>
+        recordConsent({
+          publishableKey: PK,
+          consentId: CONSENT_ID,
+          choice: 'accepted',
+          bannerVersion: 'v1',
+          ...(override as object),
+        } as Parameters<typeof recordConsent>[0]),
+      ).toThrow();
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
   });
 });
 
