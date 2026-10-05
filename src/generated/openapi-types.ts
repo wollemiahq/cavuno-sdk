@@ -1946,7 +1946,7 @@ export interface paths {
         };
         /**
          * List my company's jobs
-         * @description Every job for the company identified by `:slug` (all statuses: draft, published, expired, archived), newest first. Requires an approved membership. Never cached.
+         * @description Every job for the company identified by `:slug` (all statuses: draft, published, expired, archived, pending_approval), newest first. Requires an approved membership. Never cached.
          */
         get: operations["listBoardMeCompanyJobs"];
         put?: never;
@@ -4697,6 +4697,10 @@ export interface components {
             customFieldValues: {
                 [key: string]: string | number | boolean | string[];
             };
+            /** @description Resolved files for public `image_gallery` and `file` company custom fields, keyed by field key like `customFieldValues`, in the stored order. Each file `id` matches a value in `customFieldValues`. Use `url` to render: published images are permanent public asset URLs (e.g. `https://assets.cavuno.com/...`); other files, and images still being published, use a signed download URL that expires after at least 24 hours. Fields with no files are omitted. */
+            customFieldMedia: {
+                [key: string]: components["schemas"]["ProfileFieldMedia"][];
+            };
             /** @description Resolved public object references attached to this company. Private references are omitted. */
             objectReferences: components["schemas"]["ResolvedProfileObjectReference"][];
             links: components["schemas"]["PublicCompanyLinks"];
@@ -5418,10 +5422,10 @@ export interface components {
             /** @description URL-friendly slug used in public board URLs, or `null` if no slug is set. */
             slug: string | null;
             /**
-             * @description Current status of the job. One of `draft`, `published`, `expired`, or `archived`.
+             * @description Current status of the job. One of `draft`, `published`, `expired`, `archived`, or `pending_approval`. A `pending_approval` job is waiting for an operator to approve it: approve with `POST /v1/jobs/:id/publish`, reject with `DELETE /v1/jobs/:id`. It is not public, like a draft.
              * @enum {string}
              */
-            status: "draft" | "published" | "expired" | "archived";
+            status: "draft" | "published" | "expired" | "archived" | "pending_approval";
             /** @description Identifier of the company the job belongs to, or `null` if no company is attached. */
             companyId: string | null;
             /**
@@ -6123,6 +6127,18 @@ export interface components {
             min?: number;
             max?: number;
         };
+        ProfileFieldMedia: {
+            /** @description File identifier. Matches the value stored for the field in `customFieldValues`. */
+            id: string;
+            /** @description Original file name. */
+            name: string;
+            /** @description MIME type of the file. */
+            contentType: string;
+            /** @description Size of the file, in bytes. */
+            sizeBytes: number;
+            /** @description Absolute, browser-loadable URL. Published images are permanent public asset URLs (e.g. `https://assets.cavuno.com/...`) safe to cache and hotlink. Other files, and an image saved moments ago that is still being published, use a signed download URL that expires after at least 24 hours and works on password-protected boards without a password grant, so read the URL from the response rather than storing it. */
+            url: string;
+        };
         ProfileFieldValuesBody: {
             values: {
                 [key: string]: string | number | boolean | string[] | unknown;
@@ -6454,10 +6470,10 @@ export interface components {
             /** @description URL-friendly slug used in public board URLs, or `null` if no slug is set. */
             slug: string | null;
             /**
-             * @description Current status of the job. One of `draft`, `published`, `expired`, or `archived`.
+             * @description Current status of the job. One of `draft`, `published`, `expired`, `archived`, or `pending_approval`. A `pending_approval` job is waiting for an operator to approve it: approve with `POST /v1/jobs/:id/publish`, reject with `DELETE /v1/jobs/:id`. It is not public, like a draft.
              * @enum {string}
              */
-            status: "draft" | "published" | "expired" | "archived";
+            status: "draft" | "published" | "expired" | "archived" | "pending_approval";
             /** @description Identifier of the company the job belongs to, or `null` if no company is attached. */
             companyId: string | null;
             /**
