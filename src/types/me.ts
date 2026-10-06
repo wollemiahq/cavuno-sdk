@@ -408,6 +408,10 @@ export type EmployerPipelineQuery = {
   job: string;
   /** Filter to a single stage (systemStage key, custom stage id, or `applied`). */
   stage?: string;
+  /** Applicants per page (1–2000, default 2000). */
+  limit?: number;
+  /** The `nextCursor` of the previous page, to read the next page of applicants. */
+  cursor?: string;
 };
 
 // ── Employer checkout / billing ───────
