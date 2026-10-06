@@ -44,3 +44,18 @@ export { COUNTRY_CODES, countryOptions } from './countries';
 export type { CountryOption, IsoCountryCode } from './countries';
 export { resolveCustomFieldDisplay } from './custom-fields';
 export type { CustomFieldDisplayEntry } from './custom-fields';
+export {
+  COMMUTE_RADIUS_MAX_KM,
+  COMMUTE_RADIUS_MIN_KM,
+  MILES_COUNTRIES,
+  defaultCommuteRadiusKm,
+  defaultSearchRadius,
+  distanceUnitForCountry,
+  distanceUnitToKm,
+  formatDistance,
+  kmToDistanceUnit,
+  kmToMiles,
+  milesToKm,
+  searchRadiusOptions,
+} from './distance';
+export type { DistanceUnit, SearchRadiusOption } from './distance';

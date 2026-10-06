@@ -21,8 +21,12 @@ export type EmbedJobsQuery = {
   /** Custom employment type keys, ORed with `employmentType`. Up to 10. */
   customEmploymentType?: string[];
   seniority?: Seniority[];
-  /** Place slug for a geo radius search; unresolvable slugs are ignored. */
+  /** Place slug: jobs in the place and the places inside it; unresolvable slugs are ignored. */
   location?: string;
-  /** Radius in km around `location` (10–250; default 50). */
+  /**
+   * Widen a city or locality `location` to jobs placed in a city or
+   * locality within this many km of it (1–250, decimals allowed). Omit for
+   * jobs in the place itself. Ignored for region and country places.
+   */
   radius?: number;
 };
