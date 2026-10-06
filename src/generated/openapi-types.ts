@@ -824,6 +824,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/invites/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview a company member invite
+         * @description Look up a company member invite by its token before the person signs in, so a frontend can render a "Join <company>" page with the right next step: sign up, sign in, or explain that the link has expired or was already used. The token goes in the request body rather than the URL so it stays out of access logs. Nothing is accepted or changed: accepting still requires a signed-in employer whose email matches (`POST /boards/{identifier}/me/invites/accept`). Never cached.
+         */
+        post: operations["previewBoardInvite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/boards/{identifier}/job-alerts": {
         parameters: {
             query?: never;
@@ -4251,6 +4271,8 @@ export interface components {
             developmentOrigin?: string;
             /** @description Optional same-origin path to carry through the email link. */
             returnTo?: string;
+            /** @description The company member invite token, when the person is signing up from an invite link. When `role` is `employer` and it is a pending invite on this board sent to this same email, no verification email is sent: accepting the invite (`POST /boards/{identifier}/me/invites/accept`) verifies the address. Registration never accepts the invite itself. Any other token is ignored and the verification email is sent as usual. */
+            inviteToken?: string;
         };
         BoardAuthRequestMagicLinkBody: {
             audienceAttribution?: components["schemas"]["AudienceAttribution"];
@@ -4528,6 +4550,22 @@ export interface components {
             name: string;
             proficiency: string;
         };
+        /** @description Where the candidate lives, picked from the location search. Job matches use it with `commuteRadiusKm` for on-site and hybrid jobs. `null` when the candidate has only a free-text `location`. */
+        CandidateLocationPlace: {
+            /** @description Location id, as returned by `GET /locations/search`. Send it back as `locationId` to keep the same place. */
+            id: string;
+            /** @description Full display name, e.g. `Houston, Texas, United States`. */
+            name: string;
+            /** @description ISO 3166-1 alpha-2 country code. */
+            countryCode: string;
+            region: string | null;
+            city: string | null;
+            /**
+             * @description Level of the place, as `placeType` in `GET /locations/search`. A commute radius applies only to a `city` or `locality`; a `region` or `country` matches on-site and hybrid jobs anywhere in its country. `null` for places saved before the level was recorded.
+             * @enum {string|null}
+             */
+            placeType: "country" | "region" | "city" | "locality" | null;
+        } | null;
         CandidateProfile: {
             id: string;
             /** @enum {string} */
@@ -4538,6 +4576,7 @@ export interface components {
             handle: string | null;
             headline: string | null;
             location: string | null;
+            locationPlace: components["schemas"]["CandidateLocationPlace"];
             countryCode: string | null;
             /** @enum {string} */
             profileVisibility: "hidden" | "logged_in_only" | "public";
@@ -4545,7 +4584,12 @@ export interface components {
             jobSearchStatus: "actively_looking" | "open_to_offers" | "not_looking";
             /** @enum {string} */
             jobSearchStatusVisibleTo: "everyone" | "employers_only";
+            /** @description Open to relocate. Widens on-site and hybrid job matches from the commute radius to the whole country the candidate lives in or holds a work permit for. */
             openToRelocate: boolean;
+            /** @description How far the candidate is willing to commute, in kilometres. Applies only when `locationPlace` is a city or locality; a region or country home matches on its country instead. `null` means the default for their country (`commuteRadiusDefaultKm`). */
+            commuteRadiusKm: number | null;
+            /** @description The commute distance used when `commuteRadiusKm` is `null`: 40 km (25 miles) where distances are shown in miles (US, GB, LR, MM), 50 km elsewhere. Use it to prefill a commute field. */
+            commuteRadiusDefaultKm: number;
         };
         CandidateSkill: {
             /** @enum {string} */
@@ -4654,6 +4698,30 @@ export interface components {
             /** @enum {string} */
             object: "company_member_invite_acceptance";
             companySlug: string;
+        };
+        CompanyMemberInvitePreview: {
+            /** @enum {string} */
+            object: "company_member_invite_preview";
+            /**
+             * @description Where the invite stands. `pending` can still be accepted; `expired` was never accepted before `expiresAt`; `accepted` has been used; `revoked` was withdrawn by a company admin.
+             * @enum {string}
+             */
+            status: "pending" | "expired" | "accepted" | "revoked";
+            /** @description The address the invite was sent to. Only present while `status` is `pending`; `null` otherwise. Accepting requires signing in with this address. */
+            email: string | null;
+            /** @description When the invite stops being acceptable (ISO 8601). */
+            expiresAt: string;
+            /**
+             * @description Whether someone already has an account on this board with the invited address: `none` (offer sign-up), `employer` (offer sign-in), or `candidate` (the address belongs to a candidate account, which cannot join a company). Only present while `status` is `pending`; `null` otherwise.
+             * @enum {string|null}
+             */
+            account: "none" | "employer" | "candidate" | null;
+            /** @description The company the invite is for. */
+            company: {
+                slug: string;
+                name: string;
+                logoUrl: string | null;
+            };
         };
         CompanyMembership: {
             id: string;
@@ -6123,6 +6191,10 @@ export interface components {
             /** @description Post title. */
             title: string;
         };
+        PreviewCompanyMemberInviteBody: {
+            /** @description The `token` query parameter from the invite link (`/employers/invites/accept?token=…`). */
+            token: string;
+        };
         ProfileChoiceList: {
             data: {
                 id: string;
@@ -6833,9 +6905,9 @@ export interface components {
                      */
                     lte?: string;
                 };
-                /** @description Only return jobs near the place with this slug (geo radius search). Unresolvable slugs are ignored. */
+                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). Pass `radius` to widen a city or locality to nearby jobs. Unresolvable slugs are ignored. */
                 location?: string;
-                /** @description Search radius in kilometres around `location` (10–250; default 50). Ignored without `location`. */
+                /** @description Widen a city or locality `location` to also return jobs placed in a city or locality within this many kilometres of the place (1–250; decimals allowed, e.g. `8.05` for 5 miles). Omit for jobs in the place itself. Ignored for region and country places, and without `location`. */
                 radius?: number;
                 /** @description Public custom job fields. Clauses are AND-matched; values within a clause are OR-matched. Up to 10 clauses and 10 values per clause. */
                 customFields?: {
@@ -7827,6 +7899,9 @@ export interface components {
             handle?: string;
             headline?: string;
             location?: string;
+            /** @description Where the candidate lives: an `id` from `GET /locations/search`, resolved server-side. Also sets `location` to the place name unless `location` is sent too. While the candidate has a place, `countryCode` is always that place's country. `null` removes the place and keeps `location` and the last `countryCode`. An unknown id returns `400 locations_invalid_id`; `503 locations_unavailable` while the lookup is temporarily down. Changing `location` without `locationId` removes the place. */
+            locationId?: string | null;
+            /** @description Country the candidate can work in, checked against country-limited jobs. Applies only when the candidate has no place (`locationId`): while a place is stored or sent, `countryCode` is that place's country and a sent value is ignored without an error. Without a place, `null` clears it. */
             countryCode?: string | null;
             /** @enum {string} */
             profileVisibility?: "hidden" | "logged_in_only" | "public";
@@ -7835,6 +7910,8 @@ export interface components {
             /** @enum {string} */
             jobSearchStatusVisibleTo?: "everyone" | "employers_only";
             openToRelocate?: boolean;
+            /** @description How far the candidate is willing to commute, in kilometres (1–250, stored to one decimal place). `null` resets it to the default for their country. */
+            commuteRadiusKm?: number | null;
         };
         UpdateCompanyMemberRoleBody: {
             /** @enum {string} */
@@ -10041,10 +10118,10 @@ export interface operations {
                 customEmploymentType?: string[];
                 /** @description Only return jobs at any of the given seniority levels. Repeat the param for multiple values (up to 10). */
                 seniority?: ("entry_level" | "associate" | "mid_level" | "senior" | "lead" | "principal" | "director" | "executive")[];
-                /** @description Only return jobs near the place with this slug (geo radius search). Unresolvable slugs are ignored. */
+                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). Pass `radius` to widen a city or locality to nearby jobs. Unresolvable slugs are ignored. */
                 location?: string;
                 /**
-                 * @description Search radius in kilometres around `location` (10–250; default 50). Ignored without `location`.
+                 * @description Widen a city or locality `location` to also return jobs placed in a city or locality within this many kilometres of the place (1–250; decimals allowed, e.g. `8.05` for 5 miles). Omit for jobs in the place itself. Ignored for region and country places, and without `location`.
                  * @example 50
                  */
                 radius?: number;
@@ -10177,6 +10254,69 @@ export interface operations {
             };
             /** @description The feed has no file yet (`feed_not_ready`). Retry after the `Retry-After` seconds. */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    previewBoardInvite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreviewCompanyMemberInviteBody"];
+            };
+        };
+        responses: {
+            /** @description The invite and its company. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyMemberInvitePreview"];
+                };
+            };
+            /** @description Validation failed (`validation_bad_request`). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Employer accounts are disabled on this board (`board_auth_registration_disabled`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board not found, or no invite matches the token on this board (`employer_invite_not_found`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited (`rate_limited`). */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10915,10 +11055,10 @@ export interface operations {
                 seniority?: ("entry_level" | "associate" | "mid_level" | "senior" | "lead" | "principal" | "director" | "executive")[];
                 /** @description Result ordering. `relevance` (default) is the featured-ranked browse; `newest` orders by publish date and `salary_high` by salary (no-salary jobs last). Any explicit sort unpins featured jobs. */
                 sort?: "relevance" | "newest" | "salary_high";
-                /** @description Only return jobs near the place with this slug (geo radius search). Unresolvable slugs are ignored. */
+                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). Pass `radius` to widen a city or locality to nearby jobs. Unresolvable slugs are ignored. */
                 location?: string;
                 /**
-                 * @description Search radius in kilometres around `location` (10–250; default 50). Ignored without `location`.
+                 * @description Widen a city or locality `location` to also return jobs placed in a city or locality within this many kilometres of the place (1–250; decimals allowed, e.g. `8.05` for 5 miles). Omit for jobs in the place itself. Ignored for region and country places, and without `location`.
                  * @example 50
                  */
                 radius?: number;
@@ -18109,7 +18249,7 @@ export interface operations {
                     "application/json": components["schemas"]["CandidateProfile"];
                 };
             };
-            /** @description Validation failed (`validation_bad_request`). */
+            /** @description Validation failed (`validation_bad_request`), or `locationId` is not a known location (`locations_invalid_id`). */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -18156,6 +18296,15 @@ export interface operations {
             };
             /** @description Rate limited (`rate_limited`). */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The `locationId` lookup is temporarily unavailable (`locations_unavailable`). */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

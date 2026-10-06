@@ -16,7 +16,10 @@ An approved admin can delete a company they manage and can list, retitle, or
 remove members. Any approved member can leave with `board.me.companies.leave`.
 Demoting, removing, or leaving as the last admin is `last_admin`. Admins
 invite by email; approved members can list pending invites; accept is
-session-gated on `board.me.acceptInvite`.
+session-gated on `board.me.acceptInvite`. Before sign-in, the public
+`board.invites.preview({ token })` returns the invite's `status`, `email`,
+`account`, and `company` for a "Join <company>" page; `email` and `account`
+are set only while the invite is `pending`.
 
 An approved member can buy a public, priced membership plan for the company
 with `board.me.companies.startMembershipCheckout(slug, body)`. It returns the
@@ -36,6 +39,7 @@ await board.me.companies.leave('acme');
 const { data: invites } = await board.me.companies.listInvites('acme');
 await board.me.companies.createInvite('acme', { email: 'ada@acme.test' });
 await board.me.companies.revokeInvite('acme', invites[0].id);
+const preview = await board.invites.preview({ token });
 const { companySlug } = await board.me.acceptInvite({ token });
 ```
 

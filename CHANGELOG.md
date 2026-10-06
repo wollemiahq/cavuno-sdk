@@ -3,6 +3,31 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.37.0 — 2026-10-06
+
+- Job search: `radius` on `board.jobs.list`, `board.jobs.search` and the embed
+  jobs list now widens a city or locality `location` to nearby jobs within
+  that many kilometres (1–250, decimals allowed, e.g. `40.2` for 25 miles).
+  Without `radius` a location search returns jobs in the place itself, as
+  before. Region and country locations ignore `radius`. If you already send
+  `radius`, city and locality searches now include nearby jobs.
+
+- `@cavuno/board/format` adds `searchRadiusOptions(unit)` (5, 10, 25, 50, 100
+  in miles or kilometres), `defaultSearchRadius(unit)` (25 mi or 50 km) and
+  `formatDistance(value, unit)` for a search distance menu, plus distance
+  helpers for a commute field: `distanceUnitForCountry`,
+  `defaultCommuteRadiusKm`, `kmToDistanceUnit`, `distanceUnitToKm`,
+  `kmToMiles`, `milesToKm`, `MILES_COUNTRIES`, `COMMUTE_RADIUS_MIN_KM` and
+  `COMMUTE_RADIUS_MAX_KM`.
+
+- Candidate profile: `board.me.profile.update` accepts `locationId` (an id
+  from `board.locations.search`) and `commuteRadiusKm` (1–250, `null` for the
+  default). The profile returns `locationPlace`, `commuteRadiusKm` and
+  `commuteRadiusDefaultKm`. While a candidate has a home place, their
+  `countryCode` is that place's country and a sent `countryCode` is ignored.
+  Recommended jobs use the home place and commute distance for on-site and
+  hybrid jobs.
+
 ## 4.36.0 — 2026-10-06
 
 - `board.get()` returns `ads.googleConsentMessage`. It is `true` when visitors
