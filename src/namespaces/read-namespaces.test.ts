@@ -94,6 +94,7 @@ describe('board.context()', () => {
         enabled: true,
         clientId: 'ca-pub-1234567890123456',
         defaultSlotId: '1234567890',
+        googleConsentMessage: true,
       },
       // Custom-field definitions pass through untouched, keyed by
       // model, so the consumer can resolve a job's `customFieldValues` via
