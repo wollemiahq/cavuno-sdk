@@ -9,6 +9,7 @@ import { authNamespace } from './namespaces/auth';
 import { blogNamespace } from './namespaces/blog';
 import { companiesNamespace } from './namespaces/companies';
 import { embedNamespace } from './namespaces/embed';
+import { invitesNamespace } from './namespaces/invites';
 import { jobAlertsNamespace } from './namespaces/job-alerts';
 import { jobPostingNamespace } from './namespaces/job-posting';
 import { jobsNamespace } from './namespaces/jobs';
@@ -110,6 +111,7 @@ export function createBoardClient(options: CreateBoardClientOptions) {
     blog: blogNamespace(client),
     auth: authNamespace(client, options.board),
     me: meNamespace(client),
+    invites: invitesNamespace(client),
     password: passwordNamespace(client),
     taxonomy: taxonomyNamespace(client),
     search: searchNamespace(client),
@@ -229,6 +231,10 @@ export type {
 export type { BoardSeo } from './types/seo';
 export type { EmbedJobsQuery } from './types/embed';
 export type { BoardAccessGrant } from './types/password';
+export type {
+  CompanyMemberInvitePreview,
+  PreviewCompanyMemberInviteBody,
+} from './types/invites';
 export type { MarketingConsent } from './types/marketing-consent';
 export type { RedirectResolution } from './types/redirects';
 export type { ApplyIntent, CreateApplyIntentBody } from './types/apply-intents';

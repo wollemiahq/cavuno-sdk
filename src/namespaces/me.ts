@@ -1391,9 +1391,11 @@ export function meNamespace(client: BoardClient) {
        */
       applicants: {
         /**
-         * Read a job's applicant pipeline: its header, stage rail, and every
-         * applicant (candidate snapshot, signed resume URL, activity timeline).
-         * `query.job` is required; `query.stage` filters to one stage.
+         * Read a job's applicant pipeline: its header, stage rail, and one page
+         * of applicants, newest first (candidate snapshot, signed resume URL,
+         * activity timeline). `query.job` is required; `query.stage` filters to
+         * one stage. A page holds up to `query.limit` applicants (default
+         * 2000); when `hasMore` is true, pass `nextCursor` as `query.cursor`.
          *
          * @example
          * const pipeline = await board.me.companies.applicants.list('acme', {
