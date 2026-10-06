@@ -3,6 +3,28 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.36.0 — 2026-10-06
+
+- `board.get()` returns `ads.googleConsentMessage`. It is `true` when visitors
+  in the EEA, UK and Switzerland should get Google's certified consent message
+  (published in AdSense Privacy & messaging) instead of the board's own cookie
+  banner: AdSense is on with a valid `clientId` and the owner has not turned
+  the setting off. Load the AdSense tag on page load when it is `true`, and
+  gate other trackers on the visitor's answer to Google's message.
+
+- Creating a job whose `applicationUrl` is already used by another job on the
+  account still returns `409 jobs_already_exists`, now with
+  `details.matched_on` and, for `application_url` matches,
+  `details.matching_jobs` (up to 5 `{ id, title, status }`). If the new job is
+  a different role that shares that application destination, retry with the
+  new optional `allowSharedApplicationUrl: true`. A matching `externalId` or an
+  identical job still cannot be overridden. Always set `externalId`.
+
+- Place names on job surfaces now follow the board language: card
+  `locationLabel` (jobs list, search, similar, company jobs, saved jobs),
+  job detail `officeLocations[].displayName` and `placeHierarchy[].name`.
+  Hierarchy slugs are unchanged.
+
 ## 4.35.0 — 2026-10-05
 
 - Boards can define custom employment types, such as "Casual", each with a

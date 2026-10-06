@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   checkCookieCodecConformance,
+  checkCookieCodecConformanceFiles,
   hasGeneratedBanner,
   stripComments,
 } from './cookie-conformance';
@@ -45,6 +46,31 @@ describe('stripComments (quote-aware)', () => {
 });
 
 describe('checkCookieCodecConformance', () => {
+  it('checks an immutable source snapshot without a local project directory', () => {
+    const [result] = checkCookieCodecConformanceFiles([
+      {
+        path: 'src/client.ts',
+        contents: 'document.cookie = "session=x; Domain=.cavuno.app";',
+      },
+      {
+        path: 'src/paraglide/runtime.js',
+        contents: 'document.cookie = "locale=en; Domain=.cavuno.app";',
+      },
+    ]);
+    expect(result!.status).toBe('fail');
+    expect(result!.detail).toContain('src/client.ts:1');
+    expect(result!.detail).not.toContain('paraglide');
+  });
+
+  it('does not certify a snapshot with no source or unreadable source', () => {
+    expect(checkCookieCodecConformanceFiles([])[0]!.status).toBe('skip');
+    expect(
+      checkCookieCodecConformanceFiles([
+        { path: 'src/client.ts', contents: new Uint8Array([0xff]) },
+      ])[0]!.status,
+    ).toBe('skip');
+  });
+
   it('fails a fixture with a document.cookie Domain= write, naming file:line', () => {
     const root = project({
       'src/client.ts':

@@ -311,6 +311,91 @@ function truncate(line: string, max = 120): string {
   return t.length > max ? `${t.slice(0, max)}…` : t;
 }
 
+type CookieSourceFile = {
+  path: string;
+  contents: string | Uint8Array;
+};
+
+function isAppSourcePath(path: string): boolean {
+  if (!path.startsWith('src/')) return false;
+  const parts = path.split('/');
+  const name = parts.at(-1)!;
+  return (
+    parts
+      .slice(1, -1)
+      .every(
+        (part) =>
+          !part.startsWith('.') &&
+          part !== 'node_modules' &&
+          !GENERATED_DIRS.has(part),
+      ) &&
+    !name.startsWith('.') &&
+    SOURCE_EXT.test(name) &&
+    !GENERATED_FILE.test(name)
+  );
+}
+
+function checkCookieSourceText(
+  files: readonly { path: string; text: string }[],
+  hasSource: boolean,
+  unreadable: boolean,
+): CheckResult[] {
+  if (!hasSource) {
+    return [
+      COOKIE(
+        'skip',
+        'no src/ directory — cookie-codec conformance scan skipped',
+      ),
+    ];
+  }
+  const findings: string[] = [];
+  for (const { path, text } of files) {
+    // Generated output the consumer cannot fix — see the module header.
+    if (hasGeneratedBanner(text)) continue;
+    const lines = text.split(/\r?\n/);
+    for (let i = 0; i < lines.length; i += 1) {
+      if (!isOffendingSink(lines, i)) continue;
+      findings.push(`${path}:${i + 1} — ${truncate(lines[i]!)}`);
+    }
+  }
+  if (findings.length > 0) {
+    return [COOKIE('fail', `${findings.join('; ')}; ${REMEDIATION}`)];
+  }
+  if (unreadable) {
+    return [COOKIE('skip', 'one or more source files could not be read')];
+  }
+  return [
+    COOKIE(
+      'pass',
+      'no domain-scoped Set-Cookie or document.cookie writes in app-authored src/ (generated output skipped)',
+    ),
+  ];
+}
+
+/** Scan an immutable source snapshot with the same rules as Doctor's file scan. */
+export function checkCookieCodecConformanceFiles(
+  files: readonly CookieSourceFile[],
+): CheckResult[] {
+  const hasSource = files.some((file) => file.path.startsWith('src/'));
+  const textFiles: { path: string; text: string }[] = [];
+  let unreadable = false;
+  for (const file of files) {
+    if (!isAppSourcePath(file.path)) continue;
+    try {
+      textFiles.push({
+        path: file.path,
+        text:
+          typeof file.contents === 'string'
+            ? file.contents
+            : new TextDecoder('utf-8', { fatal: true }).decode(file.contents),
+      });
+    } catch {
+      unreadable = true;
+    }
+  }
+  return checkCookieSourceText(textFiles, hasSource, unreadable);
+}
+
 /**
  * Scan the app-authored files under `<projectRoot>/src` for
  * domain-scoped cookie writes; generated output is skipped (module
@@ -321,44 +406,20 @@ export function checkCookieCodecConformance(
   projectRoot: string,
 ): CheckResult[] {
   const srcDir = join(projectRoot, 'src');
-  if (!existsSync(srcDir)) {
-    return [
-      COOKIE(
-        'skip',
-        'no src/ directory — cookie-codec conformance scan skipped',
-      ),
-    ];
-  }
+  if (!existsSync(srcDir)) return checkCookieSourceText([], false, false);
 
   const files: string[] = [];
   walkSourceFiles(srcDir, files);
 
-  const findings: string[] = [];
+  const textFiles: { path: string; text: string }[] = [];
+  let unreadable = false;
   for (const file of files) {
     const rel = relative(projectRoot, file).split('\\').join('/');
-    let text: string;
     try {
-      text = readFileSync(file, 'utf8');
+      textFiles.push({ path: rel, text: readFileSync(file, 'utf8') });
     } catch {
-      continue;
-    }
-    // Generated output the consumer cannot fix — see the module header.
-    if (hasGeneratedBanner(text)) continue;
-    const lines = text.split(/\r?\n/);
-    for (let i = 0; i < lines.length; i += 1) {
-      if (!isOffendingSink(lines, i)) continue;
-      findings.push(`${rel}:${i + 1} — ${truncate(lines[i]!)}`);
+      unreadable = true;
     }
   }
-
-  if (findings.length === 0) {
-    return [
-      COOKIE(
-        'pass',
-        'no domain-scoped Set-Cookie or document.cookie writes in app-authored src/ (generated output skipped)',
-      ),
-    ];
-  }
-
-  return [COOKIE('fail', `${findings.join('; ')}; ${REMEDIATION}`)];
+  return checkCookieSourceText(textFiles, true, unreadable);
 }
