@@ -21594,15 +21594,15 @@ export interface operations {
                 languages?: string;
                 /** @description Filter by open-to-relocate. */
                 openToRelocate?: "true" | "false";
-                /** @description English source place slug. Accepted in v1; filtering is a no-op until place ids are on the talent payload. */
+                /** @description English source place slug (a board-language place slug is also accepted, as on the jobs `location` filter). Matches candidates whose home place is that place or lies within it, so a country slug matches every city and region in that country. An unknown slug does not filter. Until the board's talent index has been re-synced with location data, this filter is ignored. */
                 place?: string;
                 /** @description `relevance` is Best Match (status then recency). `newest` is created_at descending. */
                 sort?: "relevance" | "newest";
-                /** @description Accepted; no-op until the talent payload carries seniority. */
+                /** @description Seniority band: `entry_level`, `mid_level`, `senior`, `manager`, `director` or `executive`. Matches candidates who list that band. Until the board's talent index has been re-synced with seniority data, this filter is ignored. */
                 seniority?: string;
-                /** @description ISO country code. Accepted; no-op until permit countries are on the talent payload. */
+                /** @description ISO 3166-1 alpha-2 country code (case-insensitive). Matches candidates who list that country among the countries they are authorized to work in. Until the board's talent index has been re-synced with work-permit data, this filter is ignored. */
                 permitCountry?: string;
-                /** @description Accepted; no-op until interested roles are on the talent payload. */
+                /** @description A role the candidate is interested in, matched case-insensitively against the whole role name (as `skill` is). Until the board's talent index has been re-synced with interested-role data, this filter is ignored. */
                 interestedRole?: string;
                 /** @description JSON-encoded array of public candidate custom-field clauses. Clauses are AND-matched and values within a clause are OR-matched. */
                 customFields?: {
