@@ -6604,7 +6604,7 @@ export interface components {
                 slug: string;
                 name: string;
             }[];
-            /** @description Place ancestor chain (country → region → city) for the breadcrumb; each `{slug,name}` links to `/jobs/locations/:slug`. Source-language. */
+            /** @description Place ancestor chain (country → region → city) for the breadcrumb; each `{slug,name}` links to `/jobs/locations/:slug`. `name` is in the board's language (the source name where the place has no translation); `slug` is the source slug. */
             placeHierarchy: {
                 slug: string;
                 name: string;
