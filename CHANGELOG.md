@@ -3,6 +3,21 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.38.0 — 2026-10-06
+
+- Company invites: `board.invites.preview({ token })` looks up a company
+  member invite before sign-in, so an invite link can open a "Join
+  <company>" page. It returns the invite's `status` (`pending`, `expired`,
+  `accepted` or `revoked`), `expiresAt` and the company's `slug`, `name` and
+  `logoUrl`. While the invite is pending it also returns the invited `email`
+  and `account` (`none`, `employer` or `candidate`), so the page can offer
+  sign-up or sign-in. An unknown token is a 404 `employer_invite_not_found`.
+
+- `board.auth.register` accepts an optional `inviteToken`. When an employer
+  registers with a pending invite sent to the same email, no verification
+  email is sent: accepting the invite with `board.me.acceptInvite` verifies
+  the address.
+
 ## 4.37.0 — 2026-10-06
 
 - Job search: `radius` on `board.jobs.list`, `board.jobs.search` and the embed
