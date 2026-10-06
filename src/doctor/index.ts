@@ -3,6 +3,7 @@
  * integrations that need structured diagnostic results.
  */
 export { runDoctor } from './run';
+export { checkCookieCodecConformanceFiles } from './cookie-conformance';
 export type { DoctorRun, RunDoctorOptions } from './run';
 export type {
   CheckResult,

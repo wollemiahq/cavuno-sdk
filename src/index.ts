@@ -80,7 +80,9 @@ export function createBoardClient(options: CreateBoardClientOptions) {
 
     /**
      * Board context — identity, brand (`logoUrl` + favicon `icons`), language,
-     * features, analytics, and AdSense (`ads.enabled`, `ads.clientId`, and `ads.defaultSlotId`).
+     * features, analytics, and AdSense (`ads.enabled`, `ads.clientId`, `ads.defaultSlotId`, and
+     * `ads.googleConsentMessage`, which says whether EEA/UK/CH visitors get Google's consent
+     * message instead of the board's cookie banner).
      * Per-placement slot ids are not on this resource.
      *
      * @example

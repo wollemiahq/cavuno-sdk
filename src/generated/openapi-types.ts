@@ -6372,6 +6372,8 @@ export interface components {
                 clientId: string | null;
                 /** @description Default Google-issued ad unit id (10 digits). Resolves the enabled jobs:list.footer slot first, then the first enabled valid slot in alphabetical placement-key order. Null when advertising is off, the publisher id is invalid, or no enabled valid slot exists. Frontends may override it per ad unit. */
                 defaultSlotId: string | null;
+                /** @description True when visitors in the EEA, UK and Switzerland should get Google's certified consent message (published by the owner in AdSense → Privacy & messaging) instead of the board's own cookie banner. On by default whenever AdSense is on with a valid `clientId`; false when the owner turns it off, ads are off, or the publisher id is invalid. When true, load the AdSense tag on page load so Google's consent message can appear, and gate other trackers on the visitor's answer to it. */
+                googleConsentMessage: boolean;
             };
             /** @description Operator-defined custom field definitions keyed by model (currently only `job`). Each key holds that model's definitions in display order. The frontend uses these to render and localize each record's opaque `customFieldValues`. Supports exact-value custom-field filters in job search. Profile definitions are discovered through the profile-fields endpoint. */
             customFields: {
@@ -6604,7 +6606,7 @@ export interface components {
                 slug: string;
                 name: string;
             }[];
-            /** @description Place ancestor chain (country → region → city) for the breadcrumb; each `{slug,name}` links to `/jobs/locations/:slug`. Source-language. */
+            /** @description Place ancestor chain (country → region → city) for the breadcrumb; each `{slug,name}` links to `/jobs/locations/:slug`. `name` is in the board's language (the source name where the place has no translation); `slug` is the source slug. */
             placeHierarchy: {
                 slug: string;
                 name: string;

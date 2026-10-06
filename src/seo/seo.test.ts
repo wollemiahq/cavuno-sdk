@@ -73,6 +73,7 @@ const BOARD = {
     enabled: false,
     clientId: null,
     defaultSlotId: null,
+    googleConsentMessage: false,
   },
   customFields: { job: [], jobCollections: [] },
   jobForm: {
