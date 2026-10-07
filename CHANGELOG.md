@@ -3,6 +3,15 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.39.0 — 2026-10-06
+
+- Talent search: the `place`, `seniority`, `permitCountry` and
+  `interestedRole` filters now narrow results. Before, they were accepted but
+  ignored.
+- API key permissions are inclusive: a key with `X.manage` can also read, and
+  a key with `X.publish` can also manage and read. Existing keys gain the
+  lower levels automatically.
+
 ## 4.38.0 — 2026-10-06
 
 - Company invites: `board.invites.preview({ token })` looks up a company
