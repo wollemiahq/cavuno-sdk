@@ -1,6 +1,7 @@
 import type { BoardClient, FetchOptions } from '../client';
 import type { ListEnvelope } from '../types/common';
 import type {
+  CategoryListQuery,
   PlacesListQuery,
   PublicPlace,
   PublicTaxonomyTerm,
@@ -27,13 +28,12 @@ function taxonomyResolver(
   };
 }
 
-function taxonomyCollection(
-  client: BoardClient,
-  kind: 'categories' | 'skills',
-) {
+function taxonomyCollection<
+  Query extends TaxonomyListQuery = TaxonomyListQuery,
+>(client: BoardClient, kind: 'categories' | 'skills') {
   return {
     ...taxonomyResolver(client, kind),
-    list(query?: TaxonomyListQuery, options?: FetchOptions) {
+    list(query?: Query, options?: FetchOptions) {
       return client.fetch<ListEnvelope<PublicTaxonomyTerm>>(`/${kind}`, {
         ...options,
         query,
@@ -49,7 +49,7 @@ function taxonomyCollection(
  */
 export function taxonomyNamespace(client: BoardClient) {
   return {
-    categories: taxonomyCollection(client, 'categories'),
+    categories: taxonomyCollection<CategoryListQuery>(client, 'categories'),
     skills: taxonomyCollection(client, 'skills'),
     remotePermits: {
       /**

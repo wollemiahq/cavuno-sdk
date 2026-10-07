@@ -3,6 +3,27 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.41.0 — 2026-10-07
+
+- Categories: `taxonomy.categories.list({ topLevel: true })` lists only
+  top-level categories. It combines with `q` and `sort`, so
+  `{ topLevel: true, sort: 'jobCount' }` gives the busiest top-level
+  categories first.
+- Every category and skill from `taxonomy.categories.list()` and
+  `taxonomy.skills.list()` carries `parentId`: the parent category's ID, or
+  `null` for top-level categories and for skills.
+
+## 4.40.0 — 2026-10-07
+
+- Categories: `topLevel: true` lists only top-level categories, in full pages
+  with an exact `hasMore`. `parentId: null` still works as a deprecated alias.
+- The board's password gate copy fields are deprecated. The gate now uses the
+  board's builder-designed coming-soon page; the fields are still accepted and
+  returned.
+- Builder status includes the board's daily agent build and screenshot limits,
+  and submissions over 100 accepted builds per UTC day return `429
+  daily_build_limit`.
+
 ## 4.39.0 — 2026-10-06
 
 - Talent search: the `place`, `seniority`, `permitCountry` and
