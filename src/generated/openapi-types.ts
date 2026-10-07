@@ -532,7 +532,7 @@ export interface paths {
         };
         /**
          * List a public board's active categories
-         * @description Returns localized, canonical taxonomy terms backed by published jobs on this board, each with its live `jobCount`. Canonical slug collisions are returned once. Default order is display name; pass `sort=jobCount` for a busiest-first page.
+         * @description Returns localized, canonical taxonomy terms backed by published jobs on this board, each with its live `jobCount`. Canonical slug collisions are returned once. Default order is display name; pass `sort=jobCount` for a busiest-first page. Each category carries its `parentId`; pass `topLevel=true` for top-level categories only.
          */
         get: operations["listBoardCategories"];
         put?: never;
@@ -6960,6 +6960,8 @@ export interface components {
             id: string;
             /** @enum {string} */
             type: "category" | "skill";
+            /** @description ID of the parent category. `null` for top-level categories and for skills. */
+            parentId: string | null;
             /** @description Current source-locale slug used by job search; old slugs may remain aliases. */
             sourceSlug: string;
             /** @description Board-language canonical URL slug. */
@@ -9420,6 +9422,8 @@ export interface operations {
                 limit?: number;
                 /** @description Order of the filtered collection. `name` (default) is locale-aware display-name order. `jobCount` is live published-job count, highest first, with `name` as the tie-break. Bound into the opaque cursor. */
                 sort?: "name" | "jobCount";
+                /** @description When `true`, return only top-level categories (those with no parent). Combines with `q` and `sort`; bound into the opaque cursor. */
+                topLevel?: "true" | "false";
             };
             header?: never;
             path: {

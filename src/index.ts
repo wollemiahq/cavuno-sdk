@@ -486,6 +486,7 @@ export type {
   JobPostingResult,
 } from './types/job-posting';
 export type {
+  CategoryListQuery,
   PlacesListQuery,
   PublicPlace,
   RemotePermitTaxonomyEntry,
