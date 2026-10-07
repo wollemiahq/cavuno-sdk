@@ -3,6 +3,17 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.40.0 — 2026-10-07
+
+- Categories: `topLevel: true` lists only top-level categories, in full pages
+  with an exact `hasMore`. `parentId: null` still works as a deprecated alias.
+- The board's password gate copy fields are deprecated. The gate now uses the
+  board's builder-designed coming-soon page; the fields are still accepted and
+  returned.
+- Builder status includes the board's daily agent build and screenshot limits,
+  and submissions over 100 accepted builds per UTC day return `429
+  daily_build_limit`.
+
 ## 4.39.0 — 2026-10-06
 
 - Talent search: the `place`, `seniority`, `permitCountry` and
