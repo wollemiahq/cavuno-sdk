@@ -1168,6 +1168,7 @@ describe('board.taxonomy', () => {
   it('exports the collection request and response types from the package root', () => {
     expectTypeOf<PublicTaxonomyTerm>().toMatchTypeOf<{
       object: 'taxonomy_term';
+      parentId: string | null;
       sourceSlug: string;
       jobCount: number;
     }>();
@@ -1220,10 +1221,12 @@ describe('board.taxonomy', () => {
     await board.taxonomy.categories.list({ q: 'eng', limit: 5 });
     await board.taxonomy.skills.list({ cursor: 'next', limit: 10 });
     await board.taxonomy.categories.list({ sort: 'jobCount', limit: 8 });
+    await board.taxonomy.categories.list({ topLevel: true, limit: 100 });
 
     expect(sentUrl(spy, 0)).toBe(`${BASE}/categories?q=eng&limit=5`);
     expect(sentUrl(spy, 1)).toBe(`${BASE}/skills?cursor=next&limit=10`);
     expect(sentUrl(spy, 2)).toBe(`${BASE}/categories?sort=jobCount&limit=8`);
+    expect(sentUrl(spy, 3)).toBe(`${BASE}/categories?topLevel=true&limit=100`);
   });
 
   it('passes a resolution through unchanged', async () => {

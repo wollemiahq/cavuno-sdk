@@ -23,6 +23,12 @@ export type TaxonomyListQuery = {
   sort?: 'name' | 'jobCount';
 };
 
+/** Query for `taxonomy.categories.list()`. */
+export type CategoryListQuery = TaxonomyListQuery & {
+  /** `true` returns only top-level categories (those with no parent). */
+  topLevel?: boolean;
+};
+
 /**
  * Query for `taxonomy.places.list()`. Omit it (or `q`) for the full
  * locations directory; pass `q` (≥2 chars) for location autocomplete — the
