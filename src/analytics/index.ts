@@ -66,6 +66,7 @@ type AnalyticsRoot = typeof globalThis & {
     }>;
     querySelector: (selector: string) => unknown;
     location?: { hostname?: string; origin?: string };
+    cookie?: string;
   };
 };
 
@@ -89,15 +90,48 @@ function resolveDefaultScriptUrl(): string {
   return DEFAULT_SCRIPT_URL;
 }
 
+/** First-party cookie the hosted metrics script keeps its session id in. */
+const SESSION_COOKIE_NAME = 'session-id';
+
+/**
+ * Session id the hosted script set, read verbatim as that script reads it, so
+ * custom events join the same session as its page views. Never sets a cookie.
+ */
+function readSessionId(): string | undefined {
+  let cookies: unknown;
+  try {
+    cookies = getRoot().document?.cookie;
+  } catch {
+    return undefined;
+  }
+  if (typeof cookies !== 'string') {
+    return undefined;
+  }
+  for (const part of cookies.split(';')) {
+    const separator = part.indexOf('=');
+    if (separator === -1) {
+      continue;
+    }
+    if (part.slice(0, separator).trim() !== SESSION_COOKIE_NAME) {
+      continue;
+    }
+    const value = part.slice(separator + 1).trim();
+    return value.length > 0 ? value : undefined;
+  }
+  return undefined;
+}
+
 function postCollectJson(
   state: InstalledState,
   action: string,
   payload?: Record<string, unknown>,
 ): void {
+  const sessionId = readSessionId();
   const body = JSON.stringify({
     publishableKey: state.publishableKey,
     action,
     payload: payload ?? {},
+    ...(sessionId ? { sessionId } : {}),
   });
 
   void fetch(state.collectUrl, {
@@ -184,7 +218,14 @@ export function install(options: AnalyticsInstallOptions): void {
 
 /**
  * Emit a custom analytics event to Cavuno collect.
- * Prefer `install` first so pageviews and vitals are also recorded.
+ * Sends nothing until `install` has run.
+ *
+ * When the hosted script has set its `session-id` cookie, the event carries
+ * that session id, so it is attributed to the same visit (channel, referrer,
+ * campaign) as the page views. `track` never sets a cookie itself.
+ *
+ * For `job_apply_click`, pass `{ job_id, job_slug, company_slug }` so clicks
+ * are counted per job and per company.
  */
 export function track(action: string, payload?: Record<string, unknown>): void {
   const trimmed = action.trim();
