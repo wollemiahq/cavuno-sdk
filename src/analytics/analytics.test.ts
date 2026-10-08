@@ -157,6 +157,77 @@ describe('@cavuno/board/analytics', () => {
     });
   });
 
+  describe('session id', () => {
+    const setCookie = (value: string) => {
+      (globalThis as { document: { cookie?: string } }).document.cookie = value;
+    };
+    const lastBody = () => {
+      const [, init] = fetchMock.mock.calls.at(-1) as [string, RequestInit];
+      return JSON.parse(String(init.body)) as Record<string, unknown>;
+    };
+
+    it('track sends the session-id cookie value as sessionId', () => {
+      setCookie('theme=dark; session-id=abc-123; other=1');
+      install({ publishableKey: 'pk_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' });
+      track('job_apply_click', { job_id: 'job_1' });
+
+      expect(lastBody()).toEqual({
+        publishableKey: 'pk_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        action: 'job_apply_click',
+        payload: { job_id: 'job_1' },
+        sessionId: 'abc-123',
+      });
+    });
+
+    it('CavunoAnalytics.trackEvent sends the session id verbatim', () => {
+      // Same raw value the hosted script stamps on its own events.
+      setCookie('session-id=%22raw%22');
+      install({ publishableKey: 'pk_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' });
+      const g = globalThis as {
+        CavunoAnalytics?: {
+          trackEvent: (a: string, p?: Record<string, unknown>) => void;
+        };
+      };
+      g.CavunoAnalytics!.trackEvent('job_apply_click', { job_id: 'job_1' });
+
+      expect(lastBody().sessionId).toBe('%22raw%22');
+    });
+
+    it('reads the cookie at send time, not at install time', () => {
+      install({ publishableKey: 'pk_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' });
+      setCookie('session-id=later');
+      track('job_apply_click', { job_id: 'job_1' });
+
+      expect(lastBody().sessionId).toBe('later');
+    });
+
+    it('omits sessionId when there is no session-id cookie', () => {
+      setCookie('my-session-id=nope; session-idx=nope');
+      install({ publishableKey: 'pk_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' });
+      track('job_apply_click', { job_id: 'job_1' });
+
+      expect(lastBody()).not.toHaveProperty('sessionId');
+    });
+
+    it('omits sessionId and sets no cookie when document is missing', () => {
+      Reflect.deleteProperty(globalThis as object, 'document');
+      install({ publishableKey: 'pk_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' });
+      track('job_apply_click', { job_id: 'job_1' });
+
+      expect(lastBody()).not.toHaveProperty('sessionId');
+    });
+
+    it('does not mint a session-id cookie', () => {
+      install({ publishableKey: 'pk_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' });
+      track('job_apply_click', { job_id: 'job_1' });
+
+      expect(
+        (globalThis as { document: { cookie?: string } }).document.cookie,
+      ).toBeUndefined();
+      expect(lastBody()).not.toHaveProperty('sessionId');
+    });
+  });
+
   it('rejects non-publishable keys', () => {
     expect(() => install({ publishableKey: 'sk_secret' })).toThrow(
       /publishable key/,

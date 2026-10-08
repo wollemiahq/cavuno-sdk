@@ -3,6 +3,16 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.41.1 — 2026-10-08
+
+- Analytics: `analytics.track()` now sends the visit's session id (the
+  `session-id` cookie the hosted script sets) with each event, so custom
+  events such as `job_apply_click` are attributed to the same channel,
+  referrer and campaign as the visit's page views. `track` still sets no
+  cookie and sends nothing until `install` has run.
+- For `job_apply_click`, pass `{ job_id, job_slug, company_slug }` so clicks
+  are counted per job and per company.
+
 ## 4.41.0 — 2026-10-07
 
 - Categories: `taxonomy.categories.list({ topLevel: true })` lists only
