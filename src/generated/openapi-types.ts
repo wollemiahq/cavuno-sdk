@@ -10172,6 +10172,8 @@ export interface operations {
                             originalToken: string;
                             correctedToken: string;
                         };
+                        /** @description Present when the result set is larger than the deepest page this search can reach (keyword relevance ranks the top matches). `count` keeps its usual meaning (every match, or the visible preview when `gatedCount` is present); pagination (`hasMore`, `nextCursor`) ends at `reachableCount`. Narrow the query or add filters to reach more. */
+                        reachableCount?: number;
                     };
                 };
             };
@@ -11123,6 +11125,8 @@ export interface operations {
                             originalToken: string;
                             correctedToken: string;
                         };
+                        /** @description Present when the result set is larger than the deepest page this search can reach (keyword relevance ranks the top matches). `count` keeps its usual meaning (every match, or the visible preview when `gatedCount` is present); pagination (`hasMore`, `nextCursor`) ends at `reachableCount`. Narrow the query or add filters to reach more. */
+                        reachableCount?: number;
                     };
                 };
             };
@@ -11199,6 +11203,8 @@ export interface operations {
                             originalToken: string;
                             correctedToken: string;
                         };
+                        /** @description Present when the result set is larger than the deepest page this search can reach (keyword relevance ranks the top matches). `count` keeps its usual meaning (every match, or the visible preview when `gatedCount` is present); pagination (`hasMore`, `nextCursor`) ends at `reachableCount`. Narrow the query or add filters to reach more. */
+                        reachableCount?: number;
                     };
                 };
             };
