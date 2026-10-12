@@ -1,12 +1,15 @@
 import { hasCrawlableCavunoBacklink } from './attribution';
 import {
   apiBase,
+  describeJobDetailTemplate,
   extractJobDetailLink,
   extractJobPostingJsonLd,
+  jobRoutesFromManifest,
   parseSitemap,
   record,
   type CheckResult,
   type DoctorEnv,
+  type JobRoutes,
 } from './checks';
 import { probe } from './probe';
 
@@ -76,14 +79,34 @@ async function confirmsNoPublishedJobs(
   }
 }
 
-/** : /jobs listing carries a job DETAIL link, then that page's JSON-LD. */
+/**
+ * The board's own job routes from its published route manifest. A board
+ * without one (or an unreadable one) gets the canonical English routes.
+ */
+async function readJobRoutes(
+  fetchImpl: typeof fetch,
+  base: string,
+): Promise<JobRoutes> {
+  const manifest = await probe(fetchImpl, `${base}/.well-known/cavuno.json`);
+  if (!manifest.ok) return jobRoutesFromManifest(null);
+  try {
+    return jobRoutesFromManifest(JSON.parse(manifest.body));
+  } catch {
+    return jobRoutesFromManifest(null);
+  }
+}
+
+/** : jobs listing carries a job DETAIL link, then that page's JSON-LD. */
 async function probeJobsAndJsonLd(
   fetchImpl: typeof fetch,
   base: string,
   env: DoctorEnv | undefined,
 ): Promise<CheckResult[]> {
-  const jobs = await probe(fetchImpl, `${base}/jobs`);
-  const jobLink = jobs.ok ? extractJobDetailLink(jobs.body) : null;
+  const { jobsPath, jobDetailTemplates } = await readJobRoutes(fetchImpl, base);
+  const jobs = await probe(fetchImpl, `${base}${jobsPath}`);
+  const jobLink = jobs.ok
+    ? extractJobDetailLink(jobs.body, jobDetailTemplates)
+    : null;
 
   if (
     jobs.status === 200 &&
@@ -103,7 +126,7 @@ async function probeJobsAndJsonLd(
       : READ.jobs(
           'fail',
           jobs.ok
-            ? 'listing renders but contains no /companies/{c}/jobs/{s} detail links'
+            ? `listing renders but contains no ${describeJobDetailTemplate(jobDetailTemplates[0]!)} detail links`
             : `listing HTTP ${jobs.status}`,
         );
 
@@ -114,7 +137,7 @@ async function probeJobsAndJsonLd(
         'skip',
         jobs.ok
           ? 'not probed — the listing rendered no job detail link (see read.jobs failure)'
-          : 'not probed — the /jobs listing itself failed (see read.jobs failure)',
+          : `not probed — the ${jobsPath} listing itself failed (see read.jobs failure)`,
       ),
     ];
   }
