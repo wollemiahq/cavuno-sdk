@@ -2,6 +2,7 @@
 // scripts/gen-types.ts. `SavedJob` embeds the generated `PublicJobCard`.
 // The query type stays hand-written.
 import type { Schemas } from './_spec';
+import type { ListEnvelope } from './common';
 
 export type SavedJob = Schemas['SavedJob'];
 
@@ -63,7 +64,68 @@ export type TalentList = {
   createdBy: string;
   createdAt: number;
   updatedAt: number;
+  /** People saved to this list (at most 500). */
+  memberCount: number;
 };
+
+/** A person saved to a talent list, as the same directory card `/talent` emits. */
+export type TalentListMember = Schemas['TalentListMember'];
+
+/** Members list envelope; `total` counts every visible saved person before filters. */
+export type TalentListMembersListEnvelope = ListEnvelope<TalentListMember> & {
+  total: number;
+};
+
+/**
+ * Filters for the people saved to a list — the same query the public talent
+ * directory takes, run as the same search restricted to the saved people.
+ */
+export type TalentListMembersQuery = {
+  cursor?: string;
+  /** 1–50, default 20. */
+  limit?: number;
+  /** Members to skip; takes precedence over `cursor`. */
+  offset?: number;
+  q?: string;
+  skill?: string;
+  jobSearchStatus?: 'actively_looking' | 'open_to_offers' | 'not_looking';
+  /** Comma-separated language names. */
+  languages?: string;
+  openToRelocate?: 'true' | 'false';
+  place?: string;
+  /**
+   * Widen a city or locality `place` to candidates whose home city or
+   * locality is within this many km of it (1–250, decimals allowed). Omit
+   * for candidates in the place itself. Ignored for region and country
+   * places, and without `place`.
+   */
+  radius?: number;
+  /**
+   * Omit for most recently saved first when there is no keyword (`q`); with
+   * a keyword, omit for best match first.
+   */
+  sort?: 'relevance' | 'newest';
+  seniority?: string;
+  permitCountry?: string;
+  interestedRole?: string;
+  /**
+   * Comma-separated pipeline stage ids (1–20), as `applicants.list` takes
+   * `stage`: a `systemStage` key, a custom stage id, or `applied`. Keeps the
+   * saved people whose application on the list's linked job is in one of
+   * them. Values match stored application stages exactly: to filter by a
+   * board column, pass every stage that column shows. The Applied column is
+   * `applied,review` (plus any hidden stages the board folds into it),
+   * because native and guest applies are stored as `applied`. Only for a
+   * list linked to a job (otherwise 400). `count` reflects it; `total` does
+   * not.
+   */
+  stage?: string;
+};
+
+export type AddTalentListMemberBody = Schemas['AddTalentListMemberBody'];
+
+/** One talent list a candidate is saved to. */
+export type TalentListMembership = Schemas['TalentListMembership'];
 
 export type CreateTalentListBody = {
   name: string;
