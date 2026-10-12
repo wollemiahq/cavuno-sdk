@@ -300,6 +300,69 @@ describe('board.me', () => {
     );
   });
 
+  it('talentLists.members.list GETs the list members with directory filters', async () => {
+    const spy = stubFetch(
+      jsonResponse({ object: 'list', data: [], total: 0, count: 0 }),
+    );
+    const board = await makeAuthedBoard();
+    const page = await board.me.companies.talentLists.members.list(
+      'acme',
+      'tl_1',
+      { skill: 'react', openToRelocate: 'true', limit: 10 },
+    );
+    expect(spy.mock.calls[0]![0]).toBe(
+      `${BASE}/me/companies/acme/talent-lists/tl_1/members?skill=react&openToRelocate=true&limit=10`,
+    );
+    expect(page.total).toBe(0);
+  });
+
+  it('talentLists.members.add POSTs { candidateBoardUserId }', async () => {
+    const spy = stubFetch(
+      jsonResponse({
+        id: 'tlm_1',
+        object: 'talent_list_member',
+        created: true,
+      }),
+    );
+    const board = await makeAuthedBoard();
+    const result = await board.me.companies.talentLists.members.add(
+      'acme',
+      'tl_1',
+      { candidateBoardUserId: 'bu_2' },
+    );
+    expect(spy.mock.calls[0]![0]).toBe(
+      `${BASE}/me/companies/acme/talent-lists/tl_1/members`,
+    );
+    expect(spy.mock.calls[0]![1]!.method).toBe('POST');
+    expect(JSON.parse(String(spy.mock.calls[0]![1]!.body))).toEqual({
+      candidateBoardUserId: 'bu_2',
+    });
+    expect(result.created).toBe(true);
+  });
+
+  it('talentLists.members.remove DELETEs the member and resolves void on 204', async () => {
+    const spy = stubFetch(() => new Response(null, { status: 204 }));
+    const board = await makeAuthedBoard();
+    await expect(
+      board.me.companies.talentLists.members.remove('acme', 'tl_1', 'bu_2'),
+    ).resolves.toBeUndefined();
+    expect(spy.mock.calls[0]![0]).toBe(
+      `${BASE}/me/companies/acme/talent-lists/tl_1/members/bu_2`,
+    );
+    expect(spy.mock.calls[0]![1]!.method).toBe('DELETE');
+  });
+
+  it('talentLists.memberships GETs the lists one candidate is saved to', async () => {
+    const spy = stubFetch(jsonResponse({ object: 'list', data: [] }));
+    const board = await makeAuthedBoard();
+    await board.me.companies.talentLists.memberships('acme', {
+      candidate: 'bu_2',
+    });
+    expect(spy.mock.calls[0]![0]).toBe(
+      `${BASE}/me/companies/acme/talent-list-memberships?candidate=bu_2`,
+    );
+  });
+
   it('sourcedCandidates.convert POSTs { stage }', async () => {
     const spy = stubFetch(
       jsonResponse({ id: 'apps_1', object: 'application', created: true }),

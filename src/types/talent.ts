@@ -7,7 +7,8 @@ import type { CustomFieldFilter, ObjectReferenceFilter } from './jobs';
 /**
  * A candidate's public profile — header (name, headline, location, bio, avatar,
  * job-search status) plus their experiences, education, skills, and languages.
- * Only `public` profiles are returned; `jobSearchStatus` is `null` when the
+ * Anonymous callers get `public` profiles; a signed-in board user also gets
+ * `logged_in_only` ones. `jobSearchStatus` is `null` when the
  * candidate scoped it to employers only.
  */
 export type TalentProfile = Schemas['TalentProfile'];

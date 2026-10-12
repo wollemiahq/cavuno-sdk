@@ -2404,6 +2404,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/me/companies/{slug}/talent-list-memberships": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the talent lists a candidate is saved to */
+        get: operations["listBoardMeCompanyTalentListMemberships"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/boards/{identifier}/me/companies/{slug}/talent-lists": {
         parameters: {
             query?: never;
@@ -2413,7 +2430,7 @@ export interface paths {
         };
         /**
          * List talent lists for a company
-         * @description Company-owned saved predicates over the talent directory. Approved members see the same lists.
+         * @description Company-owned saved searches over the talent directory. Each holds named filters and, optionally, saved people. Approved members see the same lists.
          */
         get: operations["listBoardMeCompanyTalentLists"];
         put?: never;
@@ -2441,6 +2458,50 @@ export interface paths {
         head?: never;
         /** Update a talent list */
         patch: operations["updateBoardMeCompanyTalentList"];
+        trace?: never;
+    };
+    "/boards/{identifier}/me/companies/{slug}/talent-lists/{listId}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the people saved to a talent list
+         * @description Saved people as directory cards: most recently saved first unless `sort` or a keyword (`q`) is set; with a keyword, best match first. Runs the same search as the talent directory, with the same filters, restricted to the people saved to this list. Blocked, hidden and deactivated candidates are omitted. When the board sells profile unlocks, cards are redacted as in the talent directory, judged for this company only: full when it holds unlimited unlocks, or for candidates it has unlocked while it holds talent access. `total` counts every visible saved person; `count` counts the ones the filters keep.
+         */
+        get: operations["listBoardMeCompanyTalentListMembers"];
+        put?: never;
+        /**
+         * Save a candidate to a talent list
+         * @description Idempotent: saving someone already on the list returns `created: false`. When the list is linked to a job, the candidate is also shortlisted onto that job unless they already have a pipeline row there. A list holds at most 500 people (`talent_list_full`, 409).
+         */
+        post: operations["createBoardMeCompanyTalentListMember"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/me/companies/{slug}/talent-lists/{listId}/members/{candidateBoardUserId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove a candidate from a talent list
+         * @description Idempotent. Never changes a job pipeline, including the linked job.
+         */
+        delete: operations["deleteBoardMeCompanyTalentListMember"];
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/boards/{identifier}/me/companies/{slug}/work-email/confirm": {
@@ -2519,7 +2580,7 @@ export interface paths {
         put?: never;
         /**
          * Message an applicant
-         * @description Send a message to an applicant from the ATS. The application-context variant of send, outside the talent paywall. Gated: messaging enabled, approved company member, not blocked.
+         * @description Send a message to an applicant from the ATS. The application-context variant of send. A candidate who applied is messaged outside the talent paywall; gated: messaging enabled, approved company member, not blocked. A candidate the company shortlisted from the talent directory never applied, so on a board that sells talent access messaging them is gated exactly like starting a conversation from the directory, including the talent-access credit.
          */
         post: operations["createBoardMeConversationsAboutApplication"];
         delete?: never;
@@ -3978,7 +4039,7 @@ export interface paths {
         };
         /**
          * List a public board's talent directory
-         * @description The board's public candidate profiles, ranked by job-search status then most-recently-updated — the same ordering the hosted `/talent` directory renders. Only `public` profiles appear. When the board sells profile unlocks, cards redact for viewers who are not unlimited (first name + last initial, current role only) so a headless client cannot bypass the hosted paywall. The response carries the total `count` and the `limit`/`offset` page window; iterate forward with the opaque `nextCursor` or page in parallel with `offset`. Returns 404 when the directory is disabled, and 403 (`talent_directory_restricted`) when the board restricts the directory to employers.
+         * @description The board's candidate profiles the viewer can see, ranked by job-search status then most-recently-updated — the same ordering the hosted `/talent` directory renders. Anonymous viewers see `public` profiles; a signed-in board user also sees `logged_in_only` profiles, as on the hosted directory. When the board sells profile unlocks, cards redact for viewers who are not unlimited (first name + last initial, current role only) so a headless client cannot bypass the hosted paywall. The response carries the total `count` and the `limit`/`offset` page window; iterate forward with the opaque `nextCursor` or page in parallel with `offset`. Returns 404 when the directory is disabled, and 403 (`talent_directory_restricted`) when the board restricts the directory to employers.
          */
         get: operations["listBoardTalent"];
         put?: never;
@@ -4075,6 +4136,9 @@ export interface components {
         };
         AddSourcedCandidateBody: {
             job: string;
+            candidateBoardUserId: string;
+        };
+        AddTalentListMemberBody: {
             candidateBoardUserId: string;
         };
         Alert: {
@@ -5095,6 +5159,8 @@ export interface components {
                 id?: string;
                 planId: string;
             };
+            /** @description The `verificationToken` the billing options were listed with. Required when `selectedBilling.type` is `order` or `subscription`; the token's email must match `submission.contactEmail`. */
+            billingVerificationToken?: string;
             invoiceBilling?: {
                 billingName?: string;
                 address: {
@@ -7615,6 +7681,8 @@ export interface components {
             createdBy: string;
             createdAt: number;
             updatedAt: number;
+            /** @description People saved to this list (at most 500). Includes anyone the members list omits for the viewer (blocked, hidden or deactivated). */
+            memberCount: number;
         };
         TalentListFilters: {
             q?: string;
@@ -7629,6 +7697,22 @@ export interface components {
             seniority?: string;
             permitCountry?: string;
             interestedRole?: string;
+        };
+        TalentListMember: {
+            id: string;
+            /** @enum {string} */
+            object: "talent_list_member";
+            candidate: components["schemas"]["TalentDirectoryEntry"];
+            addedAt: number;
+            /** @description Board-user id of the employer who saved them. */
+            addedBy: string;
+        };
+        TalentListMembership: {
+            /** @enum {string} */
+            object: "talent_list_membership";
+            listId: string;
+            candidateBoardUserId: string;
+            addedAt: number;
         };
         TalentProfile: {
             /** @enum {string} */
@@ -16367,6 +16451,49 @@ export interface operations {
             };
         };
     };
+    listBoardMeCompanyTalentListMemberships: {
+        parameters: {
+            query: {
+                /** @description Required. Board-user id of the candidate. */
+                candidate: string;
+            };
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lists of this company the candidate is saved to. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        object: "list";
+                        url: string;
+                        hasMore: boolean;
+                        nextCursor: string | null;
+                        data: components["schemas"]["TalentListMembership"][];
+                    };
+                };
+            };
+            /** @description An error. Every non-2xx response uses the same envelope; see the Errors section of the introduction. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     listBoardMeCompanyTalentLists: {
         parameters: {
             query?: never;
@@ -16502,6 +16629,162 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["TalentList"];
                 };
+            };
+            /** @description An error. Every non-2xx response uses the same envelope; see the Errors section of the introduction. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listBoardMeCompanyTalentListMembers: {
+        parameters: {
+            query?: {
+                /** @description An opaque pagination cursor returned in the `nextCursor` field of a previous response. */
+                cursor?: string;
+                /** @description Page size, 1 to 50 (default 20). */
+                limit?: number;
+                /** @description Members to skip. Takes precedence over `cursor`. */
+                offset?: number | null;
+                /** @description Free-text search over name, headline and skills. */
+                q?: string;
+                skill?: string;
+                jobSearchStatus?: "actively_looking" | "open_to_offers" | "not_looking";
+                /** @description Comma-separated language names. Candidates must list every name. */
+                languages?: string;
+                openToRelocate?: "true" | "false";
+                /** @description As on the public talent directory. */
+                place?: string;
+                /**
+                 * @description Widen a city or locality `place` to also return candidates whose home city or locality is within this many kilometres of the place (1–250; decimals allowed, e.g. `8.05` for 5 miles). Omit for candidates in the place itself. Ignored for region and country places, and without `place`. Until the board's talent index has been re-synced with home locations, only the place itself matches.
+                 * @example 50
+                 */
+                radius?: number;
+                /** @description Omit for most recently saved first when there is no keyword (`q`); with a keyword, omit for best match first. `relevance` is Best Match (status then recency); `newest` is newest candidate first. */
+                sort?: "relevance" | "newest";
+                /** @description As on the public talent directory. */
+                seniority?: string;
+                /** @description As on the public talent directory. */
+                permitCountry?: string;
+                /** @description As on the public talent directory. */
+                interestedRole?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                slug: string;
+                listId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Saved people. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        object: "list";
+                        url: string;
+                        hasMore: boolean;
+                        nextCursor: string | null;
+                        data: components["schemas"]["TalentListMember"][];
+                        /** @description Total number of results matching the query. */
+                        count?: number;
+                        /** @description The page size used for this response. */
+                        limit?: number;
+                        /** @description The number of results skipped before this page. */
+                        offset?: number;
+                        /** @description Jobs hidden behind the candidate paywall for the current viewer; absent or 0 for an entitled viewer. */
+                        gatedCount?: number;
+                        /** @description Every saved person the viewer can see on this list, before the query filters. `count` is the number the filters keep. */
+                        total: number;
+                    };
+                };
+            };
+            /** @description An error. Every non-2xx response uses the same envelope; see the Errors section of the introduction. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createBoardMeCompanyTalentListMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                slug: string;
+                listId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AddTalentListMemberBody"];
+            };
+        };
+        responses: {
+            /** @description Saved membership id. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        /** @enum {string} */
+                        object: "talent_list_member";
+                        created: boolean;
+                    };
+                };
+            };
+            /** @description An error. Every non-2xx response uses the same envelope; see the Errors section of the introduction. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    deleteBoardMeCompanyTalentListMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                slug: string;
+                listId: string;
+                candidateBoardUserId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description An error. Every non-2xx response uses the same envelope; see the Errors section of the introduction. */
             default: {
@@ -16818,7 +17101,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Not permitted (`messaging_disabled`, `messaging_not_permitted`, `messaging_blocked`). */
+            /** @description Not permitted (`messaging_disabled`, `messaging_not_permitted`, `messaging_blocked`; for a shortlisted candidate also `messaging_recipient_not_open`, `messaging_talent_access_required`). */
             403: {
                 headers: {
                     [name: string]: unknown;

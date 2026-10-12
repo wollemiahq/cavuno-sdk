@@ -3,6 +3,30 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.43.0 — 2026-10-12
+
+- Saved searches can hold people. `me.companies.talentLists.members.list()`,
+  `.add()` and `.remove()` manage the people saved to a saved search, and
+  `me.companies.talentLists.memberships()` lists the saved searches one
+  candidate is on. `members.list()` takes the same filters as `talent.list()`,
+  including `radius`, and returns `total` (every saved person you can see)
+  next to `count` (those matching the filters). Each saved search reports
+  `memberCount`. A saved search holds up to 500 people; adding more returns
+  409 `talent_list_full`.
+- Saving someone to a saved search that is linked to a job also shortlists
+  them on that job, and linking a job later shortlists everyone already
+  saved. Removing someone from a saved search never changes their place in a
+  job pipeline.
+- Messaging: on boards that sell talent access, sending a message about a
+  shortlisted candidate who has not applied needs talent access, as a message
+  started from the talent directory does. Messages about people who applied
+  are unchanged.
+- Talent directory: signed-in viewers also see profiles that are visible to
+  signed-in users only.
+- Job postings: spending an existing credit or subscription through
+  `job-postings` requires `billingVerificationToken`, the token you pass to
+  `getBillingOptions`. Posts that buy a plan or are free are unaffected.
+
 ## 4.42.0 — 2026-10-12
 
 - Talent search: `talent.list()` takes `radius`, in kilometres (1–250,

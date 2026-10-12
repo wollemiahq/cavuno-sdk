@@ -6,6 +6,10 @@
  * orchestrator in run.ts owns the fetches.
  */
 
+import { matchPathToTemplate } from '../route-contract/match-history';
+import { CANONICAL_MANIFEST, type RouteRole } from '../route-contract/roles';
+import { checkRoleTemplate } from '../route-contract/validate';
+
 export type CheckStatus = 'pass' | 'fail' | 'skip' | 'warn';
 
 export interface CheckResult {
@@ -93,8 +97,98 @@ export function checkEnv(env: DoctorEnv): CheckResult[] {
 const JOB_DETAIL_LINK_RE =
   /href="(\/companies\/[a-z0-9-]+\/jobs\/[a-z0-9-]+)"/i;
 
-export function extractJobDetailLink(html: string): string | null {
-  return html.match(JOB_DETAIL_LINK_RE)?.[1] ?? null;
+/**
+ * With `templates`, returns the first root-relative link whose path matches
+ * any of them segment for segment (each `:param` one slug segment), so a
+ * board that translates its URL words is checked against its own routes.
+ */
+export function extractJobDetailLink(
+  html: string,
+  templates?: readonly string[],
+): string | null {
+  if (!templates) return html.match(JOB_DETAIL_LINK_RE)?.[1] ?? null;
+  for (const match of html.matchAll(HREF_PATH_RE)) {
+    const path = match[1]!;
+    if (path.endsWith('/')) continue;
+    for (const template of templates) {
+      const params = matchPathToTemplate(template, path);
+      if (params && Object.values(params).every((v) => SLUG_RE.test(v))) {
+        return path;
+      }
+    }
+  }
+  return null;
+}
+
+const HREF_PATH_RE = /href="(\/[^"?#\s]+)"/gi;
+const SLUG_RE = /^[a-z0-9-]+$/i;
+
+/** The canonical English job detail template every board has always served. */
+export const CANONICAL_JOB_DETAIL_TEMPLATE =
+  CANONICAL_MANIFEST.roles.jobDetail!;
+
+export interface JobRoutes {
+  /** Path of the jobs listing page. */
+  jobsPath: string;
+  /** Detail templates to accept, board's own first; always includes the canonical English one. */
+  jobDetailTemplates: string[];
+}
+
+/**
+ * Job routes from a board's published route manifest
+ * (`/.well-known/cavuno.json`). The detail template is `roles.jobDetail`
+ * when present, else derived as `roles.company` + the jobs listing word +
+ * `/:jobSlug` (fixed URL words are translated per word, so the listing word
+ * reappears inside the detail path). Anything missing or invalid falls back
+ * to the canonical English routes.
+ */
+export function jobRoutesFromManifest(manifest: unknown): JobRoutes {
+  const roles =
+    manifest !== null &&
+    typeof manifest === 'object' &&
+    (manifest as { version?: unknown }).version === 1
+      ? (manifest as { roles?: unknown }).roles
+      : null;
+  const role = (name: RouteRole): string | null => {
+    const template =
+      roles !== null && typeof roles === 'object'
+        ? (roles as Record<string, unknown>)[name]
+        : undefined;
+    return typeof template === 'string' &&
+      checkRoleTemplate(name, template).length === 0
+      ? template
+      : null;
+  };
+
+  const jobs = role('jobs');
+  const company = role('company');
+  const jobsWord = jobs
+    ?.split('/')
+    .filter((seg) => seg !== '' && !seg.includes(':'))
+    .at(-1);
+  const derived =
+    company && jobsWord ? `${company}/${jobsWord}/:jobSlug` : null;
+  const detail =
+    role('jobDetail') ??
+    (derived && checkRoleTemplate('jobDetail', derived).length === 0
+      ? derived
+      : null);
+
+  return {
+    jobsPath: jobs ?? '/jobs',
+    jobDetailTemplates:
+      detail && detail !== CANONICAL_JOB_DETAIL_TEMPLATE
+        ? [detail, CANONICAL_JOB_DETAIL_TEMPLATE]
+        : [CANONICAL_JOB_DETAIL_TEMPLATE],
+  };
+}
+
+/** `/companies/:companySlug/jobs/:jobSlug` reads as `/companies/{c}/jobs/{s}`. */
+export function describeJobDetailTemplate(template: string): string {
+  return template
+    .replace(':companySlug', '{c}')
+    .replace(':jobSlug', '{s}')
+    .replace(/:([A-Za-z_][A-Za-z0-9_]*)/g, '{$1}');
 }
 
 const JSON_LD_RE =
