@@ -56,6 +56,139 @@ describe('robotsBody', () => {
   });
 });
 
+describe('robotsBody listingPaths', () => {
+  it('scopes the pagination rules to localized listing roots', () => {
+    expect(
+      robotsBody({
+        canonicalBase: 'https://jobs.example.nl',
+        listingPaths: {
+          jobs: '/vacatures',
+          companies: '/bedrijven/',
+          talent: '/kandidaten',
+        },
+      }),
+    ).toBe(`User-Agent: *
+Allow: /
+Disallow: /go/
+Disallow: /t/
+Disallow: /vacatures?page=
+Disallow: /vacatures*&page=
+Disallow: /vacatures/*?page=
+Disallow: /bedrijven?page=
+Disallow: /bedrijven*&page=
+Disallow: /bedrijven/*?page=
+Disallow: /kandidaten?page=
+Disallow: /kandidaten*&page=
+Disallow: /kandidaten/*?page=
+
+Sitemap: https://jobs.example.nl/sitemap.xml
+`);
+  });
+
+  it('keeps the default root for a missing, root or unsafe path', () => {
+    expect(
+      robotsBody({
+        canonicalBase: 'https://jobs.example.com',
+        listingPaths: {
+          jobs: '/',
+          companies: '/a*b\nDisallow: /',
+          talent: null,
+        },
+      }),
+    ).toBe(GOLDEN_ROBOTS);
+    expect(
+      robotsBody({
+        canonicalBase: 'https://jobs.example.com',
+        listingPaths: {
+          jobs: '/jobs',
+          companies: '/companies',
+          talent: '/talent',
+        },
+      }),
+    ).toBe(GOLDEN_ROBOTS);
+  });
+
+  it('robotsResponse forwards listingPaths', async () => {
+    const res = robotsResponse({
+      canonicalBase: 'https://jobs.example.nl',
+      listingPaths: { jobs: '/vacatures' },
+    });
+    expect(await res.text()).toContain('Disallow: /vacatures?page=\n');
+  });
+});
+
+describe('robotsBody localeListingPaths', () => {
+  it("adds each secondary language's listing roots after the base ones", () => {
+    expect(
+      robotsBody({
+        canonicalBase: 'https://jobs.example.nl',
+        listingPaths: { jobs: '/vacatures', companies: '/bedrijven' },
+        localeListingPaths: [
+          {
+            jobs: '/de/stellen',
+            companies: '/de/firmen/',
+            talent: '/de/talent',
+          },
+          // Duplicate and missing roots add nothing; unsafe ones are skipped.
+          { jobs: '/de/stellen', companies: '/fr/*', talent: null },
+          { jobs: '/fr/emplois' },
+        ],
+      }),
+    ).toBe(`User-Agent: *
+Allow: /
+Disallow: /go/
+Disallow: /t/
+Disallow: /vacatures?page=
+Disallow: /vacatures*&page=
+Disallow: /vacatures/*?page=
+Disallow: /bedrijven?page=
+Disallow: /bedrijven*&page=
+Disallow: /bedrijven/*?page=
+Disallow: /talent?page=
+Disallow: /talent*&page=
+Disallow: /talent/*?page=
+Disallow: /de/stellen?page=
+Disallow: /de/stellen*&page=
+Disallow: /de/stellen/*?page=
+Disallow: /de/firmen?page=
+Disallow: /de/firmen*&page=
+Disallow: /de/firmen/*?page=
+Disallow: /de/talent?page=
+Disallow: /de/talent*&page=
+Disallow: /de/talent/*?page=
+Disallow: /fr/emplois?page=
+Disallow: /fr/emplois*&page=
+Disallow: /fr/emplois/*?page=
+
+Sitemap: https://jobs.example.nl/sitemap.xml
+`);
+  });
+
+  it('keeps the golden body for no, empty or base-duplicate locale roots', () => {
+    for (const localeListingPaths of [
+      undefined,
+      null,
+      [],
+      [{ jobs: '/jobs', companies: '/', talent: '/talent/' }],
+    ]) {
+      expect(
+        robotsBody({
+          canonicalBase: 'https://jobs.example.com',
+          localeListingPaths,
+        }),
+      ).toBe(GOLDEN_ROBOTS);
+    }
+  });
+
+  it('robotsResponse forwards localeListingPaths', async () => {
+    const res = robotsResponse({
+      canonicalBase: 'https://jobs.example.nl',
+      localeListingPaths: [{ jobs: '/de/stellen' }],
+    });
+    expect(await res.text()).toContain('Disallow: /de/stellen?page=\n');
+  });
+});
+
 describe('robotsResponse', () => {
   it('serves the golden body with crawler cache headers', async () => {
     const res = robotsResponse({ canonicalBase: 'https://jobs.example.com' });
