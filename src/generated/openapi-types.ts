@@ -5152,6 +5152,11 @@ export interface components {
             min?: number;
             /** @description Inclusive maximum for `number` fields, when set. */
             max?: number;
+            /**
+             * @description Who sees the field. `public` (or absent): the job page, employers, search and the Board API. `private`: only the board team, in the dashboard and this Operator API. Board API (`/v1/boards/...`) responses never include private fields or their values. Omitted on an existing field keeps its current visibility.
+             * @enum {string}
+             */
+            visibility?: "public" | "private";
         };
         CustomFieldOption: {
             /** @description Stable option key — the value stored on a job, not the label. */
@@ -5752,6 +5757,11 @@ export interface components {
             allowOverrides?: boolean;
             /** @description Key of the collection's short, long or rich text field whose value is a selected entry's default description. When that field is rich text, an entry's `description` is sanitised HTML. Absent means entries have no default description. */
             descriptionFieldKey?: string;
+            /**
+             * @description Who sees the field. `public` (or absent): the job page, employers, search and the Board API. `private`: only the board team, in the dashboard and this Operator API. Board API (`/v1/boards/...`) responses never include private fields or their values. Omitted on an existing field keeps its current visibility.
+             * @enum {string}
+             */
+            visibility?: "public" | "private";
         };
         JobCollectionOverride: {
             /** @description The collection field key used in `collectionValues`. */
@@ -10172,6 +10182,8 @@ export interface operations {
                             originalToken: string;
                             correctedToken: string;
                         };
+                        /** @description Present when the result set is larger than the deepest page this search can reach (keyword relevance ranks the top matches). `count` keeps its usual meaning (every match, or the visible preview when `gatedCount` is present); pagination (`hasMore`, `nextCursor`) ends at `reachableCount`. Narrow the query or add filters to reach more. */
+                        reachableCount?: number;
                     };
                 };
             };
@@ -11123,6 +11135,8 @@ export interface operations {
                             originalToken: string;
                             correctedToken: string;
                         };
+                        /** @description Present when the result set is larger than the deepest page this search can reach (keyword relevance ranks the top matches). `count` keeps its usual meaning (every match, or the visible preview when `gatedCount` is present); pagination (`hasMore`, `nextCursor`) ends at `reachableCount`. Narrow the query or add filters to reach more. */
+                        reachableCount?: number;
                     };
                 };
             };
@@ -11199,6 +11213,8 @@ export interface operations {
                             originalToken: string;
                             correctedToken: string;
                         };
+                        /** @description Present when the result set is larger than the deepest page this search can reach (keyword relevance ranks the top matches). `count` keeps its usual meaning (every match, or the visible preview when `gatedCount` is present); pagination (`hasMore`, `nextCursor`) ends at `reachableCount`. Narrow the query or add filters to reach more. */
+                        reachableCount?: number;
                     };
                 };
             };
@@ -21598,8 +21614,13 @@ export interface operations {
                 languages?: string;
                 /** @description Filter by open-to-relocate. */
                 openToRelocate?: "true" | "false";
-                /** @description English source place slug (a board-language place slug is also accepted, as on the jobs `location` filter). Matches candidates whose home place is that place or lies within it, so a country slug matches every city and region in that country. An unknown slug does not filter. Until the board's talent index has been re-synced with location data, this filter is ignored. */
+                /** @description English source place slug (a board-language place slug is also accepted, as on the jobs `location` filter). Matches candidates whose home place is that place or lies within it, so a country slug matches every city and region in that country. An unknown slug does not filter. Until the board's talent index has been re-synced with location data, this filter is ignored. Pass `radius` to widen a city or locality to nearby candidates. */
                 place?: string;
+                /**
+                 * @description Widen a city or locality `place` to also return candidates whose home city or locality is within this many kilometres of the place (1–250; decimals allowed, e.g. `8.05` for 5 miles). Omit for candidates in the place itself. Ignored for region and country places, and without `place`. Until the board's talent index has been re-synced with home locations, only the place itself matches.
+                 * @example 50
+                 */
+                radius?: number;
                 /** @description `relevance` is Best Match (status then recency). `newest` is created_at descending. */
                 sort?: "relevance" | "newest";
                 /** @description Seniority band: `entry_level`, `mid_level`, `senior`, `manager`, `director` or `executive`. Matches candidates who list that band. Until the board's talent index has been re-synced with seniority data, this filter is ignored. */
