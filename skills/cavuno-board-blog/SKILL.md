@@ -13,9 +13,11 @@ The host app owns authoring, feeds, sitemaps, and OG-image routes.
 ## Build archives
 
 `blog.posts.list` returns `ListEnvelope<PublicBlogPostSummary>`. Its query
-accepts `limit` (1–100), `cursor`, `tagSlug`, `authorSlug`, and
-`featured: 'true'`. `featured` is the string literal. Blog lists use cursor
-pagination and expose neither `offset` nor total `count`.
+accepts `limit` (1–100), `cursor`, `tagSlug`, `authorSlug`,
+`featured: 'true'`, and `sort` (`'newest'` default, or `'featured'` for
+featured posts first, then the rest, as one list). `featured` is the string
+literal. Blog lists use cursor pagination and expose neither `offset` nor total
+`count`; a cursor only continues the list it came from.
 
 ```ts snippet
 const page = await board.blog.posts.list({ tagSlug: 'news', limit: 12 });
@@ -109,6 +111,8 @@ Finish only after every applicable check passes:
   `html`.
 - A retrieved old slug redirects to `newSlug` before rendering.
 - Featured archives send the exact string `featured: 'true'`.
+- Archives that put featured posts on top use `sort: 'featured'`, not a
+  separate featured call merged in front of page one.
 - Cursor paging reaches `nextCursor: null` without relying on count or offset.
 - Newest and oldest posts handle the null side of `adjacent`.
 
