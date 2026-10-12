@@ -27,6 +27,11 @@ export type BlogPostsListQuery = {
   authorSlug?: string;
   /** Opt-in only: pass `'true'` to restrict to featured posts. */
   featured?: 'true';
+  /**
+   * `'newest'` (default): most recently published first. `'featured'`:
+   * featured posts first (newest first), then the rest, as one list.
+   */
+  sort?: 'newest' | 'featured';
 };
 
 export type BlogSimilarQuery = {

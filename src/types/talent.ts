@@ -32,8 +32,18 @@ export type TalentDirectoryQuery = {
   /** Comma-separated language names. */
   languages?: string;
   openToRelocate?: 'true' | 'false';
-  /** English source place slug. No-op until place ids ship. */
+  /**
+   * Place slug: candidates whose home is the place or lies within it.
+   * Ignored until the board's talent index carries home places.
+   */
   place?: string;
+  /**
+   * Widen a city or locality `place` to candidates whose home city or
+   * locality is within this many km of it (1–250, decimals allowed). Omit
+   * for candidates in the place itself. Ignored for region and country
+   * places, and without `place`.
+   */
+  radius?: number;
   sort?: 'relevance' | 'newest';
   seniority?: string;
   permitCountry?: string;
