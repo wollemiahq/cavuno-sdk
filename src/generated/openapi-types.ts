@@ -5152,6 +5152,11 @@ export interface components {
             min?: number;
             /** @description Inclusive maximum for `number` fields, when set. */
             max?: number;
+            /**
+             * @description Who sees the field. `public` (or absent): the job page, employers, search and the Board API. `private`: only the board team, in the dashboard and this Operator API. Board API (`/v1/boards/...`) responses never include private fields or their values. Omitted on an existing field keeps its current visibility.
+             * @enum {string}
+             */
+            visibility?: "public" | "private";
         };
         CustomFieldOption: {
             /** @description Stable option key — the value stored on a job, not the label. */
@@ -5752,6 +5757,11 @@ export interface components {
             allowOverrides?: boolean;
             /** @description Key of the collection's short, long or rich text field whose value is a selected entry's default description. When that field is rich text, an entry's `description` is sanitised HTML. Absent means entries have no default description. */
             descriptionFieldKey?: string;
+            /**
+             * @description Who sees the field. `public` (or absent): the job page, employers, search and the Board API. `private`: only the board team, in the dashboard and this Operator API. Board API (`/v1/boards/...`) responses never include private fields or their values. Omitted on an existing field keeps its current visibility.
+             * @enum {string}
+             */
+            visibility?: "public" | "private";
         };
         JobCollectionOverride: {
             /** @description The collection field key used in `collectionValues`. */
@@ -10172,6 +10182,8 @@ export interface operations {
                             originalToken: string;
                             correctedToken: string;
                         };
+                        /** @description Present when the result set is larger than the deepest page this search can reach (keyword relevance ranks the top matches). `count` keeps its usual meaning (every match, or the visible preview when `gatedCount` is present); pagination (`hasMore`, `nextCursor`) ends at `reachableCount`. Narrow the query or add filters to reach more. */
+                        reachableCount?: number;
                     };
                 };
             };
@@ -11123,6 +11135,8 @@ export interface operations {
                             originalToken: string;
                             correctedToken: string;
                         };
+                        /** @description Present when the result set is larger than the deepest page this search can reach (keyword relevance ranks the top matches). `count` keeps its usual meaning (every match, or the visible preview when `gatedCount` is present); pagination (`hasMore`, `nextCursor`) ends at `reachableCount`. Narrow the query or add filters to reach more. */
+                        reachableCount?: number;
                     };
                 };
             };
@@ -11199,6 +11213,8 @@ export interface operations {
                             originalToken: string;
                             correctedToken: string;
                         };
+                        /** @description Present when the result set is larger than the deepest page this search can reach (keyword relevance ranks the top matches). `count` keeps its usual meaning (every match, or the visible preview when `gatedCount` is present); pagination (`hasMore`, `nextCursor`) ends at `reachableCount`. Narrow the query or add filters to reach more. */
+                        reachableCount?: number;
                     };
                 };
             };
