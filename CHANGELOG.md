@@ -3,6 +3,26 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.42.0 — 2026-10-12
+
+- Talent search: `talent.list()` takes `radius`, in kilometres (1–250,
+  decimals allowed). With a city or locality `place`, it also returns
+  candidates whose home city or locality is within that distance. Region and
+  country places ignore it. `count` and paging include the nearby
+  candidates. Build mile choices with `searchRadiusOptions`,
+  `defaultSearchRadius` and `distanceUnitForCountry` from
+  `@cavuno/board/format`, as for job search.
+- Job search: `count` is the full number of matches again. `hasMore` and
+  `nextCursor` stop at the deepest reachable result, and the new optional
+  `reachableCount` is sent when results are capped below `count`.
+- Blog: `blog.posts.list()` takes `sort: 'featured'`, which lists featured posts
+  newest first, then the rest newest first, as one list. The default is
+  still `newest`.
+- Job custom fields can be private to the board team. Private fields and
+  their values are left out of public job responses and the public job form.
+- Coupons: a coupon `name` longer than 40 characters is rejected with a 400
+  that names the field, instead of a payment-provider error.
+
 ## 4.41.1 — 2026-10-08
 
 - Analytics: `analytics.track()` now sends the visit's session id (the
