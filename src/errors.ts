@@ -162,6 +162,8 @@ export const BOARD_API_ERROR_CODES = [
   'talent_list_not_found',
   'sourced_candidate_not_found',
   'sourced_convert_unavailable',
+  // Saved people on a talent list: a list holds at most 500 people.
+  'talent_list_full',
   // Candidate job-access paywall
   'candidate_paywall_access_required',
   'paywall_already_active',
