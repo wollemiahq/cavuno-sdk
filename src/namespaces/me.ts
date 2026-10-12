@@ -82,6 +82,10 @@ import type {
   CreateTalentListBody,
   SourcedCandidate,
   TalentList,
+  TalentListMembersListEnvelope,
+  TalentListMembersQuery,
+  TalentListMembership,
+  AddTalentListMemberBody,
   UpdateTalentListBody,
   RequestEmailChangeBody,
   ReportBody,
@@ -1228,9 +1232,12 @@ export function meNamespace(client: BoardClient) {
       },
 
       /**
-       * Company-owned saved predicates over the talent directory.
-       * Approved members share the same lists. Optional `job` binds a list
-       * to one company job; pass `job: null` on update to unbind.
+       * Company-owned saved searches over the talent directory. Each holds
+       * named filters and, optionally, saved people (`members`). Approved
+       * members share the same lists. Optional `job` links a list to one
+       * company job; pass `job: null` on update to unlink. Linking a list
+       * shortlists everyone saved to it onto that job; unlinking changes no
+       * pipeline.
        */
       talentLists: {
         /**
@@ -1281,7 +1288,10 @@ export function meNamespace(client: BoardClient) {
             { ...options, method: 'PATCH', body },
           );
         },
-        /** Delete a talent list. Sourced membership is unaffected. */
+        /**
+         * Delete a talent list and the people saved to it. Job pipelines and
+         * sourced membership are unaffected.
+         */
         remove(slug: string, listId: string, options?: FetchOptions) {
           return client.fetch<void>(
             `/me/companies/${encodeURIComponent(
@@ -1289,6 +1299,113 @@ export function meNamespace(client: BoardClient) {
             )}/talent-lists/${encodeURIComponent(listId)}`,
             { ...options, method: 'DELETE' },
           );
+        },
+        /**
+         * The talent lists of a company one candidate is saved to — for
+         * showing which lists a Save control has ticked.
+         *
+         * @example
+         * const { data } = await board.me.companies.talentLists.memberships(
+         *   'acme',
+         *   { candidate: candidateId },
+         * );
+         * const saved = new Set(data.map((m) => m.listId));
+         */
+        memberships(
+          slug: string,
+          query: { candidate: string },
+          options?: FetchOptions,
+        ) {
+          return client.fetch<ListEnvelope<TalentListMembership>>(
+            `/me/companies/${encodeURIComponent(slug)}/talent-list-memberships`,
+            { ...options, query },
+          );
+        },
+        /**
+         * People saved to a talent list (at most 500 per list).
+         */
+        members: {
+          /**
+           * List the people saved to a list as directory cards, most
+           * recently saved first unless `sort` or a keyword (`q`) is set;
+           * with a keyword, best match first. Cards are redacted as in the
+           * public directory when the board sells profile unlocks, except
+           * for candidates the company has unlocked. Runs the public
+           * talent directory search, with the same filters, restricted to
+           * the saved people, so a "Saved" view can combine with the
+           * list's filters. Blocked, hidden and deactivated
+           * candidates are omitted. `total` counts every visible saved
+           * person; `count` counts the ones the filters keep.
+           *
+           * @example
+           * const { data, total } =
+           *   await board.me.companies.talentLists.members.list(
+           *     'acme',
+           *     listId,
+           *     { skill: 'react' },
+           *   );
+           */
+          list(
+            slug: string,
+            listId: string,
+            query?: TalentListMembersQuery,
+            options?: FetchOptions,
+          ) {
+            return client.fetch<TalentListMembersListEnvelope>(
+              `/me/companies/${encodeURIComponent(
+                slug,
+              )}/talent-lists/${encodeURIComponent(listId)}/members`,
+              { ...options, query },
+            );
+          },
+          /**
+           * Save a candidate to a list. Idempotent: saving someone already
+           * on it returns `created: false`. When the list is linked to a
+           * job, the candidate is also shortlisted onto that job unless they
+           * already have a pipeline row there. A full list raises
+           * `talent_list_full` (409).
+           *
+           * @example
+           * await board.me.companies.talentLists.members.add('acme', listId, {
+           *   candidateBoardUserId: candidateId,
+           * });
+           */
+          add(
+            slug: string,
+            listId: string,
+            body: AddTalentListMemberBody,
+            options?: FetchOptions,
+          ) {
+            return client.fetch<{
+              id: string;
+              object: 'talent_list_member';
+              created: boolean;
+            }>(
+              `/me/companies/${encodeURIComponent(
+                slug,
+              )}/talent-lists/${encodeURIComponent(listId)}/members`,
+              { ...options, method: 'POST', body },
+            );
+          },
+          /**
+           * Remove a candidate from a list. Idempotent. Never changes a job
+           * pipeline, including the linked job's.
+           */
+          remove(
+            slug: string,
+            listId: string,
+            candidateBoardUserId: string,
+            options?: FetchOptions,
+          ) {
+            return client.fetch<void>(
+              `/me/companies/${encodeURIComponent(
+                slug,
+              )}/talent-lists/${encodeURIComponent(
+                listId,
+              )}/members/${encodeURIComponent(candidateBoardUserId)}`,
+              { ...options, method: 'DELETE' },
+            );
+          },
         },
       },
 
