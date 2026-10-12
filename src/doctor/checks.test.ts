@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import {
   checkEnv,
+  describeJobDetailTemplate,
   extractJobDetailLink,
+  jobRoutesFromManifest,
   extractJobPostingJsonLd,
   parseSitemap,
   summarize,
@@ -20,6 +22,68 @@ describe('extractJobDetailLink', () => {
       null,
     );
   });
+
+  it('matches a translated board against its own templates', () => {
+    const { jobDetailTemplates } = jobRoutesFromManifest(DUTCH);
+    expect(
+      extractJobDetailLink(
+        '<a href="/vacatures/amsterdam">listing</a>' +
+          '<a href="/bedrijven/a/vacatures/b">detail</a>',
+        jobDetailTemplates,
+      ),
+    ).toBe('/bedrijven/a/vacatures/b');
+    expect(
+      extractJobDetailLink(
+        '<a href="/companies/acme">c</a><a href="/jobs/engineering">j</a>' +
+          '<a href="/bedrijven/a/vacatures/b/og">og</a>',
+        jobDetailTemplates,
+      ),
+    ).toBe(null);
+  });
+});
+
+const DUTCH = {
+  version: 1,
+  roles: {
+    home: '/',
+    jobs: '/vacatures',
+    companies: '/bedrijven',
+    company: '/bedrijven/:companySlug',
+    talentProfile: '/p/:handle',
+  },
+};
+
+describe('jobRoutesFromManifest', () => {
+  it('derives the detail template when the manifest has no jobDetail role', () => {
+    expect(jobRoutesFromManifest(DUTCH)).toEqual({
+      jobsPath: '/vacatures',
+      jobDetailTemplates: [
+        '/bedrijven/:companySlug/vacatures/:jobSlug',
+        '/companies/:companySlug/jobs/:jobSlug',
+      ],
+    });
+  });
+
+  it('prefers an explicit jobDetail role', () => {
+    const routes = jobRoutesFromManifest({
+      ...DUTCH,
+      roles: { ...DUTCH.roles, jobDetail: '/v/:companySlug/:jobSlug' },
+    });
+    expect(routes.jobDetailTemplates[0]).toBe('/v/:companySlug/:jobSlug');
+    expect(describeJobDetailTemplate(routes.jobDetailTemplates[0]!)).toBe(
+      '/v/{c}/{s}',
+    );
+  });
+
+  it.each([null, 'not json', { version: 2, roles: DUTCH.roles }, {}])(
+    'falls back to the English routes for %j',
+    (manifest) => {
+      expect(jobRoutesFromManifest(manifest)).toEqual({
+        jobsPath: '/jobs',
+        jobDetailTemplates: ['/companies/:companySlug/jobs/:jobSlug'],
+      });
+    },
+  );
 });
 
 describe('checkEnv (tier 1)', () => {
