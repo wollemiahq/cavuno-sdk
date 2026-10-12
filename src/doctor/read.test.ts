@@ -502,6 +502,78 @@ describe('empty board job probes', () => {
   });
 });
 
+describe('translated board job probes', () => {
+  const DUTCH_MANIFEST = JSON.stringify({
+    version: 1,
+    roles: {
+      home: '/',
+      jobs: '/vacatures',
+      companies: '/bedrijven',
+      company: '/bedrijven/:companySlug',
+    },
+  });
+  const DUTCH_JOB_HTML = `<html><body>
+  <a href="/bedrijven/acme/vacatures/eng">Eng</a>
+  <script type="application/ld+json">{"@type":"JobPosting","title":"Eng"}</script>
+</body></html>`;
+
+  async function jobChecks(
+    overrides: Record<string, { status?: number; body?: string }>,
+  ) {
+    const results = await runReadProbes(
+      healthyRoutes(overrides),
+      'https://front.example',
+      SEO,
+      ENV,
+    );
+    return {
+      jobs: results.find((r) => r.id === 'read.jobs'),
+      jsonld: results.find((r) => r.id === 'read.jsonld'),
+    };
+  }
+
+  it('follows the manifest to the translated listing and detail links', async () => {
+    const { jobs, jsonld } = await jobChecks({
+      '/.well-known/cavuno.json': { body: DUTCH_MANIFEST },
+      '/jobs': { status: 404 },
+      '/vacatures': { body: DUTCH_JOB_HTML },
+      '/bedrijven/acme/vacatures/eng': { body: DUTCH_JOB_HTML },
+    });
+    expect(jobs?.status).toBe('pass');
+    expect(jobs?.detail).toContain('/bedrijven/acme/vacatures/eng');
+    expect(jsonld?.status).toBe('pass');
+  });
+
+  it('names the translated pattern when only English-shaped non-job links render', async () => {
+    const { jobs } = await jobChecks({
+      '/.well-known/cavuno.json': { body: DUTCH_MANIFEST },
+      '/vacatures': {
+        body: '<html><body><a href="/companies/acme">A</a><a href="/jobs/eng">E</a></body></html>',
+      },
+    });
+    expect(jobs?.status).toBe('fail');
+    expect(jobs?.detail).toContain('no /bedrijven/{c}/vacatures/{s} detail');
+  });
+
+  it.each([
+    ['no manifest', undefined],
+    ['invalid JSON', { body: '<html>not json</html>' }],
+    ['server error', { status: 500, body: DUTCH_MANIFEST }],
+  ])('keeps English behaviour with %s', async (_name, manifest) => {
+    const { jobs } = await jobChecks(
+      manifest ? { '/.well-known/cavuno.json': manifest } : {},
+    );
+    expect(jobs?.status).toBe('pass');
+    expect(jobs?.detail).toContain('/companies/acme/jobs/eng');
+
+    const empty = await jobChecks({
+      ...(manifest ? { '/.well-known/cavuno.json': manifest } : {}),
+      '/jobs': { body: DUTCH_JOB_HTML },
+    });
+    expect(empty.jobs?.detail).toContain('no /companies/{c}/jobs/{s} detail');
+  });
+});
+
 describe('read.attribution', () => {
   function brandingBoard(showCavunoBranding: boolean | undefined) {
     const body =
