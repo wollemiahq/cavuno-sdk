@@ -8,9 +8,10 @@ import type {
 export function talentNamespace(client: BoardClient) {
   return {
     /**
-     * List the board's public talent directory — candidate cards ranked by
+     * List the board's talent directory — candidate cards ranked by
      * job-search status then most-recently-updated, the same ordering the
-     * hosted `/talent` page renders. Only `public` profiles appear.
+     * hosted `/talent` page renders. Anonymous callers see `public` profiles;
+     * a signed-in board user also sees `logged_in_only` ones.
      *
      * Throws `talent_directory_restricted` (403) when the board restricts the
      * directory to employers (render an employer upsell), or

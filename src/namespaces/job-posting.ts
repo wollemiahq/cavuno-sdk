@@ -74,7 +74,11 @@ export function jobPostingNamespace(client: BoardClient) {
       );
     },
 
-    /** List the credit options for a verified email (an option → `selectedBilling`). */
+    /**
+     * List the credit options for a verified email. To spend one, pass the
+     * option as `selectedBilling` and the same `verificationToken` as
+     * `billingVerificationToken` to `create`.
+     */
     getBillingOptions(
       input: { verificationToken: string },
       options?: FetchOptions,

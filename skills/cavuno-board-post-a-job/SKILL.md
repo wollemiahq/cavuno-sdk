@@ -168,7 +168,7 @@ The checkout value is a URL for a host-owned full-page redirect. Payment publica
 
 ## Verified existing credit
 
-Email verification protects billing ownership. Send verification first, then exchange the token for options; a selected option becomes `selectedBilling`.
+Email verification protects billing ownership. Send verification first, then exchange the token for options; a selected option becomes `selectedBilling`, and the same token goes with it as `billingVerificationToken`. The token expires after an hour; verify again if it has.
 
 ```ts snippet
 await board.jobPosting.sendBillingVerification({ email });
@@ -190,6 +190,7 @@ if (option) {
       id: option.id,
       planId: option.planId,
     },
+    billingVerificationToken: verificationToken,
   });
 }
 ```
