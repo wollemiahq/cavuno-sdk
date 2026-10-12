@@ -3978,7 +3978,7 @@ export interface paths {
         };
         /**
          * List a public board's talent directory
-         * @description The board's public candidate profiles, ranked by job-search status then most-recently-updated — the same ordering the hosted `/talent` directory renders. Only `public` profiles appear. When the board sells profile unlocks, cards redact for viewers who are not unlimited (first name + last initial, current role only) so a headless client cannot bypass the hosted paywall. The response carries the total `count` and the `limit`/`offset` page window; iterate forward with the opaque `nextCursor` or page in parallel with `offset`. Returns 404 when the directory is disabled, and 403 (`talent_directory_restricted`) when the board restricts the directory to employers.
+         * @description The board's candidate profiles the viewer can see, ranked by job-search status then most-recently-updated — the same ordering the hosted `/talent` directory renders. Anonymous viewers see `public` profiles; a signed-in board user also sees `logged_in_only` profiles, as on the hosted directory. When the board sells profile unlocks, cards redact for viewers who are not unlimited (first name + last initial, current role only) so a headless client cannot bypass the hosted paywall. The response carries the total `count` and the `limit`/`offset` page window; iterate forward with the opaque `nextCursor` or page in parallel with `offset`. Returns 404 when the directory is disabled, and 403 (`talent_directory_restricted`) when the board restricts the directory to employers.
          */
         get: operations["listBoardTalent"];
         put?: never;
@@ -5095,6 +5095,8 @@ export interface components {
                 id?: string;
                 planId: string;
             };
+            /** @description The `verificationToken` the billing options were listed with. Required when `selectedBilling.type` is `order` or `subscription`; the token's email must match `submission.contactEmail`. */
+            billingVerificationToken?: string;
             invoiceBilling?: {
                 billingName?: string;
                 address: {
