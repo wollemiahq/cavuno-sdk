@@ -5095,6 +5095,8 @@ export interface components {
                 id?: string;
                 planId: string;
             };
+            /** @description The `verificationToken` the billing options were listed with. Required when `selectedBilling.type` is `order` or `subscription`; the token's email must match `submission.contactEmail`. */
+            billingVerificationToken?: string;
             invoiceBilling?: {
                 billingName?: string;
                 address: {
