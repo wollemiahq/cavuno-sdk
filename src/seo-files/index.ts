@@ -18,29 +18,62 @@ export const INDEXNOW_CACHE_CONTROL = 'public, max-age=86400, must-revalidate';
 
 export type SeoFileResponseInit = { method?: string };
 
+/**
+ * The board's own listing roots, for boards that rename or localize their
+ * URL words (for example `/vacatures` in place of `/jobs`). Each root scopes
+ * one group of pagination `Disallow` rules. A missing, root (`/`) or unsafe
+ * value keeps the default English root for that group.
+ */
+export type RobotsListingPaths = {
+  jobs?: string | null;
+  companies?: string | null;
+  talent?: string | null;
+};
+
+const DEFAULT_LISTING_PATHS = {
+  jobs: '/jobs',
+  companies: '/companies',
+  talent: '/talent',
+} as const;
+
+/** A plain path segment run: no robots wildcards, query, fragment or whitespace. */
+const SAFE_LISTING_ROOT = /^(?:\/[^\s/*$?#]+)+$/;
+
+function listingRoot(value: string | null | undefined, fallback: string) {
+  if (typeof value !== 'string') return fallback;
+  const root = value.replace(/\/+$/, '');
+  return SAFE_LISTING_ROOT.test(root) ? root : fallback;
+}
+
+function paginationRules(root: string): string[] {
+  return [
+    `Disallow: ${root}?page=`,
+    `Disallow: ${root}*&page=`,
+    `Disallow: ${root}/*?page=`,
+  ];
+}
+
 /** Lines of the hosted robots body (no sitemap line). Exported so tests and hosted can share the literal. */
 export function robotsBody(input: {
   canonicalBase: string;
   sandbox?: boolean;
+  listingPaths?: RobotsListingPaths | null;
 }): string {
   if (input.sandbox) {
     return ['User-Agent: *', 'Disallow: /', ''].join('\n');
   }
   const canonicalBase = input.canonicalBase.replace(/\/+$/, '');
+  const paths = input.listingPaths ?? {};
   return [
     'User-Agent: *',
     'Allow: /',
     'Disallow: /go/',
     'Disallow: /t/',
-    'Disallow: /jobs?page=',
-    'Disallow: /jobs*&page=',
-    'Disallow: /jobs/*?page=',
-    'Disallow: /companies?page=',
-    'Disallow: /companies*&page=',
-    'Disallow: /companies/*?page=',
-    'Disallow: /talent?page=',
-    'Disallow: /talent*&page=',
-    'Disallow: /talent/*?page=',
+    ...paginationRules(listingRoot(paths.jobs, DEFAULT_LISTING_PATHS.jobs)),
+    ...paginationRules(
+      listingRoot(paths.companies, DEFAULT_LISTING_PATHS.companies),
+    ),
+    ...paginationRules(listingRoot(paths.talent, DEFAULT_LISTING_PATHS.talent)),
     '',
     `Sitemap: ${canonicalBase}/sitemap.xml`,
     '',
@@ -48,11 +81,18 @@ export function robotsBody(input: {
 }
 
 export function robotsResponse(
-  seo: Pick<BoardSeo, 'canonicalBase'> & { sandbox?: boolean },
+  seo: Pick<BoardSeo, 'canonicalBase'> & {
+    sandbox?: boolean;
+    listingPaths?: RobotsListingPaths | null;
+  },
   init?: SeoFileResponseInit,
 ): Response {
   return textFileResponse(
-    robotsBody({ canonicalBase: seo.canonicalBase, sandbox: seo.sandbox }),
+    robotsBody({
+      canonicalBase: seo.canonicalBase,
+      sandbox: seo.sandbox,
+      listingPaths: seo.listingPaths,
+    }),
     ROBOTS_CACHE_CONTROL,
     init,
   );
