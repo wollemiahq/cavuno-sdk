@@ -9,8 +9,8 @@ import {
   record,
   type CheckResult,
   type DoctorEnv,
-  type JobRoutes,
 } from './checks';
+import { LOCALIZED_URLS, probeLocalizedUrls } from './localized-urls';
 import { probe } from './probe';
 
 import type { BoardSeo } from '../types/seo';
@@ -21,7 +21,8 @@ import type { BoardSeo } from '../types/seo';
  * JSON-LD, sitemap parses and a sample page resolves, robots.txt is
  * present, platform SEO files match the dashboard snapshot, and home HTML
  * carries a crawlable Cavuno backlink when the board's branding flag is
- * on. Same run/skip module shape as writes.ts — every check always
+ * on, and a board with translated URL words 308s English paths to them
+ * (localized-urls.ts). Same run/skip module shape as writes.ts — every check always
  * appears in the results.
  */
 
@@ -44,6 +45,7 @@ const READ = {
   googleVerification: record('read.googleVerification', 2),
   attribution: record('read.attribution', 2),
   oauthCallback: record('read.oauthCallback', 2),
+  localizedUrls: LOCALIZED_URLS,
 } as const;
 
 /** Loud-skip roster for a tier that never ran (no --frontend given). */
@@ -80,19 +82,20 @@ async function confirmsNoPublishedJobs(
 }
 
 /**
- * The board's own job routes from its published route manifest. A board
- * without one (or an unreadable one) gets the canonical English routes.
+ * The board's published route manifest, parsed; null when it is missing or
+ * not JSON. Read once per run: job routes and localized URL words both come
+ * from it, and a board without one gets the canonical English routes.
  */
-async function readJobRoutes(
+async function readManifest(
   fetchImpl: typeof fetch,
   base: string,
-): Promise<JobRoutes> {
+): Promise<unknown> {
   const manifest = await probe(fetchImpl, `${base}/.well-known/cavuno.json`);
-  if (!manifest.ok) return jobRoutesFromManifest(null);
+  if (!manifest.ok) return null;
   try {
-    return jobRoutesFromManifest(JSON.parse(manifest.body));
+    return JSON.parse(manifest.body) as unknown;
   } catch {
-    return jobRoutesFromManifest(null);
+    return null;
   }
 }
 
@@ -100,9 +103,10 @@ async function readJobRoutes(
 async function probeJobsAndJsonLd(
   fetchImpl: typeof fetch,
   base: string,
+  manifest: unknown,
   env: DoctorEnv | undefined,
 ): Promise<CheckResult[]> {
-  const { jobsPath, jobDetailTemplates } = await readJobRoutes(fetchImpl, base);
+  const { jobsPath, jobDetailTemplates } = jobRoutesFromManifest(manifest);
   const jobs = await probe(fetchImpl, `${base}${jobsPath}`);
   const jobLink = jobs.ok
     ? extractJobDetailLink(jobs.body, jobDetailTemplates)
@@ -505,7 +509,13 @@ export async function runReadProbes(
   // home+jobs+sitemap+robots 503 the first child sitemap. ads.txt and
   // indexnow-key.txt follow robots for the same reason.
   const home = await probe(fetchImpl, base);
-  const jobsAndJsonLd = await probeJobsAndJsonLd(fetchImpl, base, env);
+  const manifest = await readManifest(fetchImpl, base);
+  const jobsAndJsonLd = await probeJobsAndJsonLd(
+    fetchImpl,
+    base,
+    manifest,
+    env,
+  );
   const sitemap = await probeSitemap(fetchImpl, base);
   const robots = await probe(fetchImpl, `${base}/robots.txt`);
   const adsTxt = await probe(fetchImpl, `${base}/ads.txt`);
@@ -520,6 +530,7 @@ export async function runReadProbes(
       `${base}/api/board-auth/oauth/linkedin/callback`,
     ),
   };
+  const localizedUrls = await probeLocalizedUrls(fetchImpl, base, manifest);
 
   // Both checks use the same board response, so adding attribution adds no API round trip.
   const board =
@@ -570,5 +581,6 @@ export async function runReadProbes(
     scoreGoogleVerification(home.body, seo),
     attribution,
     scoreOAuthCallback(oauthCallback),
+    localizedUrls,
   ];
 }

@@ -44,6 +44,16 @@ Use the installed framework and i18n guidance for routing, SSR locale detection,
 
 A compile-time i18n system can replace the seam's backing source. Keep the seam provider-free unless the chosen framework integration itself requires a provider.
 
+## Renaming a URL word
+
+When a translated URL segment changes (for example `vacatures` to `banen`), links that used the old word must keep working. List every retired word in `src/url-words-previous.json`, keyed by locale and canonical segment:
+
+```json
+{ "nl": { "jobs": ["vacatures"] } }
+```
+
+Starters that read this file redirect a request that uses a retired word to the current word with one 308; the SDK itself does not perform the redirect. List each word under one segment only, and never list a word that is in current use. On boards built with the Cavuno builder, the hosting platform maintains this file at every save. Do not delete entries: an old link stops working the moment its word leaves the list.
+
 ## Own the five  obligations
 
 The SDK formats amounts, units, and relative dates with `Intl` and returns
