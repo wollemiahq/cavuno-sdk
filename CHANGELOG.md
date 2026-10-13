@@ -3,6 +3,27 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.45.0 — 2026-10-13
+
+- `robotsBody()` and `robotsResponse()` from `@cavuno/board/seo-files` take
+  `listingPaths: { jobs, companies, talent }` for boards that rename or
+  translate their listing pages (for example `/vacatures` in place of
+  `/jobs`). The pagination `Disallow` rules then use those roots. A missing,
+  root (`/`) or unsafe value keeps the default root for that group, and
+  without the option the body is unchanged.
+- They also take `localeListingPaths`, a list of the same shape, for
+  secondary interface languages served under a prefix (for example
+  `/fr/emplois`). Each root gets the same pagination rules after the
+  base-language rules, and roots already listed are skipped.
+- New exported type: `RobotsListingPaths`.
+- Doctor: a new `read.localizedUrls` check. On a board whose route manifest
+  uses translated words, each translated page's English path must answer a
+  308 to the board's own path on the same origin, and that path must load.
+  English boards skip it with no extra requests.
+- The `cavuno-board-i18n` skill explains how a renamed URL word keeps
+  working: list the old word in `src/url-words-previous.json`, and starters
+  that read the file redirect it to the current word with one 308.
+
 ## 4.44.0 — 2026-10-12
 
 - Saved searches: `me.companies.talentLists.members.list()` takes `stage`, a

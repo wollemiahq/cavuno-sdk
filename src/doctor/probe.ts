@@ -28,3 +28,28 @@ export async function probe(
     };
   }
 }
+
+/** One hop, redirects not followed: the status and `Location` as sent. */
+export async function probeHop(
+  fetchImpl: typeof fetch,
+  url: string,
+): Promise<{ status: number; location: string | null; error?: string }> {
+  try {
+    const response = await fetchImpl(url, {
+      redirect: 'manual',
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
+    // Only the status line and headers matter; release the body.
+    await response.body?.cancel().catch(() => undefined);
+    return {
+      status: response.status,
+      location: response.headers.get('location'),
+    };
+  } catch (error) {
+    return {
+      status: 0,
+      location: null,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
