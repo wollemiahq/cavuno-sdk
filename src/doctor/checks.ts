@@ -127,6 +127,30 @@ const SLUG_RE = /^[a-z0-9-]+$/i;
 export const CANONICAL_JOB_DETAIL_TEMPLATE =
   CANONICAL_MANIFEST.roles.jobDetail!;
 
+/**
+ * A role's template from a parsed route manifest, or null when the
+ * manifest is not a v1 document or the template is missing or invalid.
+ */
+export function manifestRoleTemplate(
+  manifest: unknown,
+  name: RouteRole,
+): string | null {
+  const roles =
+    manifest !== null &&
+    typeof manifest === 'object' &&
+    (manifest as { version?: unknown }).version === 1
+      ? (manifest as { roles?: unknown }).roles
+      : null;
+  const template =
+    roles !== null && typeof roles === 'object'
+      ? (roles as Record<string, unknown>)[name]
+      : undefined;
+  return typeof template === 'string' &&
+    checkRoleTemplate(name, template).length === 0
+    ? template
+    : null;
+}
+
 export interface JobRoutes {
   /** Path of the jobs listing page. */
   jobsPath: string;
@@ -143,22 +167,7 @@ export interface JobRoutes {
  * to the canonical English routes.
  */
 export function jobRoutesFromManifest(manifest: unknown): JobRoutes {
-  const roles =
-    manifest !== null &&
-    typeof manifest === 'object' &&
-    (manifest as { version?: unknown }).version === 1
-      ? (manifest as { roles?: unknown }).roles
-      : null;
-  const role = (name: RouteRole): string | null => {
-    const template =
-      roles !== null && typeof roles === 'object'
-        ? (roles as Record<string, unknown>)[name]
-        : undefined;
-    return typeof template === 'string' &&
-      checkRoleTemplate(name, template).length === 0
-      ? template
-      : null;
-  };
+  const role = (name: RouteRole) => manifestRoleTemplate(manifest, name);
 
   const jobs = role('jobs');
   const company = role('company');

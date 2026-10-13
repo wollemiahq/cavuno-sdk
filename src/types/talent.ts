@@ -54,3 +54,22 @@ export type TalentDirectoryQuery = {
 };
 
 export type TalentDirectoryListEnvelope = ListEnvelope<TalentDirectoryEntry>;
+
+/**
+ * A place the board's directory candidates live in, with how many of them
+ * the viewer can see there: a candidate counts in their home place and every
+ * place above it. Its `slug` is the directory's `place` filter value.
+ */
+export type TalentPlace = Schemas['PublicTalentPlace'];
+
+export type TalentPlacesQuery = {
+  /**
+   * Location search, as on `taxonomy.places.list`: ≥2 chars → places whose
+   * name contains it or whose slug starts with it, ranked; under 2 → empty.
+   */
+  q?: string;
+  /** 1–500, default 100, busiest first. With `q`: default 10, at most 50. */
+  limit?: number;
+};
+
+export type TalentPlacesListEnvelope = ListEnvelope<TalentPlace>;

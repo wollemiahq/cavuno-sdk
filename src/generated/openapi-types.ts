@@ -4050,6 +4050,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/talent/places": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the places a board's candidates live in
+         * @description The places where the board's directory candidates live, each with how many of them the viewer can see, busiest first — the place list for a talent directory location filter. A candidate counts in their home place and every place above it, so a country counts every candidate in its cities. Anonymous viewers get counts of `public` profiles; a signed-in board user also counts `logged_in_only` profiles, as the directory lists them. Places with no candidate for the viewer are left out. Bounded by `limit` and unpaginated. With `q` (≥2 folded chars): the top diacritic-insensitive name substring and slug-prefix matches, ranked, for a location search field. Returns an empty list until the board's place counts have been built. Same access as the directory: 404 when it is disabled, 403 (`talent_directory_restricted`) when it is restricted to employers and the viewer is not one.
+         */
+        get: operations["listBoardTalentPlaces"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/boards/{identifier}/talent/{handle}": {
         parameters: {
             query?: never;
@@ -7013,6 +7033,22 @@ export interface components {
              * @example 0
              */
             offset?: number;
+        };
+        PublicTalentPlace: {
+            /** @enum {string} */
+            object: "talent_place";
+            /** @description Stable place identity (the same id as `/places`). */
+            id: string;
+            /** @description Parent place's `id`; `null` for a root place. */
+            parentId: string | null;
+            /** @description English source place slug: pass it as the talent directory's `place` filter. */
+            slug: string | null;
+            name: string;
+            placeType: string;
+            countryCode: string | null;
+            regionCode: string | null;
+            /** @description Candidates the viewer can see in the directory whose home is this place or lies within it. Signed out: `public` profiles; signed in: `public` and `logged_in_only` profiles. */
+            candidateCount: number;
         };
         PublicTaxonomyResolution: {
             /** @enum {string} */
@@ -21976,6 +22012,65 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The directory is restricted to employers (`talent_directory_restricted`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Public board not found, or the talent directory is disabled. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listBoardTalentPlaces: {
+        parameters: {
+            query?: {
+                /**
+                 * @description Location search, as `q` on the jobs place list: with ≥2 characters after diacritic folding, returns the places whose name contains it or whose slug starts with it, ignoring case and accents, with name and slug prefix matches ranked first and then by `candidateCount`; under 2 folded characters returns an empty list.
+                 * @example lon
+                 */
+                q?: string;
+                /**
+                 * @description Maximum places returned (1–500; default 100, busiest first). With `q`: default 10, and at most 50 are returned.
+                 * @example 100
+                 */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        object: "list";
+                        url: string;
+                        hasMore: boolean;
+                        nextCursor: string | null;
+                        data: components["schemas"]["PublicTalentPlace"][];
+                    };
                 };
             };
             /** @description The directory is restricted to employers (`talent_directory_restricted`). */

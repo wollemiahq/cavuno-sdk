@@ -150,6 +150,19 @@ const { items } = await board.search.suggest({
 The host router owns URL serialization and saved-filter persistence.
 Locations come from `board.taxonomy.places` rather than a static filter export.
 
+A talent directory's location filter lists the places where the board's
+candidates live instead, from `board.talent.places.list()`, with the count the
+viewer can see. Pass `q` to search it for a location box (same matching as
+`board.taxonomy.places.list`'s `q`). Pass the chosen `slug` as the directory's
+`place`:
+
+```ts snippet
+const { data: talentPlaces } = await board.talent.places.list({ limit: 50 });
+const nearby = await board.talent.list({ place: talentPlaces[0]?.slug ?? undefined });
+
+void nearby.data;
+```
+
 ## Filter jobs by a job custom field
 
 The operator's job custom fields arrive as definitions on

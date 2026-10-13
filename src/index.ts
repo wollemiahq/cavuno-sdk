@@ -282,6 +282,9 @@ export type {
   TalentDirectoryEntry,
   TalentDirectoryListEnvelope,
   TalentDirectoryQuery,
+  TalentPlace,
+  TalentPlacesListEnvelope,
+  TalentPlacesQuery,
   TalentProfile,
 } from './types/talent';
 export type {
