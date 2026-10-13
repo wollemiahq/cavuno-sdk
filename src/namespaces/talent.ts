@@ -2,6 +2,8 @@ import type { BoardClient, FetchOptions } from '../client';
 import type {
   TalentDirectoryListEnvelope,
   TalentDirectoryQuery,
+  TalentPlacesListEnvelope,
+  TalentPlacesQuery,
   TalentProfile,
 } from '../types/talent';
 
@@ -51,6 +53,31 @@ export function talentNamespace(client: BoardClient) {
         `/talent/${encodeURIComponent(handle)}`,
         options,
       );
+    },
+
+    places: {
+      /**
+       * List the places the board's directory candidates live in, busiest
+       * first, each with how many candidates the caller can see there (a
+       * country counts every candidate in its cities). Anonymous callers get
+       * counts of `public` profiles; a signed-in board user also counts
+       * `logged_in_only` ones. Pass a place's `slug` as `talent.list`'s
+       * `place` filter. With `q`, returns location search matches instead,
+       * ranked as `taxonomy.places.list` ranks them.
+       *
+       * Same access errors as `talent.list`. Returns an empty list until the
+       * board's place counts are built.
+       *
+       * @example
+       * const { data: places } = await board.talent.places.list({ limit: 50 });
+       * const { data: matches } = await board.talent.places.list({ q: 'lon' });
+       */
+      list(query?: TalentPlacesQuery, options?: FetchOptions) {
+        return client.fetch<TalentPlacesListEnvelope>('/talent/places', {
+          ...options,
+          query,
+        });
+      },
     },
   };
 }
