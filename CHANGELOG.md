@@ -3,6 +3,28 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.46.0 — 2026-10-14
+
+- New `board.talent.places.list({ q, limit })`: the places a board's
+  directory candidates live in, each with `candidateCount`, the number of
+  candidates the viewer can see there. A candidate counts in their home place
+  and every place above it, so a country counts every candidate in its
+  cities. Signed-out viewers count public profiles; a signed-in board user
+  also counts profiles visible to signed-in users. Busiest first, up to
+  `limit` (1 to 500, default 100). With `q` (2 or more characters after
+  removing accents), it returns the best name and slug matches for a location
+  search field, at most 50. Pass a place's `slug` as `board.talent.list`'s
+  `place` filter. The list follows the directory's access rules.
+- New exported types: `TalentPlace`, `TalentPlacesListEnvelope`, `TalentPlacesQuery`.
+- Saved searches: a list has no size limit, so `talent_list_full` is no longer
+  raised. On a list linked to a job, `members.add` is how a sourced candidate
+  is shortlisted onto that job, and `members.remove` also takes them off the
+  job while they are still at Shortlisted. Linking a list shortlists everyone
+  saved to it and saves the job's sourced people to it; a job has at most one
+  list.
+- Deprecated: `me.companies.sourcedCandidates`. Use `talentLists.members` on the
+  job's linked list; `add` and `remove` on the old namespace forward to it.
+
 ## 4.45.0 — 2026-10-13
 
 - `robotsBody()` and `robotsResponse()` from `@cavuno/board/seo-files` take
