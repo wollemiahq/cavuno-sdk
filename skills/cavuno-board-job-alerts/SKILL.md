@@ -42,6 +42,8 @@ switch (result.status) {
 
 Only `jobFunctions`, `placeSlugs`, and `remoteOptions` filter digest delivery. Seniority and salary fields are stored but do not scope delivery. The supported cadence is `weekly`.
 
+`jobFunctions` are category and skill slugs (the `slug` of a category or skill, such as `engineering` or `media-and-communication`). A digest matches a job when any entry equals one of the job's category or skill slugs. Prefer sending slugs. If you send display names or free-text keywords instead, the server slugifies each one when the alert is saved and matches it against the board's category and skill slugs, their aliases, and their board-language slugs. A display name that does not slugify to one of those (for example, a renamed category) is stored slugified and will not match, so send slugs whenever you have them. Alerts read back from the API therefore always carry slugs, so compare and display them as slugs.
+
 ## Anonymous lane: manage-token transport
 
 The read and write transports intentionally use different keys:

@@ -2359,10 +2359,18 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List sourced candidates for a job */
+        /**
+         * List sourced candidates for a job (deprecated)
+         * @deprecated
+         * @description Deprecated: a job's sourced people are the people saved to its talent list. List them with `GET /boards/{identifier}/me/companies/{slug}/talent-lists/{listId}/members` on the list whose `jobId` is the job, with `stage` for pipeline columns. Behavior is unchanged.
+         */
         get: operations["listBoardMeCompanySourcedCandidates"];
         put?: never;
-        /** Save a candidate to a job sourced set */
+        /**
+         * Save a candidate to a job sourced set (deprecated)
+         * @deprecated
+         * @description Deprecated: use `POST /boards/{identifier}/me/companies/{slug}/talent-lists/{listId}/members` on the job's talent list. Forwards to that save: the candidate is saved to the job's talent list (created, named after the job, when the job has none) and shortlisted onto the job unless they already have a pipeline row there. Returns the sourced row id as before.
+         */
         post: operations["createBoardMeCompanySourcedCandidate"];
         delete?: never;
         options?: never;
@@ -2380,7 +2388,11 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Remove a sourced candidate */
+        /**
+         * Remove a sourced candidate (deprecated)
+         * @deprecated
+         * @description Deprecated: use `DELETE /boards/{identifier}/me/companies/{slug}/talent-lists/{listId}/members/{candidateBoardUserId}` on the job's talent list. Forwards to that removal: the candidate leaves the job's talent list, and their pipeline row on the job goes too while it is a sourced row still at Shortlisted.
+         */
         delete: operations["deleteBoardMeCompanySourcedCandidate"];
         options?: never;
         head?: never;
@@ -2396,7 +2408,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Convert a sourced candidate into the job pipeline */
+        /**
+         * Convert a sourced candidate into the job pipeline (deprecated)
+         * @deprecated
+         * @description Deprecated: saving to a talent list linked to the job already shortlists the candidate; move them on the pipeline from there. Behavior is unchanged.
+         */
         post: operations["createBoardMeCompanySourcedCandidateConvert"];
         delete?: never;
         options?: never;
@@ -2434,7 +2450,10 @@ export interface paths {
          */
         get: operations["listBoardMeCompanyTalentLists"];
         put?: never;
-        /** Create a talent list */
+        /**
+         * Create a talent list
+         * @description A job has at most one talent list. Creating one with `job` set takes over the job: the people of the job's current list are saved to the new one in the background, and the old list is unlinked (and deleted if it was created automatically by shortlisting and never renamed or filtered). Every sourced person already on the job is saved to the new list.
+         */
         post: operations["createBoardMeCompanyTalentList"];
         delete?: never;
         options?: never;
@@ -2456,7 +2475,10 @@ export interface paths {
         delete: operations["deleteBoardMeCompanyTalentList"];
         options?: never;
         head?: never;
-        /** Update a talent list */
+        /**
+         * Update a talent list
+         * @description Linking a job (`job`) saves the people of the job's current list to this one and unlinks that list (deleting it if it was created automatically by shortlisting and never renamed or filtered), shortlists everyone saved here onto the job, and saves every sourced person already on the job here, all in the background. A job has at most one talent list. Unlinking (`job: null`) changes neither the list's people nor the job pipeline.
+         */
         patch: operations["updateBoardMeCompanyTalentList"];
         trace?: never;
     };
@@ -2469,13 +2491,13 @@ export interface paths {
         };
         /**
          * List the people saved to a talent list
-         * @description Saved people as directory cards: most recently saved first unless `sort` or a keyword (`q`) is set; with a keyword, best match first. Runs the same search as the talent directory, with the same filters, restricted to the people saved to this list. Blocked, hidden and deactivated candidates are omitted. When the board sells profile unlocks, cards are redacted as in the talent directory, judged for this company only: full when it holds unlimited unlocks, or for candidates it has unlocked while it holds talent access. `total` counts every visible saved person; `count` counts the ones the filters and `stage` keep.
+         * @description Saved people as directory cards, in the talent directory's order: best match first with a keyword (`q`), otherwise by `sort` or the directory's default order. Runs the same search as the talent directory, with the same filters, restricted to the people saved to this list. A save or removal shows here within seconds, once the search index catches up; `memberCount` is immediate. Blocked, hidden and deactivated candidates are omitted. When the board sells profile unlocks, cards are redacted as in the talent directory, judged for this company only: full when it holds unlimited unlocks, or for candidates it has unlocked while it holds talent access. `total` counts every visible saved person; `count` counts the ones the filters and `stage` keep.
          */
         get: operations["listBoardMeCompanyTalentListMembers"];
         put?: never;
         /**
          * Save a candidate to a talent list
-         * @description Idempotent: saving someone already on the list returns `created: false`. When the list is linked to a job, the candidate is also shortlisted onto that job unless they already have a pipeline row there. A list holds at most 500 people (`talent_list_full`, 409).
+         * @description Idempotent: saving someone already on the list returns `created: false`. When the list is linked to a job, the candidate is also shortlisted onto that job unless they already have a pipeline row there. This is the one way to shortlist a sourced candidate. A list has no size limit; `talent_list_full` (409) is deprecated and never returned.
          */
         post: operations["createBoardMeCompanyTalentListMember"];
         delete?: never;
@@ -2496,7 +2518,7 @@ export interface paths {
         post?: never;
         /**
          * Remove a candidate from a talent list
-         * @description Idempotent. Never changes a job pipeline, including the linked job.
+         * @description Idempotent. On a list linked to a job, the candidate's pipeline row on that job is removed too, but only while it is a sourced row still at Shortlisted; anyone further along, or who applied, keeps it (end that with a rejection). Removing from an unlinked list changes no pipeline.
          */
         delete: operations["deleteBoardMeCompanyTalentListMember"];
         options?: never;
@@ -3504,7 +3526,7 @@ export interface paths {
         };
         /**
          * List a public board's places
-         * @description With no `q`: returns every place used by a published job on the board, with its live job count — the data the hosted `/jobs/locations/` index renders (bounded and unpaginated). With `q` (≥2 folded chars): returns the top diacritic-insensitive name substring and slug-prefix matches, ranked, for a location search/autocomplete field.
+         * @description With no `q`: returns every place used by a published job on the board, with its live job count — the data the hosted `/jobs/locations/` index renders (bounded and unpaginated). With `q` (≥2 folded chars): returns the top diacritic-insensitive name substring and slug-prefix matches, ranked, for a location search/autocomplete field; the board-language name and slug match as well as the English ones. Each place carries its board-language `canonicalSlug` and `displayName`; `slug` and `name` stay English.
          */
         get: operations["listBoardPlaces"];
         put?: never;
@@ -4059,7 +4081,7 @@ export interface paths {
         };
         /**
          * List the places a board's candidates live in
-         * @description The places where the board's directory candidates live, each with how many of them the viewer can see, busiest first — the place list for a talent directory location filter. A candidate counts in their home place and every place above it, so a country counts every candidate in its cities. Anonymous viewers get counts of `public` profiles; a signed-in board user also counts `logged_in_only` profiles, as the directory lists them. Places with no candidate for the viewer are left out. Bounded by `limit` and unpaginated. With `q` (≥2 folded chars): the top diacritic-insensitive name substring and slug-prefix matches, ranked, for a location search field. Returns an empty list until the board's place counts have been built. Same access as the directory: 404 when it is disabled, 403 (`talent_directory_restricted`) when it is restricted to employers and the viewer is not one.
+         * @description The places where the board's directory candidates live, each with how many of them the viewer can see, busiest first — the place list for a talent directory location filter. A candidate counts in their home place and every place above it, so a country counts every candidate in its cities. Anonymous viewers get counts of `public` profiles; a signed-in board user also counts `logged_in_only` profiles, as the directory lists them. Places with no candidate for the viewer are left out. Bounded by `limit` and unpaginated. With `q` (≥2 folded chars): the top diacritic-insensitive name substring and slug-prefix matches, ranked, for a location search field; the board-language name and slug match as well as the English ones. Each place carries its board-language `canonicalSlug` and `displayName`; `slug` and `name` stay English. Returns an empty list until the board's place counts have been built. Same access as the directory: 404 when it is disabled, 403 (`talent_directory_restricted`) when it is restricted to employers and the viewer is not one.
          */
         get: operations["listBoardTalentPlaces"];
         put?: never;
@@ -6956,9 +6978,13 @@ export interface components {
             id: string;
             /** @description Parent place's `id`; `null` for a root place. */
             parentId: string | null;
-            /** @description Public slug (links to `/jobs/locations/:slug`); `null` if unslugged. */
+            /** @description English source slug: the key for the jobs `location` filter. `null` if unslugged. Build links with `canonicalSlug`: on a translated board, the location page at the English slug can 308-redirect. */
             slug: string | null;
+            /** @description Board-language canonical URL slug where the board language has unique place slugs; otherwise, or for an untranslated place, `slug`. `null` if unslugged. Use it for links: it resolves as the jobs `location` filter, on `GET /boards/{identifier}/places/{slug}`, and as the location page slug (`/jobs/locations/:slug`). */
+            canonicalSlug: string | null;
             name: string;
+            /** @description Board-language name with source-name fallback. */
+            displayName: string;
             placeType: string;
             countryCode: string | null;
             regionCode: string | null;
@@ -7043,7 +7069,11 @@ export interface components {
             parentId: string | null;
             /** @description English source place slug: pass it as the talent directory's `place` filter. */
             slug: string | null;
+            /** @description Board-language place slug where the board language has unique place slugs; otherwise, or for an untranslated place, `slug`. `null` if unslugged. It resolves only as the talent directory's `place` filter: there are no talent location pages, and it is not a slug for `GET /boards/{identifier}/places/{slug}` or the job location pages. */
+            canonicalSlug: string | null;
             name: string;
+            /** @description Board-language name with source-name fallback. */
+            displayName: string;
             placeType: string;
             countryCode: string | null;
             regionCode: string | null;
@@ -7717,7 +7747,7 @@ export interface components {
             createdBy: string;
             createdAt: number;
             updatedAt: number;
-            /** @description People saved to this list (at most 500). Includes anyone the members list omits for the viewer (blocked, hidden or deactivated). */
+            /** @description People saved to this list. Exact and immediate; a list has no size limit. Includes anyone the members list omits for the viewer (blocked, hidden or deactivated). */
             memberCount: number;
         };
         TalentListFilters: {
@@ -20873,7 +20903,7 @@ export interface operations {
         parameters: {
             query?: {
                 /**
-                 * @description Location autocomplete query. When provided with ≥2 characters after diacritic folding, returns the top matches against display name (substring) and slug (prefix), with prefix matches ranked first; under 2 folded characters returns an empty list.
+                 * @description Location autocomplete query. When provided with ≥2 characters after diacritic folding, returns the top matches against name or display name (substring) and slug or canonical slug (prefix), with prefix matches ranked first; under 2 folded characters returns an empty list.
                  * @example lon
                  */
                 q?: string;
@@ -22038,7 +22068,7 @@ export interface operations {
         parameters: {
             query?: {
                 /**
-                 * @description Location search, as `q` on the jobs place list: with ≥2 characters after diacritic folding, returns the places whose name contains it or whose slug starts with it, ignoring case and accents, with name and slug prefix matches ranked first and then by `candidateCount`; under 2 folded characters returns an empty list.
+                 * @description Location search, as `q` on the jobs place list: with ≥2 characters after diacritic folding, returns the places whose name or display name contains it or whose slug or canonical slug starts with it, ignoring case and accents, with name and slug prefix matches ranked first and then by `candidateCount`; under 2 folded characters returns an empty list.
                  * @example lon
                  */
                 q?: string;
