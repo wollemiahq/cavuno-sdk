@@ -70,7 +70,9 @@ export function taxonomyNamespace(client: BoardClient) {
       /**
        * Without `query`: list every place used by a published job, with its
        * live job count (the locations directory). With `query.q` (≥2 chars):
-       * location autocomplete — the top name matches ranked.
+       * location autocomplete — the top name matches ranked. Each place
+       * carries its board-language `displayName` and `canonicalSlug`; link
+       * with `canonicalSlug`.
        */
       list(query?: PlacesListQuery, options?: FetchOptions) {
         return client.fetch<ListEnvelope<PublicPlace>>('/places', {
