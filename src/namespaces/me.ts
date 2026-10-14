@@ -1233,11 +1233,15 @@ export function meNamespace(client: BoardClient) {
 
       /**
        * Company-owned saved searches over the talent directory. Each holds
-       * named filters and, optionally, saved people (`members`). Approved
-       * members share the same lists. Optional `job` links a list to one
-       * company job; pass `job: null` on update to unlink. Linking a list
-       * shortlists everyone saved to it onto that job; unlinking changes no
-       * pipeline.
+       * named filters and saved people (`members`), with no size limit.
+       * Approved members share the same lists. Optional `job` links a list
+       * to one company job, and a job has at most one list; pass
+       * `job: null` on update to unlink. Saving to a linked list is how a
+       * sourced candidate is shortlisted onto the job, and removing takes
+       * them off while they are still at Shortlisted, so the list and the
+       * job agree. Linking a list shortlists everyone saved to it, saves the
+       * sourced people already on the job, and folds in the job's previous
+       * list. Unlinking changes neither side.
        */
       talentLists: {
         /**
@@ -1322,13 +1326,15 @@ export function meNamespace(client: BoardClient) {
           );
         },
         /**
-         * People saved to a talent list (at most 500 per list).
+         * People saved to a talent list. A list has no size limit.
          */
         members: {
           /**
-           * List the people saved to a list as directory cards, most
-           * recently saved first unless `sort` or a keyword (`q`) is set;
-           * with a keyword, best match first. Cards are redacted as in the
+           * List the people saved to a list as directory cards, in the
+           * public directory's order: best match first with a keyword
+           * (`q`), otherwise by `sort` or the directory's default order. A
+           * save or removal shows here within seconds; `memberCount` is
+           * immediate. Cards are redacted as in the
            * public directory when the board sells profile unlocks, except
            * for candidates the company has unlocked. Runs the public
            * talent directory search, with the same filters, restricted to
@@ -1362,8 +1368,9 @@ export function meNamespace(client: BoardClient) {
            * Save a candidate to a list. Idempotent: saving someone already
            * on it returns `created: false`. When the list is linked to a
            * job, the candidate is also shortlisted onto that job unless they
-           * already have a pipeline row there. A full list raises
-           * `talent_list_full` (409).
+           * already have a pipeline row there; this is the way to shortlist
+           * a sourced candidate. Lists have no size limit, so
+           * `talent_list_full` is never raised.
            *
            * @example
            * await board.me.companies.talentLists.members.add('acme', listId, {
@@ -1388,8 +1395,11 @@ export function meNamespace(client: BoardClient) {
             );
           },
           /**
-           * Remove a candidate from a list. Idempotent. Never changes a job
-           * pipeline, including the linked job's.
+           * Remove a candidate from a list. Idempotent. On a list linked to
+           * a job, also removes their pipeline row on that job while it is a
+           * sourced row still at Shortlisted; anyone further along, or who
+           * applied, keeps it (end that with a rejection). An unlinked list
+           * changes no pipeline.
            */
           remove(
             slug: string,
@@ -1411,14 +1421,20 @@ export function meNamespace(client: BoardClient) {
 
       /**
        * Per-job sourced membership — the unstaged kanban rail.
-       * Saving a candidate always writes here. Convert-on-drop creates a
-       * pipeline application with source `sourced` (hidden from the
-       * candidate until they apply themselves).
+       *
+       * @deprecated A job's sourced people are the people saved to its
+       * talent list. Use `talentLists.members` on the list whose `jobId` is
+       * the job: `add` shortlists, `remove` takes them off, and `list` with
+       * `stage` reads pipeline columns. `add` and `remove` here forward to
+       * those calls.
        */
       sourcedCandidates: {
         /**
          * List sourced candidates still on the rail for a job. Anyone who
          * already has a pipeline application for that job is omitted.
+         *
+         * @deprecated Use `talentLists.members.list` on the job's talent
+         * list.
          *
          * @example
          * const { data } = await board.me.companies.sourcedCandidates.list(
@@ -1434,7 +1450,12 @@ export function meNamespace(client: BoardClient) {
         },
         /**
          * Save a candidate onto a job's sourced rail. Idempotent: a second
-         * add for the same pair returns `created: false`.
+         * add for the same pair returns `created: false`. Saves them to the
+         * job's talent list (created, named after the job, when it has
+         * none) and shortlists them onto the job.
+         *
+         * @deprecated Use `talentLists.members.add` on the job's talent
+         * list.
          *
          * @example
          * const saved = await board.me.companies.sourcedCandidates.add(
@@ -1457,7 +1478,14 @@ export function meNamespace(client: BoardClient) {
             body,
           });
         },
-        /** Remove a sourced membership. Does not touch pipeline applications. */
+        /**
+         * Remove a sourced membership: the candidate leaves the job's talent
+         * list, and their pipeline row on the job goes too while it is a
+         * sourced row still at Shortlisted.
+         *
+         * @deprecated Use `talentLists.members.remove` on the job's talent
+         * list.
+         */
         remove(slug: string, sourcedId: string, options?: FetchOptions) {
           return client.fetch<void>(
             `/me/companies/${encodeURIComponent(
@@ -1472,6 +1500,9 @@ export function meNamespace(client: BoardClient) {
          * until they apply themselves. `stage: 'applied'` aliases to
          * `review`. A board without a native pipeline raises
          * `sourced_convert_unavailable` (409).
+         *
+         * @deprecated Saving to the job's talent list already shortlists
+         * the candidate; move them on the pipeline from there.
          *
          * @example
          * const result = await board.me.companies.sourcedCandidates.convert(
