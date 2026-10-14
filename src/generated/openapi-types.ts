@@ -2359,10 +2359,18 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List sourced candidates for a job */
+        /**
+         * List sourced candidates for a job (deprecated)
+         * @deprecated
+         * @description Deprecated: a job's sourced people are the people saved to its talent list. List them with `GET /boards/{identifier}/me/companies/{slug}/talent-lists/{listId}/members` on the list whose `jobId` is the job, with `stage` for pipeline columns. Behavior is unchanged.
+         */
         get: operations["listBoardMeCompanySourcedCandidates"];
         put?: never;
-        /** Save a candidate to a job sourced set */
+        /**
+         * Save a candidate to a job sourced set (deprecated)
+         * @deprecated
+         * @description Deprecated: use `POST /boards/{identifier}/me/companies/{slug}/talent-lists/{listId}/members` on the job's talent list. Forwards to that save: the candidate is saved to the job's talent list (created, named after the job, when the job has none) and shortlisted onto the job unless they already have a pipeline row there. Returns the sourced row id as before.
+         */
         post: operations["createBoardMeCompanySourcedCandidate"];
         delete?: never;
         options?: never;
@@ -2380,7 +2388,11 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Remove a sourced candidate */
+        /**
+         * Remove a sourced candidate (deprecated)
+         * @deprecated
+         * @description Deprecated: use `DELETE /boards/{identifier}/me/companies/{slug}/talent-lists/{listId}/members/{candidateBoardUserId}` on the job's talent list. Forwards to that removal: the candidate leaves the job's talent list, and their pipeline row on the job goes too while it is a sourced row still at Shortlisted.
+         */
         delete: operations["deleteBoardMeCompanySourcedCandidate"];
         options?: never;
         head?: never;
@@ -2396,7 +2408,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Convert a sourced candidate into the job pipeline */
+        /**
+         * Convert a sourced candidate into the job pipeline (deprecated)
+         * @deprecated
+         * @description Deprecated: saving to a talent list linked to the job already shortlists the candidate; move them on the pipeline from there. Behavior is unchanged.
+         */
         post: operations["createBoardMeCompanySourcedCandidateConvert"];
         delete?: never;
         options?: never;
@@ -2434,7 +2450,10 @@ export interface paths {
          */
         get: operations["listBoardMeCompanyTalentLists"];
         put?: never;
-        /** Create a talent list */
+        /**
+         * Create a talent list
+         * @description A job has at most one talent list. Creating one with `job` set takes over the job: the people of the job's current list are saved to the new one in the background, and the old list is unlinked (and deleted if it was created automatically by shortlisting and never renamed or filtered). Every sourced person already on the job is saved to the new list.
+         */
         post: operations["createBoardMeCompanyTalentList"];
         delete?: never;
         options?: never;
@@ -2456,7 +2475,10 @@ export interface paths {
         delete: operations["deleteBoardMeCompanyTalentList"];
         options?: never;
         head?: never;
-        /** Update a talent list */
+        /**
+         * Update a talent list
+         * @description Linking a job (`job`) saves the people of the job's current list to this one and unlinks that list (deleting it if it was created automatically by shortlisting and never renamed or filtered), shortlists everyone saved here onto the job, and saves every sourced person already on the job here, all in the background. A job has at most one talent list. Unlinking (`job: null`) changes neither the list's people nor the job pipeline.
+         */
         patch: operations["updateBoardMeCompanyTalentList"];
         trace?: never;
     };
@@ -2469,13 +2491,13 @@ export interface paths {
         };
         /**
          * List the people saved to a talent list
-         * @description Saved people as directory cards: most recently saved first unless `sort` or a keyword (`q`) is set; with a keyword, best match first. Runs the same search as the talent directory, with the same filters, restricted to the people saved to this list. Blocked, hidden and deactivated candidates are omitted. When the board sells profile unlocks, cards are redacted as in the talent directory, judged for this company only: full when it holds unlimited unlocks, or for candidates it has unlocked while it holds talent access. `total` counts every visible saved person; `count` counts the ones the filters and `stage` keep.
+         * @description Saved people as directory cards, in the talent directory's order: best match first with a keyword (`q`), otherwise by `sort` or the directory's default order. Runs the same search as the talent directory, with the same filters, restricted to the people saved to this list. A save or removal shows here within seconds, once the search index catches up; `memberCount` is immediate. Blocked, hidden and deactivated candidates are omitted. When the board sells profile unlocks, cards are redacted as in the talent directory, judged for this company only: full when it holds unlimited unlocks, or for candidates it has unlocked while it holds talent access. `total` counts every visible saved person; `count` counts the ones the filters and `stage` keep.
          */
         get: operations["listBoardMeCompanyTalentListMembers"];
         put?: never;
         /**
          * Save a candidate to a talent list
-         * @description Idempotent: saving someone already on the list returns `created: false`. When the list is linked to a job, the candidate is also shortlisted onto that job unless they already have a pipeline row there. A list holds at most 500 people (`talent_list_full`, 409).
+         * @description Idempotent: saving someone already on the list returns `created: false`. When the list is linked to a job, the candidate is also shortlisted onto that job unless they already have a pipeline row there. This is the one way to shortlist a sourced candidate. A list has no size limit; `talent_list_full` (409) is deprecated and never returned.
          */
         post: operations["createBoardMeCompanyTalentListMember"];
         delete?: never;
@@ -2496,7 +2518,7 @@ export interface paths {
         post?: never;
         /**
          * Remove a candidate from a talent list
-         * @description Idempotent. Never changes a job pipeline, including the linked job.
+         * @description Idempotent. On a list linked to a job, the candidate's pipeline row on that job is removed too, but only while it is a sourced row still at Shortlisted; anyone further along, or who applied, keeps it (end that with a rejection). Removing from an unlinked list changes no pipeline.
          */
         delete: operations["deleteBoardMeCompanyTalentListMember"];
         options?: never;
@@ -7717,7 +7739,7 @@ export interface components {
             createdBy: string;
             createdAt: number;
             updatedAt: number;
-            /** @description People saved to this list (at most 500). Includes anyone the members list omits for the viewer (blocked, hidden or deactivated). */
+            /** @description People saved to this list. Exact and immediate; a list has no size limit. Includes anyone the members list omits for the viewer (blocked, hidden or deactivated). */
             memberCount: number;
         };
         TalentListFilters: {
