@@ -61,9 +61,10 @@ export function talentNamespace(client: BoardClient) {
        * first, each with how many candidates the caller can see there (a
        * country counts every candidate in its cities). Anonymous callers get
        * counts of `public` profiles; a signed-in board user also counts
-       * `logged_in_only` ones. Pass a place's `slug` as `talent.list`'s
-       * `place` filter. With `q`, returns location search matches instead,
-       * ranked as `taxonomy.places.list` ranks them.
+       * `logged_in_only` ones. Pass a place's `slug` (or its board-language
+       * `canonicalSlug`) as `talent.list`'s `place` filter, and show its
+       * board-language `displayName`. With `q`, returns location search
+       * matches instead, ranked as `taxonomy.places.list` ranks them.
        *
        * Same access errors as `talent.list`. Returns an empty list until the
        * board's place counts are built.
