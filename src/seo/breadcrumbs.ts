@@ -109,7 +109,9 @@ export type JobBreadcrumb =
 
 /**
  * Home › Jobs › [country › region › city] › primaryCategory › Title.
- * The place crumbs link into the listing routes (`/jobs/locations/:slug`);
+ * The place crumbs link into the listing routes by each place's
+ * `canonicalSlug` (`/jobs/locations/:canonicalSlug`), the slug the location
+ * page lives at, so a translated board's crumbs do not redirect;
  * the category crumb nests under the most-specific place when present
  * (`/jobs/locations/:place/:category`), else `/jobs/:category`. The last
  * crumb (the job title) carries no `path` — the current page. Mirrors
@@ -128,11 +130,11 @@ export function buildJobBreadcrumbs(job: PublicJob): JobBreadcrumb[] {
 
   let lastPlaceSlug: string | null = null;
   for (const place of job.placeHierarchy) {
-    lastPlaceSlug = place.slug;
+    lastPlaceSlug = place.canonicalSlug;
     crumbs.push({
       kind: 'place',
       name: place.name,
-      path: jobsLocationPath(place.slug),
+      path: jobsLocationPath(place.canonicalSlug),
     });
   }
 

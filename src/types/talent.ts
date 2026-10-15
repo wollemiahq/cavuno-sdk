@@ -13,7 +13,13 @@ import type { CustomFieldFilter, ObjectReferenceFilter } from './jobs';
  */
 export type TalentProfile = Schemas['TalentProfile'];
 
-/** A candidate card in the public talent directory. */
+/**
+ * A candidate card in the public talent directory. On cards and profiles,
+ * `lastActive` is a coarse bucket (`today`, `this_week`, `this_month`,
+ * `last_3_months`, `over_3_months`) returned only to a signed-in employer on
+ * the board, for candidates who are actively looking or open to offers;
+ * `null` for everyone else.
+ */
 export type TalentDirectoryEntry = Schemas['TalentDirectoryEntry'];
 
 export type TalentDirectoryQuery = {
