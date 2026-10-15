@@ -242,6 +242,14 @@ export function talentProfilePath(handle: string): string {
 }
 
 /**
+ * Talent location page (`/talent/locations/<place>`): the candidates who live
+ * in a place. Pass the place's `canonicalSlug` from the talent place list.
+ */
+export function talentLocationPath(placeSlug: string): string {
+  return `/talent/locations/${encodePathSegment(placeSlug)}`;
+}
+
+/**
  * Static top-level board paths (indexed marketing + index surfaces). Kept
  * here so the sitemap and consumers share one definition of the chrome
  * routes too.
@@ -262,6 +270,7 @@ export const BOARD_PATHS = {
   cookiePolicy: '/cookie-policy',
   impressum: '/impressum',
   talent: '/talent',
+  talentLocations: '/talent/locations',
   employers: '/employers',
   /**
    * Alert-email surfaces. Promoted out of raw literals in

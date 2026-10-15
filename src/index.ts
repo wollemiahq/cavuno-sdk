@@ -469,10 +469,12 @@ export type {
   UpdatePipelineStageBody,
 } from './types/me';
 export type {
+  JobAlertAnchorJob,
   JobAlertConfirmation,
   JobAlertDeletePreferenceInput,
   JobAlertFiltersInput,
   JobAlertFrequency,
+  JobAlertKind,
   JobAlertManageQuery,
   JobAlertManageResult,
   JobAlertManageState,

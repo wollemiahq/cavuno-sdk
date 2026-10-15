@@ -16,6 +16,13 @@ export type JobAlertRemoteOption = 'on_site' | 'hybrid' | 'remote';
  * `seniorityLevels`/`salary*` are stored but do not filter delivery.
  */
 export type JobAlertFiltersInput = {
+  /**
+   * Free-text search keywords (at most 200 characters after trimming). Send
+   * the query a search page ran. On `updatePreference`, `null` clears the
+   * keywords and omitting `query` keeps them while `jobFunctions` are
+   * unchanged. Not accepted on a job-page (similar-job) alert.
+   */
+  query?: string | null;
   jobFunctions?: string[];
   seniorityLevels?: string[];
   remoteOptions?: JobAlertRemoteOption[];
@@ -47,6 +54,16 @@ export type JobAlertPreference = JobAlertManageState['preferences'][number];
 
 /** The stored filter criteria surfaced on a manage-page preference. */
 export type JobAlertStoredFilters = JobAlertPreference['filters'];
+
+/**
+ * How an alert's digest is filled: `similar_job` (jobs like the job it was
+ * subscribed from), `search` (a board search for its keywords) or `filters`
+ * (jobs matching its stored filters exactly). Read-only.
+ */
+export type JobAlertKind = JobAlertPreference['kind'];
+
+/** A similar-job alert's anchor job (`{ id, slug, title }`), or `null`. */
+export type JobAlertAnchorJob = JobAlertPreference['anchorJob'];
 
 /** Query for `jobAlerts.manage` — the HMAC manage token from the digest email. */
 export type JobAlertManageQuery = { subscription: string; token: string };
