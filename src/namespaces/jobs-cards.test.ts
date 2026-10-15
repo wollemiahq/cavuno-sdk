@@ -108,6 +108,46 @@ describe('board.jobs.list — PublicJobCard envelope', () => {
     expect(url).toContain('location=london');
     expect(url).toContain('radius=25');
   });
+
+  it('serializes defaultRadius on the browse list and the search body', async () => {
+    const spy = stubFetch({ object: 'list', data: [] });
+    await makeBoard().jobs.list({ location: 'houston', defaultRadius: true });
+    expect(sentUrl(spy)).toBe(
+      `${BASE}/jobs?location=houston&defaultRadius=true`,
+    );
+
+    await makeBoard().jobs.search({
+      filters: { location: 'houston', defaultRadius: true },
+    });
+    const init = spy.mock.calls[1]![1]!;
+    expect(JSON.parse(init.body as string)).toEqual({
+      filters: { location: 'houston', defaultRadius: true },
+    });
+  });
+});
+
+describe('board.jobs.retrieve — capabilities', () => {
+  it('sends the capability as a query parameter, not a header', async () => {
+    const spy = stubFetch({ object: 'public_job' });
+    await makeBoard().jobs.retrieve('senior-engineer', {
+      capabilities: ['apply-gateway-v1'],
+    });
+    expect(sentUrl(spy)).toBe(
+      `${BASE}/jobs/senior-engineer?capabilities=apply-gateway-v1`,
+    );
+    const headers = new Headers(spy.mock.calls[0]![1]!.headers);
+    expect(headers.has('x-cavuno-board-capabilities')).toBe(false);
+  });
+
+  it('keeps the header opt-in working', async () => {
+    const spy = stubFetch({ object: 'public_job' });
+    await makeBoard().jobs.retrieve('senior-engineer', undefined, {
+      headers: { 'x-cavuno-board-capabilities': 'apply-gateway-v1' },
+    });
+    expect(sentUrl(spy)).toBe(`${BASE}/jobs/senior-engineer`);
+    const headers = new Headers(spy.mock.calls[0]![1]!.headers);
+    expect(headers.get('x-cavuno-board-capabilities')).toBe('apply-gateway-v1');
+  });
 });
 
 describe('jobs sort — pass-through to the wire', () => {

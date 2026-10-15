@@ -13,6 +13,7 @@ import type {
   JobCollectionChoiceQuery,
   JobCardListEnvelope,
   JobCardSearchEnvelope,
+  JobRetrieveQuery,
   JobsListQuery,
   JobsSearchBody,
   JobsSimilarQuery,
@@ -40,6 +41,11 @@ export function jobsNamespace(client: BoardClient) {
      *
      * @example
      * const { data, nextCursor } = await board.jobs.list({ limit: 20 });
+     * // A location page: nearby jobs at the market default distance.
+     * const nearby = await board.jobs.list({
+     *   location: 'houston-texas-united-states',
+     *   defaultRadius: true,
+     * });
      */
     list(query?: JobsListQuery, options?: FetchOptions) {
       return client.fetch<JobCardListEnvelope>('/jobs', {
@@ -50,16 +56,22 @@ export function jobsNamespace(client: BoardClient) {
 
     /**
      * Retrieve one published job by slug.
-     * Compatible starters pass `x-cavuno-board-capabilities:
-     * apply-gateway-v1` in `options.headers` to opt in to the country-gated
-     * Apply shape. The SDK never sends that capability globally.
+     * Compatible starters opt in to the country-gated Apply shape with
+     * `{ capabilities: ['apply-gateway-v1'] }`, which keeps the response
+     * shared-cacheable under its own URL. Passing
+     * `x-cavuno-board-capabilities: apply-gateway-v1` in `options.headers`
+     * still works but is never cached. The SDK never sends the capability
+     * globally.
      *
      * @example
      * const job = await board.jobs.retrieve('senior-chef');
+     * const gated = await board.jobs.retrieve('senior-chef', {
+     *   capabilities: ['apply-gateway-v1'],
+     * });
      */
     retrieve(
       jobSlug: string,
-      query?: Record<string, never>,
+      query?: JobRetrieveQuery,
       options?: FetchOptions,
     ) {
       return client.fetch<PublicJob>(`/jobs/${encodeURIComponent(jobSlug)}`, {
