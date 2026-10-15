@@ -855,7 +855,7 @@ export interface paths {
         put?: never;
         /**
          * Subscribe to job alerts
-         * @description Create a job-alert subscription for an email. Anonymous (no auth); the board must have job alerts enabled. Always returns a uniform `status: submitted` (no email enumeration). If this email isn't already subscribed, a confirmation email has been sent. `consent` must be `true`. Filters scope the digest (only jobFunctions/placeSlugs/remoteOptions affect matching).
+         * @description Create a job-alert subscription for an email. Anonymous (no auth); the board must have job alerts enabled. Always returns a uniform `status: submitted` (no email enumeration). If this email isn't already subscribed, a confirmation email has been sent. `consent` must be `true`. Filters scope the digest (only jobFunctions/placeSlugs/remoteOptions affect matching); `filters.query` records the search keywords. A `context` with `source` `job_detail` or `job_apply_dialog` and a `jobId` subscribes to jobs similar to that job; such an alert takes no `filters.query` (400).
          */
         post: operations["createBoardJobAlert"];
         delete?: never;
@@ -915,7 +915,7 @@ export interface paths {
         put?: never;
         /**
          * Update a job-alert preference via a manage link
-         * @description Edit a preference (filters/frequency) via the HMAC manage token.
+         * @description Edit a preference (filters/frequency) via the HMAC manage token. The preference keeps its `kind`; setting `filters.query` on a `similar_job` preference is a 400. An omitted `filters.query` keeps the stored keywords while `jobFunctions` are unchanged; send `null` to clear them.
          */
         post: operations["createBoardJobAlertsPreference"];
         /**
@@ -1487,7 +1487,7 @@ export interface paths {
         get: operations["getBoardMeAlert"];
         /**
          * Replace a job alert
-         * @description Replace a job alert’s filters and frequency in full (send the complete set). Returns the updated alert.
+         * @description Replace a job alert’s filters and frequency in full (send the complete set). Returns the updated alert. The alert keeps its `kind`: a `filters` alert given `query` becomes a `search` alert, and a `similar_job` alert stays anchored to its job (setting `query` on it is a 400; delete it and create a search alert instead). An omitted `query` keeps the stored keywords while `jobFunctions` are unchanged; send `null` to clear them.
          */
         put: operations["updateBoardMeAlert"];
         post?: never;
@@ -4192,7 +4192,20 @@ export interface components {
             /** @enum {string} */
             frequency: "weekly";
             isActive: boolean;
+            /**
+             * @description How the digest is filled. `similar_job`: jobs similar to `anchorJob` (subscribed from a job page). `search`: a board search for `filters.query` (subscribed from a search page, or given keywords). `filters`: jobs matching the stored filters exactly. Read-only.
+             * @enum {string}
+             */
+            kind: "similar_job" | "search" | "filters";
+            /** @description For a `similar_job` alert, the job it was subscribed from, as it was when captured (the job may since have closed). `null` for other kinds, and for an older similar-job alert whose job has not been captured yet. Read-only. */
+            anchorJob: {
+                id: string;
+                slug: string | null;
+                title: string;
+            } | null;
             filters: {
+                /** @description The stored keywords, or null. */
+                query: string | null;
                 jobFunctions: string[];
                 seniorityLevels: string[];
                 remoteOptions: string[];
@@ -4211,6 +4224,8 @@ export interface components {
             label?: string;
             /** @enum {string} */
             frequency: "weekly";
+            /** @description Free-text keywords the alert replays as a board search, stored as given (trimmed, at most 200 characters). On an update, `null` or an empty string clears the keywords, and omitting `query` keeps them as long as `jobFunctions` are unchanged. A similar-job alert (subscribed from a job page) takes no keywords: setting them is a 400. */
+            query?: string | null;
             jobFunctions?: string[];
             seniorityLevels?: string[];
             remoteOptions?: string[];
@@ -6839,7 +6854,20 @@ export interface components {
                 /** @enum {string} */
                 frequency: "weekly";
                 isActive: boolean;
+                /**
+                 * @description How the digest is filled. `similar_job`: jobs similar to `anchorJob` (subscribed from a job page). `search`: a board search for `filters.query` (subscribed from a search page, or given keywords). `filters`: jobs matching the stored filters exactly. Read-only.
+                 * @enum {string}
+                 */
+                kind: "similar_job" | "search" | "filters";
+                /** @description For a `similar_job` alert, the job it was subscribed from, as it was when captured (the job may since have closed). `null` for other kinds, and for an older similar-job alert whose job has not been captured yet. Read-only. */
+                anchorJob: {
+                    id: string;
+                    slug: string | null;
+                    title: string;
+                } | null;
                 filters: {
+                    /** @description The stored keywords. */
+                    query?: string;
                     jobFunctions?: string[];
                     seniorityLevels?: string[];
                     remoteOptions?: string[];
@@ -10529,6 +10557,8 @@ export interface operations {
                     /** @enum {string} */
                     frequency?: "weekly";
                     filters?: {
+                        /** @description Free-text keywords the alert replays as a board search, stored as given (trimmed, at most 200 characters). On an update, `null` or an empty string clears the keywords, and omitting `query` keeps them as long as `jobFunctions` are unchanged. A similar-job alert (subscribed from a job page) takes no keywords: setting them is a 400. */
+                        query?: string | null;
                         jobFunctions?: string[];
                         seniorityLevels?: string[];
                         remoteOptions?: ("on_site" | "hybrid" | "remote")[];
@@ -10553,6 +10583,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicJobAlertSubscription"];
+                };
+            };
+            /** @description Invalid body (`validation_bad_request`), including `filters.query` sent with a job-page `context`. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Job alerts are not enabled for this board. */
@@ -10658,6 +10697,8 @@ export interface operations {
                     /** @enum {string} */
                     frequency: "weekly";
                     filters?: {
+                        /** @description Free-text keywords the alert replays as a board search, stored as given (trimmed, at most 200 characters). On an update, `null` or an empty string clears the keywords, and omitting `query` keeps them as long as `jobFunctions` are unchanged. A similar-job alert (subscribed from a job page) takes no keywords: setting them is a 400. */
+                        query?: string | null;
                         jobFunctions?: string[];
                         seniorityLevels?: string[];
                         remoteOptions?: ("on_site" | "hybrid" | "remote")[];
@@ -12478,6 +12519,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Alert"];
+                };
+            };
+            /** @description Invalid body (`validation_bad_request`), including `query` set on a `similar_job` alert. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Missing/invalid (`board_auth_invalid_token`) or expired (`board_auth_token_expired`) access token. */
