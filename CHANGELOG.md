@@ -3,6 +3,30 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.48.0 — 2026-10-15
+
+- Each `placeHierarchy` entry on `board.jobs.retrieve()` has a
+  `canonicalSlug`: the slug the place's location page lives at, in the
+  board's language where that language has unique place slugs, otherwise the
+  English `slug`. `slug` and `name` are unchanged. Link breadcrumbs with
+  `canonicalSlug`; both slugs work as the jobs `location` filter.
+- `buildJobBreadcrumbs` links place crumbs, and the category crumb nested
+  under a place, by `canonicalSlug`, so they no longer redirect on a
+  translated board.
+- New `talentLocationPath(placeSlug)` and `BOARD_PATHS.talentLocations`
+  (`/talent/locations`) in `@cavuno/board/paths`, for talent location pages.
+  Link them with a talent place's `canonicalSlug`.
+- Job alerts: writes accept an optional `query` (search keywords, trimmed, at
+  most 200 characters). Reads add read-only `kind` (`similar_job`, `search`
+  or `filters`) and `anchorJob` (`{ id, slug, title }` or `null`), and echo
+  `filters.query`. A similar-job alert takes no keywords: setting `query` on
+  it is a 400.
+- Talent profiles add `lastActive`: roughly when the candidate was last
+  active on the board (`today`, `this_week`, `this_month`, `last_3_months` or
+  `over_3_months`). It is returned only to a signed-in employer on the board,
+  and only for candidates who are actively looking or open to offers;
+  otherwise it is `null`. The exact time is never exposed.
+
 ## 4.47.0 — 2026-10-14
 
 - `board.taxonomy.places.list()` and `board.talent.places.list()` return each

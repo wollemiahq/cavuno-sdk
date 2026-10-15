@@ -23,6 +23,7 @@ import {
   salarySkillPath,
   salaryTitlePath,
   suggestionPath,
+  talentLocationPath,
   talentProfilePath,
 } from './index';
 
@@ -75,9 +76,21 @@ describe('canonical board paths', () => {
     expect(talentProfilePath(':handle')).toBe('/p/:handle');
   });
 
+  it('builds the talent location path, encoding only the place slug', () => {
+    expect(talentLocationPath('berlin')).toBe('/talent/locations/berlin');
+    expect(talentLocationPath('münchen')).toBe(
+      `/talent/locations/${encodeURIComponent('münchen')}`,
+    );
+    // Already-encoded input is not double-encoded.
+    expect(talentLocationPath('m%C3%BCnchen')).toBe(
+      '/talent/locations/m%C3%BCnchen',
+    );
+  });
+
   it('exposes the static chrome paths', () => {
     expect(BOARD_PATHS.jobs).toBe('/jobs');
     expect(BOARD_PATHS.salaryTitles).toBe('/salaries/titles');
+    expect(BOARD_PATHS.talentLocations).toBe('/talent/locations');
     // alert-email surfaces ride the paths module.
     expect(BOARD_PATHS.alertsManage).toBe('/alerts/manage');
     expect(BOARD_PATHS.alertsConfirm).toBe('/alerts/confirm');

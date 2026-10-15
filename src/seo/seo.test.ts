@@ -183,7 +183,9 @@ const JOB = {
   ],
   categories: [{ slug: 'robotics-engineering', name: 'Robotics Engineering' }],
   skills: [{ slug: 'ros', name: 'ROS' }],
-  placeHierarchy: [{ slug: 'germany', name: 'Germany' }],
+  placeHierarchy: [
+    { slug: 'germany', name: 'Germany', canonicalSlug: 'germany' },
+  ],
   links: { public: null },
   customFieldValues: {},
   resolvedCollectionFields: [],

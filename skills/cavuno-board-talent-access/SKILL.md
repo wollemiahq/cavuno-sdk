@@ -130,6 +130,8 @@ await board.me.conversations.start({
 
 Named `/p/{handle}` is the share bypass and always shows a full `public` profile. Opaque `/p/{id}` is the unlock-gated route. When `accessModel === 'paid_unlocks_and_messaging'`, directory cards redact for viewers who are not unlimited.
 
+`lastActive` on directory cards and profiles is a coarse bucket (`today`, `this_week`, `this_month`, `last_3_months`, `over_3_months`) for a signed-in employer looking at a candidate who is actively looking or open to offers, and `null` otherwise. It stays on redacted cards. Render it as a short label such as "Active this week" and hide it when `null`.
+
 ```ts snippet
 const named = await board.talent.retrieve('jane-doe');
 const opaque = await board.talent.retrieve('bu_candidate');
