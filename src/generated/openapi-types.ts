@@ -6125,6 +6125,8 @@ export interface components {
                 avgSalaryMin: number;
                 avgSalaryMax: number;
                 jobCount: number;
+                /** @description ISO 4217 code of the amounts: the board's salary currency (USD unless the board set another). */
+                currency?: string;
             }[];
         };
         LocationTitlesIndex: {
@@ -6139,6 +6141,8 @@ export interface components {
                 avgSalaryMin: number;
                 avgSalaryMax: number;
                 jobCount: number;
+                /** @description ISO 4217 code of the amounts: the board's salary currency (USD unless the board set another). */
+                currency?: string;
             }[];
         };
         MarketSuggestion: {
@@ -7411,6 +7415,8 @@ export interface components {
             avgSalaryMin: number;
             avgSalaryMax: number;
             jobCount: number;
+            /** @description ISO 4217 code of the amounts: the board's salary currency (USD unless the board set another). */
+            currency?: string;
         };
         SalarySkillIndexItem: {
             /** @enum {string} */
