@@ -731,7 +731,9 @@ describe('method conventions', () => {
       ],
       categories: [{ slug: 'engineering', name: 'Engineering' }],
       skills: [{ slug: 'typescript', name: 'TypeScript' }],
-      placeHierarchy: [{ slug: 'germany', name: 'Germany' }],
+      placeHierarchy: [
+        { slug: 'germany', name: 'Germany', canonicalSlug: 'germany' },
+      ],
       customFieldValues: { security_clearance: 'ts_sci', team_size: 12 },
       resolvedCollectionFields: [],
       links: { public: null },
