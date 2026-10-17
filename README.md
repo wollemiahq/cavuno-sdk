@@ -119,6 +119,25 @@ Then ask your agent to set up the Cavuno board using the installed
 [Set up with an agent](https://cavuno.com/docs/sdk/installing/agent)
 for the review and verification workflow.
 
+## Reporting problems
+
+Coding agents (and people) can report anything in the Board API or SDK that
+got in the way: a missing capability, unclear documentation, a surprising
+response or an unhelpful error. Send an
+[Agent Feedback Protocol v0.1](https://trybackloop.com/spec/) report to
+`POST https://api.cavuno.com/v1/feedback`; no credentials are needed, and the
+discovery document is at `https://api.cavuno.com/.well-known/agent-feedback`.
+
+```bash
+curl https://api.cavuno.com/v1/feedback \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -d '{ "type": "missing_capability", "goal": "What you were trying to do", "message": "What got in the way", "agent": { "name": "my-agent", "model": "model-name" } }'
+```
+
+`type`, `goal` and `message` are required. Up to 20 reports every 5 minutes.
+Never include credentials or personal data.
+
 ## Resources
 
 - [SDK guides and reference](https://cavuno.com/docs/sdk)

@@ -1174,7 +1174,7 @@ export interface paths {
         };
         /**
          * Retrieve a public job by slug
-         * @description Retrieves a published job by its slug on the named public board. Only published jobs are returned. Compatible starters opt in to the country-gated Apply shape with the Apply gateway capability header; other callers keep the legacy shape.
+         * @description Retrieves a published job by its slug on the named public board. Only published jobs are returned. Compatible starters opt in to the country-gated Apply shape with `capabilities=apply-gateway-v1` (shared-cacheable) or the Apply gateway capability header (never cached); other callers keep the legacy shape.
          */
         get: operations["getBoardJob"];
         put?: never;
@@ -6125,6 +6125,8 @@ export interface components {
                 avgSalaryMin: number;
                 avgSalaryMax: number;
                 jobCount: number;
+                /** @description ISO 4217 code of the amounts: the board's salary currency (USD unless the board set another). */
+                currency?: string;
             }[];
         };
         LocationTitlesIndex: {
@@ -6139,6 +6141,8 @@ export interface components {
                 avgSalaryMin: number;
                 avgSalaryMax: number;
                 jobCount: number;
+                /** @description ISO 4217 code of the amounts: the board's salary currency (USD unless the board set another). */
+                currency?: string;
             }[];
         };
         MarketSuggestion: {
@@ -7068,6 +7072,8 @@ export interface components {
                 location?: string;
                 /** @description Widen a city or locality `location` to also return jobs placed in a city or locality within this many kilometres of the place (1–250; decimals allowed, e.g. `8.05` for 5 miles). Omit for jobs in the place itself. Ignored for region and country places, and without `location`. */
                 radius?: number;
+                /** @description When `true` and `radius` is omitted, widen a city or locality `location` to the market default distance, computed from the resolved place: 25 miles (40.2336 km) in the US, GB, LR and MM, 50 km elsewhere. Regions, countries and places without coordinates are not widened. An explicit `radius` wins. */
+                defaultRadius?: boolean;
                 /** @description Public custom job fields. Clauses are AND-matched; values within a clause are OR-matched. Up to 10 clauses and 10 values per clause. */
                 customFields?: {
                     key: string;
@@ -7411,6 +7417,8 @@ export interface components {
             avgSalaryMin: number;
             avgSalaryMax: number;
             jobCount: number;
+            /** @description ISO 4217 code of the amounts: the board's salary currency (USD unless the board set another). */
+            currency?: string;
         };
         SalarySkillIndexItem: {
             /** @enum {string} */
@@ -11299,6 +11307,8 @@ export interface operations {
                  * @example 50
                  */
                 radius?: number;
+                /** @description When `true` and `radius` is omitted, widen a city or locality `location` to the market default distance, computed from the resolved place: 25 miles (40.2336 km) in the US, GB, LR and MM, 50 km elsewhere. Regions, countries and places without coordinates are not widened. An explicit `radius` wins. Lets a location page list nearby jobs without first resolving the place to pick a radius. */
+                defaultRadius?: "true" | "false";
                 /** @description Seed the browse from a category slug (the programmatic `/jobs/[keyword]` page). The board resolves it to the English source name + canonical slug server-side; an unresolvable slug → 404. */
                 category?: string;
                 /** @description Seed the browse from a skill slug (the programmatic `/jobs/skills/[skill]` page). Resolved server-side; an unresolvable slug → 404. */
@@ -11465,7 +11475,10 @@ export interface operations {
     };
     getBoardJob: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Opt-in capability tokens. `apply-gateway-v1` selects the country-gated Apply shape, exactly as the `x-cavuno-board-capabilities` header does, but keeps the response shared-cacheable under its own URL (the header form is never cached). Repeat the param or comma-separate for several tokens; unknown tokens are ignored. */
+                capabilities?: string[];
+            };
             header?: {
                 /** @description Explicit opt-in for the compatible Cavuno starter Apply gateway protocol. */
                 "x-cavuno-board-capabilities"?: "apply-gateway-v1";
