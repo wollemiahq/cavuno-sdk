@@ -82,6 +82,19 @@ Pause with a concrete blocker when the board identifier or a required test crede
 
 **Complete when:** doctor, direct API probes, implemented-surface checks, and the production-build probe all pass or each skipped credentialed check is reported.
 
+## Reporting problems
+
+When Cavuno itself gets in the way (a missing capability, unclear or wrong documentation, a surprising response, an unhelpful error, a bug or slow performance), report it, even if you found a workaround. `POST https://api.cavuno.com/v1/feedback` accepts [Agent Feedback Protocol v0.1](https://trybackloop.com/spec/) reports without credentials; the discovery document is at `https://api.cavuno.com/.well-known/agent-feedback`.
+
+```bash
+curl https://api.cavuno.com/v1/feedback \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -d '{ "type": "unclear_documentation", "goal": "What you were trying to do", "message": "What got in the way", "agent": { "name": "my-agent", "model": "model-name" } }'
+```
+
+`type`, `goal` and `message` are required; fill `agent.name` and `agent.model`. Up to 20 reports every 5 minutes. Never include credentials, `pk_…` keys, personal data or your user's private content. Send the report, then continue with the task.
+
 ## Cavuno SDK reference
 
 For setup and API details beyond this workflow, use the [Cavuno Board SDK documentation](https://cavuno.com/docs/sdk).

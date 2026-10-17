@@ -20,9 +20,9 @@ widget uses `embed.jobs`.
 
 `JobsListQuery` accepts `limit` (1–100), `cursor`, `offset`, `companyId`,
 `companySlug`, `remoteOption`, `employmentType`, `seniority`, `location` with
-`radius` in kilometres, `category`, and `skill`. Repeated `seniority` values
-are OR-matched. `offset` takes precedence over `cursor`, so choose one paging
-mode per request.
+`radius` in kilometres or `defaultRadius`, `category`, and `skill`. Repeated
+`seniority` values are OR-matched. `offset` takes precedence over `cursor`, so
+choose one paging mode per request.
 
 ```ts snippet
 const first = await board.jobs.list({
@@ -58,6 +58,24 @@ const page = await board.jobs.list({
 });
 ```
 
+### List a location page in one request
+
+`defaultRadius: true` with a `location` and no `radius` widens a city or
+locality to the market default distance: 25 miles (40.2336 km) in the US, GB,
+LR and MM, 50 km elsewhere. Regions, countries and places without coordinates
+are not widened, and an explicit `radius` wins. The server picks the distance
+from the place it already resolves, so a location page can fetch its jobs in
+parallel with `taxonomy.places.resolve` instead of after it. `jobs.search` takes the
+same flag in `filters`.
+
+```ts snippet
+const nearby = await board.jobs.list({
+  location: 'houston-texas-united-states',
+  defaultRadius: true,
+  limit: 20,
+});
+```
+
 ## Search
 
 `jobs.search` posts `JobsSearchBody`: free-text `query`, structured `filters`,
@@ -86,6 +104,18 @@ job.officeLocations;
 job.company?.slug;
 
 const rail = await board.jobs.similar('senior-chef', { limit: 5 });
+```
+
+A starter that renders the country-gated Apply flow opts in per request with
+`capabilities: ['apply-gateway-v1']`. The opt-in travels in the URL, so the
+response stays shared-cacheable. The older `x-cavuno-board-capabilities`
+header returns the same body but is never cached.
+
+```ts snippet
+const gated = await board.jobs.retrieve('senior-chef', {
+  capabilities: ['apply-gateway-v1'],
+});
+gated.applyAction; // 'gateway_external' | 'gateway_native' | …
 ```
 
 ## Surface candidate gating
