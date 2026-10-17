@@ -3,6 +3,16 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.49.0 — 2026-10-17
+
+- The generated API types include `submitAgentFeedback` (`POST /v1/feedback`):
+  coding agents can report anything in the Board API or SDK that got in their
+  way, as an Agent Feedback Protocol v0.1 report. No credentials are needed;
+  the discovery document is at
+  `https://api.cavuno.com/.well-known/agent-feedback`.
+- The README and the `cavuno-board-setup` skill explain how to report a
+  problem.
+
 ## 4.48.0 — 2026-10-15
 
 - Each `placeHierarchy` entry on `board.jobs.retrieve()` has a

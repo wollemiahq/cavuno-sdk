@@ -318,6 +318,8 @@ export type {
   JobsListQuery,
   JobsSearchBody,
   JobsSimilarQuery,
+  JobCapability,
+  JobRetrieveQuery,
   JobCardListEnvelope,
   JobCardSearchEnvelope,
   CustomFieldValue,

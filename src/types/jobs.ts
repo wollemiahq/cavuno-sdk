@@ -102,12 +102,36 @@ export type JobsListQuery = {
    * jobs in the place itself. Ignored for region and country places.
    */
   radius?: number;
+  /**
+   * With `location` and no `radius`: widen a city or locality to the market
+   * default distance (25 mi in the US, GB, LR and MM; 50 km elsewhere),
+   * computed from the resolved place. Regions and countries are not
+   * widened; an explicit `radius` wins. Saves resolving the place first to
+   * pick the radius.
+   */
+  defaultRadius?: boolean;
   /** Category slug seed (the `/jobs/[keyword]` page) — server resolves it to the English source name; unresolvable → 404. */
   category?: string;
   /** Skill slug seed (the `/jobs/skills/[skill]` page) — server-resolved; unresolvable → 404. */
   skill?: string;
   /** Sparse fieldset (Medusa-style `+field`). Only `'+description'` is supported — adds `description` to each card. */
   fields?: string;
+};
+
+/**
+ * An opt-in capability token for `jobs.retrieve`. `apply-gateway-v1` selects
+ * the country-gated Apply shape (opaque Sponsored Apply).
+ */
+export type JobCapability = 'apply-gateway-v1';
+
+export type JobRetrieveQuery = {
+  /**
+   * Capability opt-ins, sent as the `capabilities` query parameter. Same
+   * effect as the `x-cavuno-board-capabilities` header, but the response
+   * stays shared-cacheable under its own URL; the header form is never
+   * cached.
+   */
+  capabilities?: JobCapability[];
 };
 
 export type JobsSimilarQuery = {
