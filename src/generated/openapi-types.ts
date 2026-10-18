@@ -2280,7 +2280,7 @@ export interface paths {
         post?: never;
         /**
          * Remove a custom pipeline stage
-         * @description Delete a custom stage and re-pack the remaining positions. Protected stages cannot be removed. Requires an approved membership.
+         * @description Delete a custom stage and re-pack the remaining positions. Protected stages cannot be removed. A stage that still holds applicants returns 422 `employer_ats_unprocessable`; move them to another stage first. Requires an approved membership.
          */
         delete: operations["deleteBoardMeCompanyPipelineStage"];
         options?: never;
@@ -16799,6 +16799,7 @@ export interface operations {
                 jobSearchStatus?: "actively_looking" | "open_to_offers" | "not_looking";
                 /** @description Comma-separated language names. Candidates must list every name. */
                 languages?: string;
+                /** @description As on the public talent directory. */
                 openToRelocate?: "true" | "false";
                 /** @description As on the public talent directory. */
                 place?: string;
@@ -22051,7 +22052,7 @@ export interface operations {
                 jobSearchStatus?: "actively_looking" | "open_to_offers" | "not_looking";
                 /** @description Comma-separated language names. Candidates must list every name. */
                 languages?: string;
-                /** @description Filter by open-to-relocate. */
+                /** @description `true` returns candidates who said they are open to relocate. `false` returns everyone else: candidates who said no and candidates who have not answered. Directory cards and profiles do not include the answer itself. */
                 openToRelocate?: "true" | "false";
                 /** @description English source place slug (a board-language place slug is also accepted, as on the jobs `location` filter). Matches candidates whose home place is that place or lies within it, so a country slug matches every city and region in that country. An unknown slug does not filter. Until the board's talent index has been re-synced with location data, this filter is ignored. Pass `radius` to widen a city or locality to nearby candidates. */
                 place?: string;

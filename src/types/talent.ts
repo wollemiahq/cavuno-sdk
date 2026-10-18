@@ -38,6 +38,11 @@ export type TalentDirectoryQuery = {
   jobSearchStatus?: 'actively_looking' | 'open_to_offers' | 'not_looking';
   /** Comma-separated language names. */
   languages?: string;
+  /**
+   * `'true'`: candidates open to relocate. `'false'`: everyone else,
+   * including candidates who have not answered. Cards and profiles do not
+   * include the answer.
+   */
   openToRelocate?: 'true' | 'false';
   /**
    * Place slug: candidates whose home is the place or lies within it.
