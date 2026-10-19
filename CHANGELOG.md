@@ -3,6 +3,21 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.51.0 — 2026-10-19
+
+- A category or location page can carry its own intro. Taxonomy resolutions
+  (`board.taxonomy.categories.resolve()`, `board.taxonomy.places.resolve()`)
+  return it as `introHtml`, sanitized HTML, absent when the page has none.
+  Show it on page 1 with no filters.
+- The generated API types include `getPageContent`, `updatePageContent` and
+  `deletePageContent` (`/v1/page-content`): read, set or remove the intro of
+  one page, addressed by exactly one of `category` or `place` slug. The intro
+  is markdown, up to 4,000 characters.
+- The generated API types include the `/v1/email-domains` operations, to add,
+  verify and remove the domains a board sends email from, and
+  `createBillingConnectOnboardingLink`
+  (`POST /v1/billing/connect/onboarding-link`).
+
 ## 4.50.0 — 2026-10-19
 
 - New `board.taxonomy.places.suggest({ q, near, limit })`
