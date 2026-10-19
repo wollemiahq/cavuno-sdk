@@ -7154,6 +7154,8 @@ export interface components {
             /** @description The canonical slug to emit a 308 redirect to when the inbound slug differs; `null` otherwise. */
             redirectTo: string | null;
             geo: components["schemas"]["TaxonomyGeo"];
+            /** @description The board's intro for this category or location page, as sanitized HTML. Absent when the page has none. Show it on page 1 with no filters. */
+            introHtml?: string;
         };
         PublicTaxonomyTerm: {
             /** @enum {string} */
