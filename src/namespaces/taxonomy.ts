@@ -2,6 +2,7 @@ import type { BoardClient, FetchOptions } from '../client';
 import type { ListEnvelope } from '../types/common';
 import type {
   CategoryListQuery,
+  PlaceSuggestQuery,
   PlacesListQuery,
   PublicPlace,
   PublicTaxonomyTerm,
@@ -78,6 +79,34 @@ export function taxonomyNamespace(client: BoardClient) {
         return client.fetch<ListEnvelope<PublicPlace>>('/places', {
           ...options,
           query,
+        });
+      },
+      /**
+       * Location search beyond the board's own places: cities, towns,
+       * suburbs and villages anywhere, in the board language, ranked by
+       * size, name match and distance from `near`. Each place has `jobCount`
+       * 0; its `canonicalSlug` works as the jobs `location` filter (jobs
+       * within `radius` km of it), in `resolve`, and as the location page
+       * slug. Show these after the board's own matches from `list({ q })`.
+       * Returns an empty list when the board context's
+       * `features.placeSuggestions` is `false`, so check it first. A
+       * suggested place's `id` is not a `locationId` for job posting or
+       * profiles; use its `slug` for job search.
+       *
+       * @example
+       * const { data } = await board.taxonomy.places.suggest({
+       *   q: 'marr',
+       *   near: { lat: -33.87, lng: 151.21 },
+       * });
+       */
+      suggest(query: PlaceSuggestQuery, options?: FetchOptions) {
+        const { near, ...rest } = query;
+        return client.fetch<ListEnvelope<PublicPlace>>('/places/suggest', {
+          ...options,
+          query: {
+            ...rest,
+            near: near ? `${near.lat},${near.lng}` : undefined,
+          },
         });
       },
     },

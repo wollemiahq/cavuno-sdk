@@ -77,6 +77,7 @@ describe('board.context()', () => {
         nativeApplications: true,
         messaging: true,
         contactPage: true,
+        placeSuggestions: false,
       },
       analytics: {
         ga4MeasurementId: null,
@@ -1214,6 +1215,23 @@ describe('board.taxonomy', () => {
 
     expect(sentUrl(spy, 0)).toBe(`${BASE}/places`);
     expect(sentUrl(spy, 1)).toBe(`${BASE}/places?q=ber`);
+  });
+
+  it('places.suggest hits /places/suggest with near as lat,lng', async () => {
+    const spy = stubFetch();
+    const board = makeBoard();
+
+    await board.taxonomy.places.suggest({ q: 'marr' });
+    await board.taxonomy.places.suggest({
+      q: 'marr',
+      near: { lat: -33.87, lng: 151.21 },
+      limit: 8,
+    });
+
+    expect(sentUrl(spy, 0)).toBe(`${BASE}/places/suggest?q=marr`);
+    expect(sentUrl(spy, 1)).toBe(
+      `${BASE}/places/suggest?q=marr&limit=8&near=-33.87%2C151.21`,
+    );
   });
 
   it('categories.list and skills.list pass collection queries unchanged', async () => {

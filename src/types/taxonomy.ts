@@ -40,3 +40,20 @@ export type PlacesListQuery = {
   /** Max autocomplete results when `q` is given (1–50; default 10). */
   limit?: number;
 };
+
+/**
+ * Query for `taxonomy.places.suggest()`: any settlement, not only the places
+ * the board's jobs use.
+ */
+export type PlaceSuggestQuery = {
+  /** What the user has typed; under 2 characters returns an empty list. */
+  q: string;
+  /**
+   * The searcher's approximate location, for example the city their IP
+   * address locates them in. Nearer places rank higher. Never send a precise
+   * device position.
+   */
+  near?: { lat: number; lng: number };
+  /** Maximum suggestions (1–10; default 5). */
+  limit?: number;
+};
