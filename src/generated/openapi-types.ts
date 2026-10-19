@@ -2280,7 +2280,7 @@ export interface paths {
         post?: never;
         /**
          * Remove a custom pipeline stage
-         * @description Delete a custom stage and re-pack the remaining positions. Protected stages cannot be removed. Requires an approved membership.
+         * @description Delete a custom stage and re-pack the remaining positions. Protected stages cannot be removed. A stage that still holds applicants returns 422 `employer_ats_unprocessable`; move them to another stage first. Requires an approved membership.
          */
         delete: operations["deleteBoardMeCompanyPipelineStage"];
         options?: never;
@@ -3537,6 +3537,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/places/suggest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Suggest any place for a location search
+         * @description Location search beyond the board's own places: cities, towns, suburbs and villages anywhere, in the board's language, ranked by size, by name match and by distance from `near`. Each result is a `PublicPlace` with `jobCount` 0, `parentId` and `regionCode` null, `placeType` `city` or `locality`, and a `displayName` that adds the place's region and country. Its `canonicalSlug` works as the jobs `location` filter (jobs within `radius` km of the place, by default a distance that suits its size), on `GET /boards/{identifier}/places/{slug}`, and as the location page slug. Show these after the board's own matches from `GET /boards/{identifier}/places?q=`. Returns an empty list when the board's `features.placeSuggestions` is `false`, so check that flag before calling. A suggested place's `id` is not a `locationId` for job posting or profiles; use its `slug` for job search. Cacheable per URL; rate limited per client and board.
+         */
+        get: operations["listBoardPlacesSuggest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/boards/{identifier}/places/{slug}": {
         parameters: {
             query?: never;
@@ -3546,7 +3566,7 @@ export interface paths {
         };
         /**
          * Resolve a public place slug to its page-meta
-         * @description Resolves a (board-language or English) taxonomy slug to its canonical slug, source slug, display name, and a `redirectTo` the frontend emits as a 308 when the inbound slug is not canonical. Place resolutions also carry `geo`.
+         * @description Resolves a (board-language or English) taxonomy slug to its canonical slug, source slug, display name, and a `redirectTo` the frontend emits as a 308 when the inbound slug is not canonical. Place resolutions also carry `geo`. A slug from `GET /boards/{identifier}/places/suggest` resolves to that settlement, with its point in `geo`.
          */
         get: operations["getBoardPlace"];
         put?: never;
@@ -6545,6 +6565,8 @@ export interface components {
                 messaging: boolean;
                 /** @description Whether the board's public contact form is live. Matches `enabled` on `GET /v1/boards/{identifier}/contact`, so chrome can decide whether to link to the contact page from this context alone. When `false`, `POST /contact` rejects. */
                 contactPage: boolean;
+                /** @description Whether `GET /v1/boards/{identifier}/places/suggest` suggests any place on this board (cities, towns and suburbs beyond the board's own places). When `false` it returns an empty list: offer only the board's places (`GET /places?q=`) and do not call it. */
+                placeSuggestions: boolean;
             };
             /**
              * @description How the operator charges employers for the candidate directory. `paid_messaging` leaves profiles fully visible and spends a credit on a first cold message; `paid_unlocks_and_messaging` also redacts directory cards and gates the opaque `/p/{id}` profile route behind an unlock credit. `null` means the operator has not chosen explicitly, in which case infer it from the published `talent_access` plans: any plan granting profile unlocks means `paid_unlocks_and_messaging`, otherwise `paid_messaging`. The paywall is inert regardless when the board publishes no talent plan. An anonymous viewer has no entitlement read to derive this from, so it ships here rather than only on `me/talent-access`.
@@ -7068,11 +7090,11 @@ export interface components {
                      */
                     lte?: string;
                 };
-                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). Pass `radius` to widen a city or locality to nearby jobs. Unresolvable slugs are ignored. */
+                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). Pass `radius` to widen a city or locality to nearby jobs. A place slug from `GET /places/suggest` returns jobs within `radius` km of that place, by default a distance that suits its size. Unresolvable slugs are ignored. */
                 location?: string;
-                /** @description Widen a city or locality `location` to also return jobs placed in a city or locality within this many kilometres of the place (1–250; decimals allowed, e.g. `8.05` for 5 miles). Omit for jobs in the place itself. Ignored for region and country places, and without `location`. */
+                /** @description Widen a city or locality `location` to also return jobs placed in a city or locality within this many kilometres of the place (1–250; decimals allowed, e.g. `8.05` for 5 miles). Omit for jobs in the place itself. Ignored for region and country places, and without `location`. For a place from `GET /places/suggest`, an omitted `radius` uses the place's own default distance: 15 km for a neighbourhood, 25 km for a town, 50 km for a city. */
                 radius?: number;
-                /** @description When `true` and `radius` is omitted, widen a city or locality `location` to the market default distance, computed from the resolved place: 25 miles (40.2336 km) in the US, GB, LR and MM, 50 km elsewhere. Regions, countries and places without coordinates are not widened. An explicit `radius` wins. */
+                /** @description When `true` and `radius` is omitted, widen a city or locality `location` to the market default distance, computed from the resolved place: 25 miles (40.2336 km) in the US, GB, LR and MM, 50 km elsewhere. Regions, countries and places without coordinates are not widened. An explicit `radius` wins. A place from `places/suggest` always uses its own default (15 km neighbourhood, 25 km town, 50 km city), with or without `defaultRadius`. */
                 defaultRadius?: boolean;
                 /** @description Public custom job fields. Clauses are AND-matched; values within a clause are OR-matched. Up to 10 clauses and 10 values per clause. */
                 customFields?: {
@@ -10348,10 +10370,10 @@ export interface operations {
                 customEmploymentType?: string[];
                 /** @description Only return jobs at any of the given seniority levels. Repeat the param for multiple values (up to 10). */
                 seniority?: ("entry_level" | "associate" | "mid_level" | "senior" | "lead" | "principal" | "director" | "executive")[];
-                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). Pass `radius` to widen a city or locality to nearby jobs. Unresolvable slugs are ignored. */
+                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). Pass `radius` to widen a city or locality to nearby jobs. A place slug from `GET /places/suggest` returns jobs within `radius` km of that place, by default a distance that suits its size. Unresolvable slugs are ignored. */
                 location?: string;
                 /**
-                 * @description Widen a city or locality `location` to also return jobs placed in a city or locality within this many kilometres of the place (1–250; decimals allowed, e.g. `8.05` for 5 miles). Omit for jobs in the place itself. Ignored for region and country places, and without `location`.
+                 * @description Widen a city or locality `location` to also return jobs placed in a city or locality within this many kilometres of the place (1–250; decimals allowed, e.g. `8.05` for 5 miles). Omit for jobs in the place itself. Ignored for region and country places, and without `location`. For a place from `GET /places/suggest`, an omitted `radius` uses the place's own default distance: 15 km for a neighbourhood, 25 km for a town, 50 km for a city.
                  * @example 50
                  */
                 radius?: number;
@@ -10434,7 +10456,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description The search core is unavailable (`search_unavailable`). */
+            /** @description The search core is unavailable (`search_unavailable`), or a `location` from `GET /places/suggest` could not be looked up (`locations_unavailable`). */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -11300,14 +11322,14 @@ export interface operations {
                 seniority?: ("entry_level" | "associate" | "mid_level" | "senior" | "lead" | "principal" | "director" | "executive")[];
                 /** @description Result ordering. `relevance` (default) is the featured-ranked browse; `newest` orders by publish date and `salary_high` by salary (no-salary jobs last). Any explicit sort unpins featured jobs. */
                 sort?: "relevance" | "newest" | "salary_high";
-                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). Pass `radius` to widen a city or locality to nearby jobs. Unresolvable slugs are ignored. */
+                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). Pass `radius` to widen a city or locality to nearby jobs. A place slug from `GET /places/suggest` returns jobs within `radius` km of that place, by default a distance that suits its size. Unresolvable slugs are ignored. */
                 location?: string;
                 /**
-                 * @description Widen a city or locality `location` to also return jobs placed in a city or locality within this many kilometres of the place (1–250; decimals allowed, e.g. `8.05` for 5 miles). Omit for jobs in the place itself. Ignored for region and country places, and without `location`.
+                 * @description Widen a city or locality `location` to also return jobs placed in a city or locality within this many kilometres of the place (1–250; decimals allowed, e.g. `8.05` for 5 miles). Omit for jobs in the place itself. Ignored for region and country places, and without `location`. For a place from `GET /places/suggest`, an omitted `radius` uses the place's own default distance: 15 km for a neighbourhood, 25 km for a town, 50 km for a city.
                  * @example 50
                  */
                 radius?: number;
-                /** @description When `true` and `radius` is omitted, widen a city or locality `location` to the market default distance, computed from the resolved place: 25 miles (40.2336 km) in the US, GB, LR and MM, 50 km elsewhere. Regions, countries and places without coordinates are not widened. An explicit `radius` wins. Lets a location page list nearby jobs without first resolving the place to pick a radius. */
+                /** @description When `true` and `radius` is omitted, widen a city or locality `location` to the market default distance, computed from the resolved place: 25 miles (40.2336 km) in the US, GB, LR and MM, 50 km elsewhere. Regions, countries and places without coordinates are not widened. An explicit `radius` wins. A place from `places/suggest` always uses its own default (15 km neighbourhood, 25 km town, 50 km city), with or without `defaultRadius`. Lets a location page list nearby jobs without first resolving the place to pick a radius. */
                 defaultRadius?: "true" | "false";
                 /** @description Seed the browse from a category slug (the programmatic `/jobs/[keyword]` page). The board resolves it to the English source name + canonical slug server-side; an unresolvable slug → 404. */
                 category?: string;
@@ -11384,7 +11406,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description The search core is unavailable (`search_unavailable`). */
+            /** @description The search core is unavailable (`search_unavailable`), or a `location` from `GET /places/suggest` could not be looked up (`locations_unavailable`). */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -11462,7 +11484,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description The search core is unavailable (`search_unavailable`), or one requested filter cannot be served yet on this board (`search_filter_unavailable`, with `details.filter` naming the key under `filters`, e.g. `categories` or `companyCustomFields`). The same search without that filter works. */
+            /** @description The search core is unavailable (`search_unavailable`), or one requested filter cannot be served yet on this board (`search_filter_unavailable`, with `details.filter` naming the key under `filters`, e.g. `categories` or `companyCustomFields`). The same search without that filter works. A `filters.location` from `GET /places/suggest` that cannot be looked up right now is `locations_unavailable`. */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -16799,11 +16821,12 @@ export interface operations {
                 jobSearchStatus?: "actively_looking" | "open_to_offers" | "not_looking";
                 /** @description Comma-separated language names. Candidates must list every name. */
                 languages?: string;
+                /** @description As on the public talent directory. */
                 openToRelocate?: "true" | "false";
                 /** @description As on the public talent directory. */
                 place?: string;
                 /**
-                 * @description Widen a city or locality `place` to also return candidates whose home city or locality is within this many kilometres of the place (1–250; decimals allowed, e.g. `8.05` for 5 miles). Omit for candidates in the place itself. Ignored for region and country places, and without `place`. Until the board's talent index has been re-synced with home locations, only the place itself matches.
+                 * @description Widen a city or locality `place` to also return candidates whose home city or locality is within this many kilometres of the place (1–250; decimals allowed, e.g. `8.05` for 5 miles). Omit for candidates in the place itself. Ignored for region and country places, and without `place`. For a place from `GET /places/suggest`, an omitted `radius` uses the place's own default distance: 15 km for a neighbourhood, 25 km for a town, 50 km for a city. Until the board's talent index has been re-synced with home locations, only the place itself matches.
                  * @example 50
                  */
                 radius?: number;
@@ -21026,6 +21049,79 @@ export interface operations {
             };
         };
     };
+    listBoardPlacesSuggest: {
+        parameters: {
+            query: {
+                /**
+                 * @description What the user has typed so far. Under 2 characters returns an empty list.
+                 * @example marr
+                 */
+                q: string;
+                /**
+                 * @description The searcher's approximate location as `lat,lng` in decimal degrees, for example the city their IP address locates them in. Nearer places rank higher. Never send a precise device position. Omit it to rank by size and name alone.
+                 * @example -33.87,151.21
+                 */
+                near?: string;
+                /**
+                 * @description Maximum suggestions (1–10; default 5).
+                 * @example 5
+                 */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        object: "list";
+                        url: string;
+                        hasMore: boolean;
+                        nextCursor: string | null;
+                        data: components["schemas"]["PublicPlace"][];
+                    };
+                };
+            };
+            /** @description Invalid query parameters (`validation_bad_request`). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Public board not found, or the board is private. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited (`rate_limited`). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     getBoardPlace: {
         parameters: {
             query?: never;
@@ -21051,6 +21147,15 @@ export interface operations {
             };
             /** @description Public board not found, or the taxonomy slug does not resolve. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A place from `GET /boards/{identifier}/places/suggest` could not be looked up (`locations_unavailable`). */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -22051,12 +22156,12 @@ export interface operations {
                 jobSearchStatus?: "actively_looking" | "open_to_offers" | "not_looking";
                 /** @description Comma-separated language names. Candidates must list every name. */
                 languages?: string;
-                /** @description Filter by open-to-relocate. */
+                /** @description `true` returns candidates who said they are open to relocate. `false` returns everyone else: candidates who said no and candidates who have not answered. Directory cards and profiles do not include the answer itself. */
                 openToRelocate?: "true" | "false";
                 /** @description English source place slug (a board-language place slug is also accepted, as on the jobs `location` filter). Matches candidates whose home place is that place or lies within it, so a country slug matches every city and region in that country. An unknown slug does not filter. Until the board's talent index has been re-synced with location data, this filter is ignored. Pass `radius` to widen a city or locality to nearby candidates. */
                 place?: string;
                 /**
-                 * @description Widen a city or locality `place` to also return candidates whose home city or locality is within this many kilometres of the place (1–250; decimals allowed, e.g. `8.05` for 5 miles). Omit for candidates in the place itself. Ignored for region and country places, and without `place`. Until the board's talent index has been re-synced with home locations, only the place itself matches.
+                 * @description Widen a city or locality `place` to also return candidates whose home city or locality is within this many kilometres of the place (1–250; decimals allowed, e.g. `8.05` for 5 miles). Omit for candidates in the place itself. Ignored for region and country places, and without `place`. For a place from `GET /places/suggest`, an omitted `radius` uses the place's own default distance: 15 km for a neighbourhood, 25 km for a town, 50 km for a city. Until the board's talent index has been re-synced with home locations, only the place itself matches.
                  * @example 50
                  */
                 radius?: number;
@@ -22132,6 +22237,15 @@ export interface operations {
             };
             /** @description Public board not found, or the talent directory is disabled. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A `place` from `GET /places/suggest` could not be looked up (`locations_unavailable`). */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

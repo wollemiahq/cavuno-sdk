@@ -38,6 +38,11 @@ export type TalentDirectoryQuery = {
   jobSearchStatus?: 'actively_looking' | 'open_to_offers' | 'not_looking';
   /** Comma-separated language names. */
   languages?: string;
+  /**
+   * `'true'`: candidates open to relocate. `'false'`: everyone else,
+   * including candidates who have not answered. Cards and profiles do not
+   * include the answer.
+   */
   openToRelocate?: 'true' | 'false';
   /**
    * Place slug: candidates whose home is the place or lies within it.
@@ -48,7 +53,9 @@ export type TalentDirectoryQuery = {
    * Widen a city or locality `place` to candidates whose home city or
    * locality is within this many km of it (1–250, decimals allowed). Omit
    * for candidates in the place itself. Ignored for region and country
-   * places, and without `place`.
+   * places, and without `place`. For a place from `taxonomy.places.suggest()`,
+   * an omitted radius uses the place's own default distance (15 km
+   * neighbourhood, 25 km town, 50 km city).
    */
   radius?: number;
   sort?: 'relevance' | 'newest';
