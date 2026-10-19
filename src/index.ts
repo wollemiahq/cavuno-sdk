@@ -499,6 +499,7 @@ export type {
 } from './types/job-posting';
 export type {
   CategoryListQuery,
+  PlaceSuggestQuery,
   PlacesListQuery,
   PublicPlace,
   RemotePermitTaxonomyEntry,

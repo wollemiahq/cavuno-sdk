@@ -3,6 +3,26 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.50.0 — 2026-10-19
+
+- New `board.taxonomy.places.suggest({ q, near, limit })`
+  (`GET /places/suggest`): suggests any town, city or neighbourhood by name,
+  not only places the board's jobs use, on boards where place search is on.
+  Pass `near` (`{ lat, lng }`, the visitor's approximate location) to rank
+  nearby places first. Each result is a `PublicPlace` with `jobCount` 0. Its
+  `slug` resolves with `board.taxonomy.places.resolve()` and works as the jobs
+  `location` filter, which then searches a radius around the place; without
+  `radius` that is 15 km for a neighbourhood, 25 km for a town and 50 km for a
+  city. A suggested place's `id` is not a `locationId` for job posting or
+  profiles. Where place search is off, `suggest` returns an empty list.
+- The board context has `features.placeSuggestions`: `true` where suggestions
+  are on. Check it before calling `suggest`.
+- A jobs, search or talent request whose `location` is a suggested place
+  returns 503 `locations_unavailable` when the place cannot be looked up
+  right now.
+- Removing an employer pipeline stage that still holds applicants returns 422
+  `employer_ats_unprocessable`; move the applicants to another stage first.
+
 ## 4.49.0 — 2026-10-17
 
 - The generated API types include `submitAgentFeedback` (`POST /v1/feedback`):

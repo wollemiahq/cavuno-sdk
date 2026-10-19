@@ -99,7 +99,9 @@ export type JobsListQuery = {
   /**
    * Widen a city or locality `location` to jobs placed in a city or
    * locality within this many km of it (1–250, decimals allowed). Omit for
-   * jobs in the place itself. Ignored for region and country places.
+   * jobs in the place itself. Ignored for region and country places. For a
+   * place from `taxonomy.places.suggest()`, an omitted radius uses the
+   * place's own default distance (15 km neighbourhood, 25 km town, 50 km city).
    */
   radius?: number;
   /**
@@ -107,7 +109,9 @@ export type JobsListQuery = {
    * default distance (25 mi in the US, GB, LR and MM; 50 km elsewhere),
    * computed from the resolved place. Regions and countries are not
    * widened; an explicit `radius` wins. Saves resolving the place first to
-   * pick the radius.
+   * pick the radius. A place from `places.suggest` always uses its own
+   * default (15 km neighbourhood, 25 km town, 50 km city), with or without
+   * this flag.
    */
   defaultRadius?: boolean;
   /** Category slug seed (the `/jobs/[keyword]` page) — server resolves it to the English source name; unresolvable → 404. */

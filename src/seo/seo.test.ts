@@ -56,6 +56,7 @@ const BOARD = {
     nativeApplications: true,
     messaging: true,
     contactPage: true,
+    placeSuggestions: false,
   },
   analytics: {
     ga4MeasurementId: null,
