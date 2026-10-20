@@ -120,11 +120,19 @@ export type JobsListQuery = {
   skill?: string;
   /** Sparse fieldset (Medusa-style `+field`). Only `'+description'` is supported — adds `description` to each card. */
   fields?: string;
+  /**
+   * Capability opt-ins, sent as the `capabilities` query parameter.
+   * `apply-gateway-v1` includes Sponsored jobs, which are left out without
+   * it; counts and pagination cover only the jobs returned.
+   */
+  capabilities?: JobCapability[];
 };
 
 /**
- * An opt-in capability token for `jobs.retrieve`. `apply-gateway-v1` selects
- * the country-gated Apply shape (opaque Sponsored Apply).
+ * An opt-in capability token. `apply-gateway-v1` declares that the caller
+ * renders opaque Sponsored Apply: `jobs.retrieve` returns the country-gated
+ * Apply shape, and the job lists include Sponsored jobs. Without it a
+ * Sponsored job is left out of the lists and `jobs.retrieve` returns 404.
  */
 export type JobCapability = 'apply-gateway-v1';
 
@@ -141,6 +149,12 @@ export type JobRetrieveQuery = {
 export type JobsSimilarQuery = {
   /** How many similar jobs to return (1–20; default 5). */
   limit?: number;
+  /**
+   * Capability opt-ins, sent as the `capabilities` query parameter.
+   * `apply-gateway-v1` includes Sponsored jobs, which are left out without
+   * it; counts and pagination cover only the jobs returned.
+   */
+  capabilities?: JobCapability[];
 };
 
 export type CustomFilterValue = string | number | boolean;
