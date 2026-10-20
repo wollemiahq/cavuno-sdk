@@ -3,6 +3,40 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.52.0 — 2026-10-20
+
+- Every salary page response has an `indexable` boolean: title, skill and
+  location details, title and skill by location, the four by-location and
+  by-place lists, and company and company-by-title salaries. When it is
+  `false`, render `<meta name="robots" content="noindex, follow">`; the page
+  still renders and its links stay followable. The board sitemap lists only
+  indexable salary pages.
+- Items in the salary lists (`SalaryCompany`, `SalaryTitle`, `SalarySkill`,
+  `SalaryLocation`, and the rows of the by-location and by-place lists) carry
+  `indexable` for the page they link to. Index a salary hub such as
+  `/salaries/titles` when at least one item it lists is indexable.
+- The generated API types include the company plan operations
+  (`/v1/companies/{id}/plan-assignments` and
+  `/v1/companies/{id}/plan-invoices`): list, create and revoke a company's
+  plan assignments, and list, create and cancel its plan invoices.
+- Operator API errors caused by the board's plan can carry an `upgrade` object
+  (`PlanUpgradeHint`) naming the blocking capability, the cheapest plan that
+  unlocks it, and the hosted checkout and plan-change endpoints. Board API
+  errors never carry it.
+- `GET` and `PATCH /v1/settings` carry the board's analytics tracking IDs
+  (`ga4MeasurementId`, `gtmContainerId`, `metaPixelId`, `linkedinPartnerId`
+  and the LinkedIn conversion IDs); `null` or an empty string clears one.
+- Board checkout status (job seeker access, talent access and membership)
+  can return `paymentStatus`, `'paid'` or `'processing'`, on a complete
+  session. On `'processing'` (a bank debit or transfer still clearing), stop
+  polling for access and tell the visitor their payment is processing.
+- The employer job read (`GET /me/companies/:slug/jobs/:id`) can return
+  `paymentProcessing: true` while a draft's delayed payment is still clearing.
+- The generated API types include the `/v1/job-feeds` operations
+  (`listJobFeeds`, `createJobFeed`, `getJobFeed`, `updateJobFeed`,
+  `deleteJobFeed`, `redetectJobFeedMapping`, `listJobFeedRuns`) to connect and
+  manage recurring XML job feeds.
+
 ## 4.51.0 — 2026-10-19
 
 - A category or location page can carry its own intro. Taxonomy resolutions
