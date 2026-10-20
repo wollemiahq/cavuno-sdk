@@ -1398,7 +1398,7 @@ export interface paths {
         };
         /**
          * Poll a candidate-access checkout session
-         * @description Read the state of a checkout session started by this board user: `open` (re-mountable via `clientSecret`), `complete`, or `expired`. Poll until `complete`, then re-read `GET /me/access/grant` to confirm entitlement.
+         * @description Read the state of a checkout session started by this board user: `open` (re-mountable via `clientSecret`), `complete`, or `expired`. Poll until `complete`. With `paymentStatus: "paid"`, re-read `GET /me/access/grant` to confirm entitlement; with `paymentStatus: "processing"`, a delayed payment has not cleared yet, so access is not granted until it does (usually a few business days); with `paymentStatus: "failed"`, the payment did not go through, nothing was granted, and the buyer can start a new checkout.
          */
         get: operations["getBoardMeAccessCheckout"];
         put?: never;
@@ -1966,7 +1966,7 @@ export interface paths {
         };
         /**
          * List my company's jobs
-         * @description Every job for the company identified by `:slug` (all statuses: draft, published, expired, archived, pending_approval), newest first. Requires an approved membership. Never cached.
+         * @description Every job for the company identified by `:slug` (all statuses: draft, published, expired, archived, pending_approval), newest first. Each job carries `paymentProcessing: true` while a delayed payment for it has not cleared. Requires an approved membership. Never cached.
          */
         get: operations["listBoardMeCompanyJobs"];
         put?: never;
@@ -1990,7 +1990,7 @@ export interface paths {
         };
         /**
          * Get one of my jobs
-         * @description The full job (any status) for `:slug`. Requires an approved membership. Never cached.
+         * @description The full job (any status) for `:slug`, with `paymentProcessing: true` while a delayed payment for it has not cleared. Requires an approved membership. Never cached.
          */
         get: operations["getBoardMeCompanyJob"];
         put?: never;
@@ -2182,7 +2182,7 @@ export interface paths {
         };
         /**
          * Poll a membership checkout session
-         * @description The state of a membership checkout session started for this company: `open` (re-mountable via `clientSecret`), `complete`, or `expired`. A session minted for another company or board is `paywall_invalid_checkout_session`. Never cached.
+         * @description The state of a membership checkout session started for this company: `open` (re-mountable via `clientSecret`), `complete`, or `expired`. A `complete` session carries `paymentStatus`: `processing` means a delayed payment (bank debit or transfer) has not cleared, so the membership starts only once it does; `failed` means the payment did not go through, no membership was started, and the buyer can start a new checkout. A session minted for another company or board is `paywall_invalid_checkout_session`. Never cached.
          */
         get: operations["getBoardMeCompanyMembershipCheckout"];
         put?: never;
@@ -3407,7 +3407,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Poll a talent-access checkout session */
+        /**
+         * Poll a talent-access checkout session
+         * @description The state of a talent-access checkout session this board user started: `open` (re-mountable via `clientSecret`), `complete`, or `expired`. A `complete` session carries `paymentStatus`: `processing` means a delayed payment (bank debit or transfer) has not cleared, so talent access is granted only once it does; `failed` means the payment did not go through, nothing was granted, and the buyer can start a new checkout.
+         */
         get: operations["getBoardMeTalentAccessCheckout"];
         put?: never;
         post?: never;
@@ -4169,6 +4172,11 @@ export interface components {
             /** @enum {string} */
             status: "open" | "complete" | "expired";
             clientSecret: string | null;
+            /**
+             * @description Present only when `status` is `complete`. `paid`: the payment has arrived (or none was due); the purchase is granted once the payment webhook lands, so a short poll of the entitlement read sees it. `processing`: the buyer paid with a delayed method (SEPA / Bacs / ACH debit, bank transfer) that has not cleared yet. Nothing is granted until it clears, usually within a few business days, so stop polling and tell the buyer their payment is processing; read the session again later (for example on their next visit) to see whether it cleared or failed. `failed`: that delayed payment did not go through. Nothing was granted; the buyer can start a new checkout.
+             * @enum {string}
+             */
+            paymentStatus?: "paid" | "processing" | "failed";
         };
         AccessGrant: {
             /** @enum {string} */
@@ -4797,6 +4805,8 @@ export interface components {
             boardCategoryP25Min: number | null;
             boardCategoryP75Max: number | null;
             currency: string;
+            /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
+            indexable: boolean;
         };
         CompanyMarket: {
             /** @enum {string} */
@@ -4987,6 +4997,8 @@ export interface components {
             boardP25Max: number | null;
             boardP75Max: number | null;
             currency: string;
+            /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
+            indexable: boolean;
         };
         CompanySalarySummary: {
             /** @enum {string} */
@@ -5710,6 +5722,8 @@ export interface components {
                 [key: string]: string[];
             };
             links: components["schemas"]["EmployerJobLinks"];
+            /** @description Returned by `GET …/jobs` (each job) and `GET …/jobs/:id`. `true` when the employer paid for this job with a delayed method (SEPA / Bacs / ACH debit, bank transfer) that has not cleared yet. The job stays a `draft` until the payment clears (usually within a few business days), then the paid listing goes through; a new checkout for the job is refused meanwhile. Show it as "payment processing" rather than an unpaid draft. */
+            paymentProcessing?: boolean;
         };
         EmployerPipeline: {
             /** @enum {string} */
@@ -5864,6 +5878,7 @@ export interface components {
                 requestId: string;
                 /** @description Structured context for some errors, such as per-field validation issues. */
                 details?: unknown;
+                upgrade?: components["schemas"]["PlanUpgradeHint"];
             };
         };
         /**
@@ -6132,6 +6147,8 @@ export interface components {
             boardOverallAvgMin: number | null;
             boardOverallAvgMax: number | null;
             currency: string;
+            /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
+            indexable: boolean;
         };
         LocationSkillsIndex: {
             /** @enum {string} */
@@ -6147,7 +6164,11 @@ export interface components {
                 jobCount: number;
                 /** @description ISO 4217 code of the amounts: the board's salary currency (USD unless the board set another). */
                 currency?: string;
+                /** @description Whether the salary page this item links to is worth indexing. When `false`, that page renders `<meta name="robots" content="noindex, follow">` and is left out of the board sitemap. */
+                indexable: boolean;
             }[];
+            /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
+            indexable: boolean;
         };
         LocationTitlesIndex: {
             /** @enum {string} */
@@ -6163,7 +6184,11 @@ export interface components {
                 jobCount: number;
                 /** @description ISO 4217 code of the amounts: the board's salary currency (USD unless the board set another). */
                 currency?: string;
+                /** @description Whether the salary page this item links to is worth indexing. When `false`, that page renders `<meta name="robots" content="noindex, follow">` and is left out of the board sitemap. */
+                indexable: boolean;
             }[];
+            /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
+            indexable: boolean;
         };
         MarketSuggestion: {
             /** @enum {string} */
@@ -6336,6 +6361,33 @@ export interface components {
                     dataType: string;
                     displayOrder?: number;
                 };
+            };
+        };
+        /** @description Present only on Operator API errors caused by the board's Cavuno plan. Read `GET /v1/billing/subscription` to choose between `checkout` and `changePlan`, call it with `{ "planKey": requiredPlan }`, and give the returned `url` to a person to confirm. Each `path` is relative to the API origin, not to a `/v1` base URL. Both endpoints need `billing.manage`. Board API errors never include it. */
+        PlanUpgradeHint: {
+            /**
+             * @description The plan capability that blocked the request, named as in `GET /v1/billing/subscription` `capabilities`.
+             * @enum {string}
+             */
+            capability: "activeJobsLimit" | "teamSeatLimit" | "canBePublic" | "canRemoveBranding" | "apiAccess";
+            /**
+             * @description The cheapest self-serve plan that unlocks the action. Pass it as `planKey`. Omitted when it cannot be told without more information; read `GET /v1/billing/subscription` and pick a higher plan.
+             * @enum {string}
+             */
+            requiredPlan?: "starter" | "basic" | "grow" | "advanced" | "scale";
+            /** @description Starts a hosted checkout when the board has no active subscription (for example during a trial). */
+            checkout: {
+                /** @enum {string} */
+                method: "POST";
+                /** @enum {string} */
+                path: "/v1/billing/checkout";
+            };
+            /** @description Starts a hosted plan change when the board already has an active subscription. */
+            changePlan: {
+                /** @enum {string} */
+                method: "POST";
+                /** @enum {string} */
+                path: "/v1/billing/upgrade";
             };
         };
         PostSuggestion: {
@@ -7428,6 +7480,8 @@ export interface components {
             avgSalaryMax: number;
             jobCount: number;
             currency: string;
+            /** @description Whether the salary page this item links to is worth indexing. When `false`, that page renders `<meta name="robots" content="noindex, follow">` and is left out of the board sitemap. Index a salary hub (`/salaries/companies`, `/salaries/titles`, `/salaries/skills`, `/salaries/locations`) when at least one item it lists is indexable, and the `/salaries` overview when any item in these hub lists is indexable; otherwise render the hub with `noindex, follow`. A page that has its own `indexable` field uses that instead. */
+            indexable: boolean;
         };
         SalaryLocationIndexItem: {
             /** @enum {string} */
@@ -7443,6 +7497,8 @@ export interface components {
             jobCount: number;
             /** @description ISO 4217 code of the amounts: the board's salary currency (USD unless the board set another). */
             currency?: string;
+            /** @description Whether the salary page this item links to is worth indexing. When `false`, that page renders `<meta name="robots" content="noindex, follow">` and is left out of the board sitemap. Index a salary hub (`/salaries/companies`, `/salaries/titles`, `/salaries/skills`, `/salaries/locations`) when at least one item it lists is indexable, and the `/salaries` overview when any item in these hub lists is indexable; otherwise render the hub with `noindex, follow`. A page that has its own `indexable` field uses that instead. */
+            indexable: boolean;
         };
         SalarySkillIndexItem: {
             /** @enum {string} */
@@ -7455,6 +7511,8 @@ export interface components {
             p75SalaryMax: number;
             jobCount: number;
             currency: string;
+            /** @description Whether the salary page this item links to is worth indexing. When `false`, that page renders `<meta name="robots" content="noindex, follow">` and is left out of the board sitemap. Index a salary hub (`/salaries/companies`, `/salaries/titles`, `/salaries/skills`, `/salaries/locations`) when at least one item it lists is indexable, and the `/salaries` overview when any item in these hub lists is indexable; otherwise render the hub with `noindex, follow`. A page that has its own `indexable` field uses that instead. */
+            indexable: boolean;
         };
         SalaryTitleIndexItem: {
             /** @enum {string} */
@@ -7467,6 +7525,8 @@ export interface components {
             p75SalaryMax: number;
             jobCount: number;
             currency: string;
+            /** @description Whether the salary page this item links to is worth indexing. When `false`, that page renders `<meta name="robots" content="noindex, follow">` and is left out of the board sitemap. Index a salary hub (`/salaries/companies`, `/salaries/titles`, `/salaries/skills`, `/salaries/locations`) when at least one item it lists is indexable, and the `/salaries` overview when any item in these hub lists is indexable; otherwise render the hub with `noindex, follow`. A page that has its own `indexable` field uses that instead. */
+            indexable: boolean;
         };
         /** @description Deprecated. Prefer public plans with purpose employer_service and pricingMode contact. */
         SalesLedPlan: {
@@ -7585,6 +7645,8 @@ export interface components {
             boardSkillAvgMin: number | null;
             boardSkillAvgMax: number | null;
             currency: string;
+            /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
+            indexable: boolean;
         };
         SkillLocationsIndex: {
             /** @enum {string} */
@@ -7594,6 +7656,8 @@ export interface components {
             skillName: string;
             currency: string;
             locations: components["schemas"]["SalaryLocationIndexItem"][];
+            /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
+            indexable: boolean;
         };
         SkillSalaryDetail: {
             /** @enum {string} */
@@ -7659,6 +7723,8 @@ export interface components {
             boardMedianMin: number | null;
             boardMedianMax: number | null;
             currency: string;
+            /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
+            indexable: boolean;
         };
         SourcedCandidate: {
             id: string;
@@ -8034,6 +8100,8 @@ export interface components {
             boardCategoryAvgMin: number | null;
             boardCategoryAvgMax: number | null;
             currency: string;
+            /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
+            indexable: boolean;
         };
         TitleLocationsIndex: {
             /** @enum {string} */
@@ -8043,6 +8111,8 @@ export interface components {
             categoryName: string;
             currency: string;
             locations: components["schemas"]["SalaryLocationIndexItem"][];
+            /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
+            indexable: boolean;
         };
         TitleSalaryDetail: {
             /** @enum {string} */
@@ -8114,6 +8184,8 @@ export interface components {
             boardP25Min: number | null;
             boardP75Max: number | null;
             currency: string;
+            /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
+            indexable: boolean;
         };
         UnreadCount: {
             /** @enum {string} */

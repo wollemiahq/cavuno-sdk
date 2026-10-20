@@ -756,11 +756,20 @@ export function meNamespace(client: BoardClient) {
 
       /**
        * Poll a membership checkout session started for this company: `open`
-       * (re-mountable via `clientSecret`), `complete`, or `expired`. A session
-       * minted for another company is 404 `paywall_invalid_checkout_session`.
+       * (re-mountable via `clientSecret`), `complete`, or `expired`. A
+       * `complete` session carries `paymentStatus`: `processing` means a
+       * delayed payment (bank debit or transfer) has not cleared, so the
+       * membership starts only once it does, usually within a few business
+       * days. Stop polling and tell the buyer; read the session again later
+       * (for example on their next visit) to see whether it cleared or
+       * failed. `failed` means the payment did
+       * not go through: no membership was started, and the buyer can start a
+       * new checkout. A session minted for another company is 404
+       * `paywall_invalid_checkout_session`.
        *
        * @example
        * const s = await board.me.companies.retrieveMembershipCheckout('acme', kit.sessionId);
+       * if (s.paymentStatus === 'processing') renderPaymentProcessing();
        */
       retrieveMembershipCheckout(
         slug: string,
@@ -890,10 +899,14 @@ export function meNamespace(client: BoardClient) {
        */
       jobs: {
         /**
-         * List a company's jobs (all statuses), newest first.
+         * List a company's jobs (all statuses), newest first. Each job
+         * carries `paymentProcessing`, `true` while the employer's bank debit
+         * or transfer for it has not cleared: the job stays a `draft` until it
+         * does, so label it "payment processing" rather than "draft".
          *
          * @example
          * const { data } = await board.me.companies.jobs.list('acme');
+         * const label = data[0]?.paymentProcessing ? 'Payment processing' : data[0]?.status;
          */
         list(
           slug: string,
@@ -908,9 +921,15 @@ export function meNamespace(client: BoardClient) {
 
         /**
          * Retrieve one of my company's jobs (any status), fully enriched.
+         * `paymentProcessing` is `true` while the employer's bank debit or
+         * transfer for the job has not cleared: the job stays a `draft` until
+         * it does (usually a few business days) and a new `checkout` is
+         * refused meanwhile, so show "payment processing" rather than an
+         * unpaid draft.
          *
          * @example
          * const job = await board.me.companies.jobs.retrieve('acme', jobId);
+         * if (job.paymentProcessing) renderPaymentProcessing();
          */
         retrieve(slug: string, id: string, options?: FetchOptions) {
           return client.fetch<EmployerJob>(
@@ -1807,10 +1826,18 @@ export function meNamespace(client: BoardClient) {
       /**
        * Poll a talent-access checkout session: `open` (re-mountable via
        * `clientSecret`), `complete`, or `expired`. The session must be
-       * `origin: talent_access` for this board user.
+       * `origin: talent_access` for this board user. A `complete` session
+       * carries `paymentStatus`: on `processing` a delayed payment (bank debit
+       * or transfer) has not cleared, so access is not granted until it does.
+       * Stop polling `retrieve()` and tell the buyer; read the session again
+       * later (for example on their next visit) to see whether it cleared or
+       * failed. On `failed` the payment
+       * did not go through: nothing was granted, and the buyer can start a
+       * new checkout.
        *
        * @example
        * const s = await board.me.talentAccess.retrieveCheckout(kit.sessionId);
+       * if (s.paymentStatus === 'processing') renderPaymentProcessing();
        */
       retrieveCheckout(sessionId: string, options?: FetchOptions) {
         return client.fetch<TalentAccessCheckoutSessionState>(
@@ -2472,11 +2499,20 @@ export function meNamespace(client: BoardClient) {
 
       /**
        * Poll a checkout session's state: `open` (re-mountable via
-       * `clientSecret`), `complete`, or `expired`. On `complete`, re-read
-       * `grant()` to confirm entitlement.
+       * `clientSecret`), `complete`, or `expired`. On `complete` with
+       * `paymentStatus: 'paid'`, re-read `grant()` to confirm entitlement. On
+       * `paymentStatus: 'processing'` a delayed payment (bank debit or
+       * transfer) has not cleared, so `grant()` stays `hasAccess: false` until
+       * it does, usually within a few business days. Stop polling and tell
+       * the buyer their payment is processing; read the session again later
+       * (for example on their next visit) to see whether it cleared or
+       * failed. On `paymentStatus: 'failed'`
+       * the payment did not go through: nothing was granted, and the buyer
+       * can start a new checkout.
        *
        * @example
        * const s = await board.me.access.retrieveCheckout(kit.sessionId);
+       * if (s.paymentStatus === 'processing') renderPaymentProcessing();
        */
       retrieveCheckout(sessionId: string, options?: FetchOptions) {
         return client.fetch<AccessCheckoutSessionState>(
