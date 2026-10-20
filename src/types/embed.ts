@@ -3,7 +3,12 @@
 // mirrors the browse list's facets + geo, plus a free-text `q` keyword.
 // Deliberately has NO `category`/`skill` programmatic seeding and NO
 // `fields` sparse fieldset. Repeated params are `T[]`.
-import type { EmploymentType, RemoteOption, Seniority } from './jobs';
+import type {
+  EmploymentType,
+  JobCapability,
+  RemoteOption,
+  Seniority,
+} from './jobs';
 
 export type EmbedJobsQuery = {
   /** Free-text search query, up to 200 characters. */
@@ -31,4 +36,10 @@ export type EmbedJobsQuery = {
    * place's own default distance (15 km neighbourhood, 25 km town, 50 km city).
    */
   radius?: number;
+  /**
+   * Capability opt-ins, sent as the `capabilities` query parameter.
+   * `apply-gateway-v1` includes Sponsored jobs, which are left out without
+   * it; counts and pagination cover only the jobs returned.
+   */
+  capabilities?: JobCapability[];
 };

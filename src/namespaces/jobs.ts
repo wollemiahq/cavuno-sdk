@@ -37,7 +37,10 @@ export function jobsNamespace(client: BoardClient) {
     },
 
     /**
-     * List published jobs.
+     * List published jobs. A starter that renders opaque Sponsored Apply
+     * passes `{ capabilities: ['apply-gateway-v1'] }` to include Sponsored
+     * jobs; other callers do not see them. The opt-in travels in the URL, so
+     * the response stays shared-cacheable.
      *
      * @example
      * const { data, nextCursor } = await board.jobs.list({ limit: 20 });
@@ -81,7 +84,9 @@ export function jobsNamespace(client: BoardClient) {
     },
 
     /**
-     * Free-text + faceted job search.
+     * Free-text + faceted job search. Sponsored jobs are included only when
+     * `options.headers` carries `x-cavuno-board-capabilities: apply-gateway-v1`
+     * (a search is never cached, so the header form costs nothing).
      *
      * @example
      * const { data } = await board.jobs.search({
@@ -106,6 +111,8 @@ export function jobsNamespace(client: BoardClient) {
      * List jobs similar to one job — the same ranking that powers the
      * on-page similar-jobs rail. Returns up to `limit` slim cards (default
      * 5), excluding the job itself and any role at the same company.
+     * Sponsored jobs are included only with
+     * `{ capabilities: ['apply-gateway-v1'] }`, as for `list`.
      *
      * @example
      * const { data } = await board.jobs.similar('senior-chef', { limit: 5 });

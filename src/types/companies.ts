@@ -5,7 +5,11 @@
 import type { Schemas } from './_spec';
 import type { ListEnvelope } from './common';
 import type { RelatedSearch } from './jobs';
-import type { CustomFieldFilter, ObjectReferenceFilter } from './jobs';
+import type {
+  CustomFieldFilter,
+  JobCapability,
+  ObjectReferenceFilter,
+} from './jobs';
 
 export type PublicCompany = Schemas['CompanyPublic'];
 
@@ -73,6 +77,12 @@ export type CompanyJobsListQuery = {
   cursor?: string;
   /** 1–100. */
   limit?: number;
+  /**
+   * Capability opt-ins, sent as the `capabilities` query parameter.
+   * `apply-gateway-v1` includes Sponsored jobs, which are left out without
+   * it; counts and pagination cover only the jobs returned.
+   */
+  capabilities?: JobCapability[];
 };
 
 export type CompanySimilarQuery = {

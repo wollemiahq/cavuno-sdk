@@ -672,7 +672,7 @@ export interface paths {
         };
         /**
          * List published jobs at a public company
-         * @description Returns a single company's published jobs on the named public board, ranked by the hosted search core (featured first) and paginated with job catalog `count`/`limit`/`offset`.
+         * @description Returns a single company's published jobs on the named public board, ranked by the hosted search core (featured first) and paginated with job catalog `count`/`limit`/`offset`. Sponsored jobs are included only for callers that opt in with `capabilities=apply-gateway-v1` (shared-cacheable) or the Apply gateway capability header (never cached).
          */
         get: operations["listBoardCompanyJobs"];
         put?: never;
@@ -793,7 +793,7 @@ export interface paths {
         };
         /**
          * List a public board's jobs for an embeddable widget
-         * @description Returns published jobs for the named public board, ranked by the hosted search core (featured jobs first) and paginated with job catalog `count`/`limit`/`offset`. Identical to `GET /boards/{identifier}/jobs` EXCEPT it is **ungated**. The candidate paywall never applies, so the full page is always returned and there is no `gatedCount` (it powers the public "Powered by Cavuno" embed widget). The board password wall and plan-entitlement gate still apply. `limit` defaults to 8 and is clamped to a maximum of 50.
+         * @description Returns published jobs for the named public board, ranked by the hosted search core (featured jobs first) and paginated with job catalog `count`/`limit`/`offset`. Identical to `GET /boards/{identifier}/jobs` EXCEPT it is **ungated**. The candidate paywall never applies, so the full page is always returned and there is no `gatedCount` (it powers the public "Powered by Cavuno" embed widget). The board password wall and plan-entitlement gate still apply. `limit` defaults to 8 and is clamped to a maximum of 50. Sponsored jobs are included only for callers that opt in with `capabilities=apply-gateway-v1` (shared-cacheable) or the Apply gateway capability header (never cached).
          */
         get: operations["listBoardEmbedJobs"];
         put?: never;
@@ -1134,7 +1134,7 @@ export interface paths {
         };
         /**
          * List a public board's jobs
-         * @description Returns published jobs for the named public board, ranked by the hosted search core (featured jobs first) and paginated with job catalog `count`/`limit`/`offset`. The shipped opaque `nextCursor` is preserved as a forward token. If the provided company filter resolves to no known companies, the result is empty.
+         * @description Returns published jobs for the named public board, ranked by the hosted search core (featured jobs first) and paginated with job catalog `count`/`limit`/`offset`. The shipped opaque `nextCursor` is preserved as a forward token. If the provided company filter resolves to no known companies, the result is empty. Sponsored jobs are included only for callers that opt in with `capabilities=apply-gateway-v1` (shared-cacheable) or the Apply gateway capability header (never cached).
          */
         get: operations["listBoardJobs"];
         put?: never;
@@ -1156,7 +1156,7 @@ export interface paths {
         put?: never;
         /**
          * Search a public board's jobs
-         * @description Searches published jobs on the named public board using a free-text query and faceted filters. Results are ranked by the hosted search core: by relevance with featured jobs first by default; pass `sort` to order by publish date or salary (which unpins featured). Each filter array accepts up to 10 values. If the provided company filter resolves to no known companies, the result is empty.
+         * @description Searches published jobs on the named public board using a free-text query and faceted filters. Results are ranked by the hosted search core: by relevance with featured jobs first by default; pass `sort` to order by publish date or salary (which unpins featured). Each filter array accepts up to 10 values. If the provided company filter resolves to no known companies, the result is empty. Sponsored jobs are included only for callers that send the Apply gateway capability header.
          */
         post: operations["searchBoardJobs"];
         delete?: never;
@@ -1174,7 +1174,7 @@ export interface paths {
         };
         /**
          * Retrieve a public job by slug
-         * @description Retrieves a published job by its slug on the named public board. Only published jobs are returned. Compatible starters opt in to the country-gated Apply shape with `capabilities=apply-gateway-v1` (shared-cacheable) or the Apply gateway capability header (never cached); other callers keep the legacy shape.
+         * @description Retrieves a published job by its slug on the named public board. Only published jobs are returned. Compatible starters opt in to the country-gated Apply shape with `capabilities=apply-gateway-v1` (shared-cacheable) or the Apply gateway capability header (never cached); other callers keep the legacy shape, and a Sponsored job returns 404 `jobs_not_found` to them.
          */
         get: operations["getBoardJob"];
         put?: never;
@@ -1294,7 +1294,7 @@ export interface paths {
         };
         /**
          * List jobs similar to a job
-         * @description Returns up to `limit` published jobs most similar to the named job, ranked by the hosted search core (vector similarity weighted by geo distance and same-country/region/remote signals). Excludes the job itself and any role at the same company. The same ranking powers the on-page similar-jobs rail.
+         * @description Returns up to `limit` published jobs most similar to the named job, ranked by the hosted search core (vector similarity weighted by geo distance and same-country/region/remote signals). Excludes the job itself and any role at the same company. The same ranking powers the on-page similar-jobs rail. Sponsored jobs are included only for callers that opt in with `capabilities=apply-gateway-v1` (shared-cacheable) or the Apply gateway capability header (never cached).
          */
         get: operations["listBoardJobSimilar"];
         put?: never;
@@ -3257,7 +3257,7 @@ export interface paths {
         };
         /**
          * List Job recommendations
-         * @description Personalized job recommendations for the authenticated board user, ranked best-match first from their candidate profile (skills, roles, seniority, work authorization). Each item embeds the same slim `job_card` the jobs list emits. Jobs the user already applied to are excluded; saved jobs are included. An empty list means the profile has no usable matching signal yet (e.g. no resume parsed) — check `/me/profile` to drive an upload prompt. Ranking is computed server-side and improves over time without contract changes. Never cached.
+         * @description Personalized job recommendations for the authenticated board user, ranked best-match first from their candidate profile (skills, roles, seniority, work authorization). Each item embeds the same slim `job_card` the jobs list emits. Jobs the user already applied to are excluded; saved jobs are included. An empty list means the profile has no usable matching signal yet (e.g. no resume parsed) — check `/me/profile` to drive an upload prompt. Ranking is computed server-side and improves over time without contract changes. Sponsored jobs are included only for callers that send the Apply gateway capability header. Never cached.
          */
         get: operations["listBoardMeRecommendedJobs"];
         put?: never;
@@ -10106,8 +10106,13 @@ export interface operations {
                  * @example 0
                  */
                 offset?: number | null;
+                /** @description Opt-in capability tokens. `apply-gateway-v1` includes Sponsored jobs (`isSponsored: true`), which are left out for callers that do not send it; counts and pagination cover only the jobs returned. Same effect as the `x-cavuno-board-capabilities` header, but the response stays shared-cacheable under its own URL (the header form is never cached). Repeat the param or comma-separate for several tokens; unknown tokens are ignored. */
+                capabilities?: string[];
             };
-            header?: never;
+            header?: {
+                /** @description Explicit opt-in for the compatible Cavuno starter Apply gateway protocol. */
+                "x-cavuno-board-capabilities"?: "apply-gateway-v1";
+            };
             path: {
                 /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
                 identifier: string;
@@ -10463,8 +10468,13 @@ export interface operations {
                  * @example 50
                  */
                 radius?: number;
+                /** @description Opt-in capability tokens. `apply-gateway-v1` includes Sponsored jobs (`isSponsored: true`), which are left out for callers that do not send it; counts and pagination cover only the jobs returned. Same effect as the `x-cavuno-board-capabilities` header, but the response stays shared-cacheable under its own URL (the header form is never cached). Repeat the param or comma-separate for several tokens; unknown tokens are ignored. */
+                capabilities?: string[];
             };
-            header?: never;
+            header?: {
+                /** @description Explicit opt-in for the compatible Cavuno starter Apply gateway protocol. */
+                "x-cavuno-board-capabilities"?: "apply-gateway-v1";
+            };
             path: {
                 /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
                 identifier: string;
@@ -11423,8 +11433,13 @@ export interface operations {
                 skill?: string;
                 /** @description Sparse fieldset (Medusa-style `+field`): opt into non-default card fields. Only `+description` is supported: it adds the long-form `description` (HTML) each slim card omits by default. Used by the RSS feed. */
                 fields?: string;
+                /** @description Opt-in capability tokens. `apply-gateway-v1` includes Sponsored jobs (`isSponsored: true`), which are left out for callers that do not send it; counts and pagination cover only the jobs returned. Same effect as the `x-cavuno-board-capabilities` header, but the response stays shared-cacheable under its own URL (the header form is never cached). Repeat the param or comma-separate for several tokens; unknown tokens are ignored. */
+                capabilities?: string[];
             };
-            header?: never;
+            header?: {
+                /** @description Explicit opt-in for the compatible Cavuno starter Apply gateway protocol. */
+                "x-cavuno-board-capabilities"?: "apply-gateway-v1";
+            };
             path: {
                 /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
                 identifier: string;
@@ -11506,7 +11521,10 @@ export interface operations {
     searchBoardJobs: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Explicit opt-in for the compatible Cavuno starter Apply gateway protocol. */
+                "x-cavuno-board-capabilities"?: "apply-gateway-v1";
+            };
             path: {
                 /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
                 identifier: string;
@@ -11610,7 +11628,7 @@ export interface operations {
                     "application/json": components["schemas"]["PublicJob"];
                 };
             };
-            /** @description Public board not found, or the supplied job slug does not resolve to a published job on the board. */
+            /** @description Public board not found, or the supplied job slug does not resolve to a published job on the board, or the job is Sponsored and the caller did not opt in to the Apply gateway capability. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -11905,8 +11923,13 @@ export interface operations {
                  * @example 5
                  */
                 limit?: number;
+                /** @description Opt-in capability tokens. `apply-gateway-v1` includes Sponsored jobs (`isSponsored: true`), which are left out for callers that do not send it; counts and pagination cover only the jobs returned. Same effect as the `x-cavuno-board-capabilities` header, but the response stays shared-cacheable under its own URL (the header form is never cached). Repeat the param or comma-separate for several tokens; unknown tokens are ignored. */
+                capabilities?: string[];
             };
-            header?: never;
+            header?: {
+                /** @description Explicit opt-in for the compatible Cavuno starter Apply gateway protocol. */
+                "x-cavuno-board-capabilities"?: "apply-gateway-v1";
+            };
             path: {
                 /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
                 identifier: string;
@@ -20160,7 +20183,10 @@ export interface operations {
                 cursor?: string;
                 limit?: number;
             };
-            header?: never;
+            header?: {
+                /** @description Explicit opt-in for the compatible Cavuno starter Apply gateway protocol. */
+                "x-cavuno-board-capabilities"?: "apply-gateway-v1";
+            };
             path: {
                 /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
                 identifier: string;
