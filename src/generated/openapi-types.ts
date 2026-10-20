@@ -4797,6 +4797,8 @@ export interface components {
             boardCategoryP25Min: number | null;
             boardCategoryP75Max: number | null;
             currency: string;
+            /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
+            indexable: boolean;
         };
         CompanyMarket: {
             /** @enum {string} */
@@ -4987,6 +4989,8 @@ export interface components {
             boardP25Max: number | null;
             boardP75Max: number | null;
             currency: string;
+            /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
+            indexable: boolean;
         };
         CompanySalarySummary: {
             /** @enum {string} */
@@ -5864,6 +5868,7 @@ export interface components {
                 requestId: string;
                 /** @description Structured context for some errors, such as per-field validation issues. */
                 details?: unknown;
+                upgrade?: components["schemas"]["PlanUpgradeHint"];
             };
         };
         /**
@@ -6132,6 +6137,8 @@ export interface components {
             boardOverallAvgMin: number | null;
             boardOverallAvgMax: number | null;
             currency: string;
+            /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
+            indexable: boolean;
         };
         LocationSkillsIndex: {
             /** @enum {string} */
@@ -6147,7 +6154,11 @@ export interface components {
                 jobCount: number;
                 /** @description ISO 4217 code of the amounts: the board's salary currency (USD unless the board set another). */
                 currency?: string;
+                /** @description Whether the salary page this item links to is worth indexing. When `false`, that page renders `<meta name="robots" content="noindex, follow">` and is left out of the board sitemap. */
+                indexable: boolean;
             }[];
+            /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
+            indexable: boolean;
         };
         LocationTitlesIndex: {
             /** @enum {string} */
@@ -6163,7 +6174,11 @@ export interface components {
                 jobCount: number;
                 /** @description ISO 4217 code of the amounts: the board's salary currency (USD unless the board set another). */
                 currency?: string;
+                /** @description Whether the salary page this item links to is worth indexing. When `false`, that page renders `<meta name="robots" content="noindex, follow">` and is left out of the board sitemap. */
+                indexable: boolean;
             }[];
+            /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
+            indexable: boolean;
         };
         MarketSuggestion: {
             /** @enum {string} */
@@ -6336,6 +6351,33 @@ export interface components {
                     dataType: string;
                     displayOrder?: number;
                 };
+            };
+        };
+        /** @description Present only on Operator API errors caused by the board's Cavuno plan. Read `GET /v1/billing/subscription` to choose between `checkout` and `changePlan`, call it with `{ "planKey": requiredPlan }`, and give the returned `url` to a person to confirm. Each `path` is relative to the API origin, not to a `/v1` base URL. Both endpoints need `billing.manage`. Board API errors never include it. */
+        PlanUpgradeHint: {
+            /**
+             * @description The plan capability that blocked the request, named as in `GET /v1/billing/subscription` `capabilities`.
+             * @enum {string}
+             */
+            capability: "activeJobsLimit" | "teamSeatLimit" | "canBePublic" | "canRemoveBranding" | "apiAccess";
+            /**
+             * @description The cheapest self-serve plan that unlocks the action. Pass it as `planKey`. Omitted when it cannot be told without more information; read `GET /v1/billing/subscription` and pick a higher plan.
+             * @enum {string}
+             */
+            requiredPlan?: "starter" | "basic" | "grow" | "advanced" | "scale";
+            /** @description Starts a hosted checkout when the board has no active subscription (for example during a trial). */
+            checkout: {
+                /** @enum {string} */
+                method: "POST";
+                /** @enum {string} */
+                path: "/v1/billing/checkout";
+            };
+            /** @description Starts a hosted plan change when the board already has an active subscription. */
+            changePlan: {
+                /** @enum {string} */
+                method: "POST";
+                /** @enum {string} */
+                path: "/v1/billing/upgrade";
             };
         };
         PostSuggestion: {
@@ -7428,6 +7470,8 @@ export interface components {
             avgSalaryMax: number;
             jobCount: number;
             currency: string;
+            /** @description Whether the salary page this item links to is worth indexing. When `false`, that page renders `<meta name="robots" content="noindex, follow">` and is left out of the board sitemap. Index a salary hub (`/salaries/companies`, `/salaries/titles`, `/salaries/skills`, `/salaries/locations`) when at least one item it lists is indexable, and the `/salaries` overview when any item in these hub lists is indexable; otherwise render the hub with `noindex, follow`. A page that has its own `indexable` field uses that instead. */
+            indexable: boolean;
         };
         SalaryLocationIndexItem: {
             /** @enum {string} */
@@ -7443,6 +7487,8 @@ export interface components {
             jobCount: number;
             /** @description ISO 4217 code of the amounts: the board's salary currency (USD unless the board set another). */
             currency?: string;
+            /** @description Whether the salary page this item links to is worth indexing. When `false`, that page renders `<meta name="robots" content="noindex, follow">` and is left out of the board sitemap. Index a salary hub (`/salaries/companies`, `/salaries/titles`, `/salaries/skills`, `/salaries/locations`) when at least one item it lists is indexable, and the `/salaries` overview when any item in these hub lists is indexable; otherwise render the hub with `noindex, follow`. A page that has its own `indexable` field uses that instead. */
+            indexable: boolean;
         };
         SalarySkillIndexItem: {
             /** @enum {string} */
@@ -7455,6 +7501,8 @@ export interface components {
             p75SalaryMax: number;
             jobCount: number;
             currency: string;
+            /** @description Whether the salary page this item links to is worth indexing. When `false`, that page renders `<meta name="robots" content="noindex, follow">` and is left out of the board sitemap. Index a salary hub (`/salaries/companies`, `/salaries/titles`, `/salaries/skills`, `/salaries/locations`) when at least one item it lists is indexable, and the `/salaries` overview when any item in these hub lists is indexable; otherwise render the hub with `noindex, follow`. A page that has its own `indexable` field uses that instead. */
+            indexable: boolean;
         };
         SalaryTitleIndexItem: {
             /** @enum {string} */
@@ -7467,6 +7515,8 @@ export interface components {
             p75SalaryMax: number;
             jobCount: number;
             currency: string;
+            /** @description Whether the salary page this item links to is worth indexing. When `false`, that page renders `<meta name="robots" content="noindex, follow">` and is left out of the board sitemap. Index a salary hub (`/salaries/companies`, `/salaries/titles`, `/salaries/skills`, `/salaries/locations`) when at least one item it lists is indexable, and the `/salaries` overview when any item in these hub lists is indexable; otherwise render the hub with `noindex, follow`. A page that has its own `indexable` field uses that instead. */
+            indexable: boolean;
         };
         /** @description Deprecated. Prefer public plans with purpose employer_service and pricingMode contact. */
         SalesLedPlan: {
@@ -7585,6 +7635,8 @@ export interface components {
             boardSkillAvgMin: number | null;
             boardSkillAvgMax: number | null;
             currency: string;
+            /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
+            indexable: boolean;
         };
         SkillLocationsIndex: {
             /** @enum {string} */
@@ -7594,6 +7646,8 @@ export interface components {
             skillName: string;
             currency: string;
             locations: components["schemas"]["SalaryLocationIndexItem"][];
+            /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
+            indexable: boolean;
         };
         SkillSalaryDetail: {
             /** @enum {string} */
@@ -7659,6 +7713,8 @@ export interface components {
             boardMedianMin: number | null;
             boardMedianMax: number | null;
             currency: string;
+            /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
+            indexable: boolean;
         };
         SourcedCandidate: {
             id: string;
@@ -8034,6 +8090,8 @@ export interface components {
             boardCategoryAvgMin: number | null;
             boardCategoryAvgMax: number | null;
             currency: string;
+            /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
+            indexable: boolean;
         };
         TitleLocationsIndex: {
             /** @enum {string} */
@@ -8043,6 +8101,8 @@ export interface components {
             categoryName: string;
             currency: string;
             locations: components["schemas"]["SalaryLocationIndexItem"][];
+            /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
+            indexable: boolean;
         };
         TitleSalaryDetail: {
             /** @enum {string} */
@@ -8114,6 +8174,8 @@ export interface components {
             boardP25Min: number | null;
             boardP75Max: number | null;
             currency: string;
+            /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
+            indexable: boolean;
         };
         UnreadCount: {
             /** @enum {string} */
