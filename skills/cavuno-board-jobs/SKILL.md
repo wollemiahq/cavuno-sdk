@@ -118,6 +118,21 @@ const gated = await board.jobs.retrieve('senior-chef', {
 gated.applyAction; // 'gateway_external' | 'gateway_native' | …
 ```
 
+Sponsored jobs (`isSponsored: true`) are being restricted to callers that
+send the capability. Without it, `jobs.list`, `jobs.similar`, `companies.listJobs`
+and `embed.jobs` leave them out (counts and pagination included), and
+`jobs.retrieve` returns 404 for one. A starter that renders the gateway
+passes the same option (not the header: a shared cache keys by URL) on
+every list read; `jobs.search` and
+`me.recommendedJobs.list` take the header in `options.headers`.
+
+```ts snippet
+const page = await board.jobs.list({
+  limit: 20,
+  capabilities: ['apply-gateway-v1'],
+});
+```
+
 ## Surface candidate gating
 
 On a gated board, `gatedCount` reports results withheld from the current
