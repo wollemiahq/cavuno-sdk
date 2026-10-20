@@ -25,6 +25,12 @@ An approved member can buy a public, priced membership plan for the company
 with `board.me.companies.startMembershipCheckout(slug, body)`. It returns the
 same embedded-checkout mount kit as talent access; poll
 `retrieveMembershipCheckout(slug, sessionId)` after the return redirect. A
+`complete` session with `paymentStatus: 'processing'` was paid by bank debit
+or transfer that has not cleared; the membership starts only once it does, so
+show a payment-processing state rather than waiting for it, and read the
+checkout again on the next visit to see whether it cleared or failed. With
+`paymentStatus: 'failed'` the bank payment did not go through: no membership
+was started, and the buyer can start a new checkout. A
 company that already holds a membership is `membership_seat_taken`.
 
 ```ts snippet
@@ -64,6 +70,13 @@ const draft = await board.me.companies.jobs.create('acme', {
 });
 await board.me.companies.jobs.update('acme', draft.id, { salaryMax: 200000 });
 ```
+
+`board.me.companies.jobs.retrieve(slug, id)` and every job from
+`board.me.companies.jobs.list(slug)` carry `paymentProcessing: true` while the
+employer's bank debit or transfer for the job has not cleared. The job stays a
+`draft` until it does and `checkout` for it is refused meanwhile, so show a
+payment-processing state rather than an unpaid draft: in the job list, label it
+"Payment processing" instead of "Draft".
 
 ## Render the company profile form
 
