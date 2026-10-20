@@ -64,12 +64,16 @@ The kit contains `sessionId`, `clientSecret`, `stripeAccountId`, `publishableKey
 
 ## Confirm from remaining credits
 
-`retrieveCheckout` reports `open`, `complete`, or `expired`. Open sessions are remountable with their `clientSecret`; expired sessions require a new checkout. After completion, poll `retrieve()` because webhook delivery is asynchronous.
+`retrieveCheckout` reports `open`, `complete`, or `expired`. Open sessions are remountable with their `clientSecret`; expired sessions require a new checkout. A `complete` session also carries `paymentStatus`. With `paid`, poll `retrieve()` because webhook delivery is asynchronous. With `processing`, a bank debit or transfer has not cleared: access is granted only once it does, so tell the buyer instead of polling, and read the checkout again on their next visit to see whether it cleared or failed. With `failed`, the bank payment did not go through: nothing was granted, and the buyer can start a new checkout.
 
 ```ts snippet
 const checkout = await board.me.talentAccess.retrieveCheckout(kit.sessionId);
 
-if (checkout.status === 'complete') {
+if (checkout.status === 'complete' && checkout.paymentStatus === 'processing') {
+  renderPaymentProcessing();
+} else if (checkout.status === 'complete' && checkout.paymentStatus === 'failed') {
+  renderPaymentFailed(); // offer a new checkout
+} else if (checkout.status === 'complete') {
   let access = await board.me.talentAccess.retrieve();
   for (let poll = 0; !access.hasTalentAccess && poll < 10; poll++) {
     await new Promise((resolve) => setTimeout(resolve, 1000));
