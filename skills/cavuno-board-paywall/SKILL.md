@@ -62,12 +62,16 @@ The kit contains `sessionId`, `clientSecret`, `stripeAccountId`, `publishableKey
 
 ## Confirm access from the grant
 
-`retrieveCheckout` reports `open`, `complete`, or `expired`. Open sessions are remountable with their `clientSecret`; expired sessions require a new checkout. After completion, poll `grant()` within a bounded window because webhook delivery is asynchronous.
+`retrieveCheckout` reports `open`, `complete`, or `expired`. Open sessions are remountable with their `clientSecret`; expired sessions require a new checkout. A `complete` session also carries `paymentStatus`. With `paid`, poll `grant()` within a bounded window because webhook delivery is asynchronous. With `processing`, the buyer paid by bank debit or transfer and the money has not cleared: access is granted only once it does, usually within a few business days. Do not poll; tell the buyer their payment is processing, and read the checkout again on their next visit to see whether it cleared or failed. With `failed`, the bank payment did not go through: nothing was granted, and the buyer can start a new checkout.
 
 ```ts snippet
 const checkout = await board.me.access.retrieveCheckout(kit.sessionId);
 
-if (checkout.status === 'complete') {
+if (checkout.status === 'complete' && checkout.paymentStatus === 'processing') {
+  renderPaymentProcessing();
+} else if (checkout.status === 'complete' && checkout.paymentStatus === 'failed') {
+  renderPaymentFailed(); // offer a new checkout
+} else if (checkout.status === 'complete') {
   let grant = await board.me.access.grant();
   for (let poll = 0; !grant.hasAccess && poll < 10; poll++) {
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -101,6 +105,8 @@ A lifetime grant produces `paywall_no_recurring_subscription` for `portal`.
 - Anonymous offers render without authorization; disabled paywall renders no tiers.
 - Unentitled jobs show `gatedCount`; the active-grant request exposes the full list.
 - Test checkout reaches `complete`, then bounded grant polling reaches `hasAccess: true` after webhook delivery.
+- A `complete` checkout with `paymentStatus: 'processing'` shows a payment-processing state instead of polling.
+- A `complete` checkout with `paymentStatus: 'failed'` says the payment did not go through and offers a new checkout.
 - UI access decisions read `grant().hasAccess`.
 - Recurring grants open the portal; lifetime grants show a deliberate non-portal state.
 
