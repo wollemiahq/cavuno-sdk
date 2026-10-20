@@ -27,7 +27,8 @@ export interface BreadcrumbItemInput {
 /**
  * Build a `BreadcrumbList`, hosted semantics: labels are trimmed and empty
  * items dropped; fewer than 2 surviving items → `null` (a single crumb is
- * not a trail); the current page (no `href`) omits `item` per schema.org.
+ * not a trail); the current page (no `href`) omits `item` per schema.org,
+ * and an earlier item without `href` is left out.
  * Relative hrefs resolve against `options.origin`; without an origin a
  * relative item is omitted (never emit a relative `item` URL).
  */
@@ -46,7 +47,10 @@ export function createBreadcrumbJsonLd(
           }
         : null;
     })
-    .filter((item): item is { name: string; href: string | null } => !!item);
+    .filter((item): item is { name: string; href: string | null } => !!item)
+    // Every crumb but the last needs an `item` URL, so an unlinked middle
+    // crumb (a place ancestor the board has no page for) is left out.
+    .filter((item, index, all) => !!item.href || index === all.length - 1);
 
   if (normalizedItems.length < 2) {
     return null;
