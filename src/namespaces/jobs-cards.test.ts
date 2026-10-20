@@ -351,3 +351,24 @@ describe('board.jobs apply methods', () => {
     expect(sentUrl(spy)).toBe(`${BASE}/jobs/senior-chef/application`);
   });
 });
+
+describe('board.jobs.list / similar — capabilities', () => {
+  it('sends the list opt-in as a query parameter', async () => {
+    const spy = stubFetch({ object: 'list', data: [] });
+    await makeBoard().jobs.list({ capabilities: ['apply-gateway-v1'] });
+    expect(sentUrl(spy)).toBe(`${BASE}/jobs?capabilities=apply-gateway-v1`);
+    const headers = new Headers(spy.mock.calls[0]![1]!.headers);
+    expect(headers.has('x-cavuno-board-capabilities')).toBe(false);
+  });
+
+  it('sends the similar opt-in as a query parameter', async () => {
+    const spy = stubFetch({ object: 'list', data: [] });
+    await makeBoard().jobs.similar('senior-engineer', {
+      limit: 5,
+      capabilities: ['apply-gateway-v1'],
+    });
+    expect(sentUrl(spy)).toBe(
+      `${BASE}/jobs/senior-engineer/similar?limit=5&capabilities=apply-gateway-v1`,
+    );
+  });
+});

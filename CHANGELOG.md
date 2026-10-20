@@ -3,6 +3,30 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.53.0 — 2026-10-21
+
+- Sponsored jobs (`isSponsored: true`) are being restricted to callers that
+  send the `apply-gateway-v1` capability, the opt-in for starters that send
+  candidates through the Apply gateway; send it on every job read now.
+  Without it, the job lists
+  (`jobs.list`, `jobs.similar`, `jobs.search`, `companies.listJobs`,
+  `embed.jobs` and `me.recommendedJobs.list`) leave Sponsored jobs out, with
+  `count` and pagination covering only the jobs returned, and
+  `jobs.retrieve` returns 404 `jobs_not_found` for a Sponsored job.
+- `JobsListQuery`, `JobsSimilarQuery`, `CompanyJobsListQuery` and
+  `EmbedJobsQuery` accept `capabilities: ['apply-gateway-v1']`, sent as the
+  `capabilities` query parameter so the response stays shared-cacheable
+  (prefer it to the header on these reads: a shared cache keys by URL).
+  `jobs.search` and `me.recommendedJobs.list` take the
+  `x-cavuno-board-capabilities: apply-gateway-v1` header in
+  `options.headers`.
+- A place resolution (`board.taxonomy.places.resolve()`) has an optional
+  `defaultRadiusKm`: the distance the jobs search applies around the place
+  when no `radius` is passed (with `defaultRadius: true` for the board's own
+  places; always for a suggested place). It is absent for regions, countries
+  and places without coordinates. Show it as the selected distance when the
+  visitor has not picked one.
+
 ## 4.52.0 — 2026-10-20
 
 - Every salary page response has an `indexable` boolean: title, skill and
