@@ -7216,6 +7216,10 @@ export interface components {
             geo: components["schemas"]["TaxonomyGeo"];
             /** @description The board's intro for this category or location page, as sanitized HTML. Absent when the page has none. Show it on page 1 with no filters. */
             introHtml?: string;
+            /** @description The board's `<title>` for this category or location page, to use as written in place of your own title on page 1 with no filters. Absent when the board has not set one. */
+            metaTitle?: string;
+            /** @description The board's meta description for this category or location page, to use as written on page 1 with no filters. Absent when the board has not set one. */
+            metaDescription?: string;
             /** @description Present, and `true`, when a place slug resolved to a place from `GET /boards/{identifier}/places/suggest` instead of one of the board's places; absent for every other resolution. Its location page lists the jobs within the place's own default distance (pass the slug as the jobs `location` with no `radius`). Index that page only when it lists at least 5 on-site or hybrid jobs: read `count` from `GET /boards/{identifier}/jobs?location={slug}&remoteOption=on_site&remoteOption=hybrid&limit=1`, in parallel with the page's own job read, and emit `noindex, follow` below 5. Remote jobs still list on the page and count in its headline; they only do not count toward indexing. A view with an explicit `radius` stays `noindex, follow`. Only suggested places need this read. */
             suggested?: boolean;
             /** @description The breadcrumb above a suggested place, country first: its country, its region and, for a neighbourhood or suburb (`geo.placeType` `locality`), its city. Present when `suggested` is `true`, absent otherwise. Render Jobs > each ancestor > the place (`displayName`), with the same BreadcrumbList JSON-LD as for the board's own places; link an ancestor to `/jobs/locations/:canonicalSlug` only when its `canonicalSlug` is not `null`. */
