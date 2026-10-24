@@ -1300,3 +1300,15 @@ describe('board.me.access (candidate paywall)', () => {
     expect(spy.mock.calls[0]![1]!.body).toBeUndefined();
   });
 });
+
+it('propagates the selected talent company through all entitlement and profile reads', async () => {
+  const spy = stubFetch(jsonResponse({}));
+  const board = await makeAuthedBoard();
+  const options = { query: { companyId: 'company-b' } };
+  await board.me.talentAccess.retrieve(options);
+  await board.me.talentAccess.retrieveCandidate('candidate', options);
+  await board.talent.retrieve('candidate', options);
+  expect(
+    spy.mock.calls.map(([url]) => new URL(url).searchParams.get('companyId')),
+  ).toEqual(['company-b', 'company-b', 'company-b']);
+});
