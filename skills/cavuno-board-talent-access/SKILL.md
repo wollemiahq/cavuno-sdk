@@ -31,6 +31,8 @@ access.companyId;
 
 `companyId` is set when the viewer has exactly one approved membership. It is `null` when they have none or more than one — pass `companyId` on writes or the API returns `company_required`.
 
+For employers with multiple approved companies, select the same company for each read and write. Pass `{ query: { companyId } }` to `me.talentAccess.retrieve`, `me.talentAccess.retrieveCandidate`, and `talent.retrieve`. The selected company controls balances, candidate unlock state, and opaque profile access. Omission preserves the default viewer context; pending memberships and companies on another board grant no access. Pass `companyId` in unlock, checkout, upgrade, and cold `conversations.start` bodies so the same company pays.
+
 ## Gate one candidate
 
 Per-candidate already-unlocked state is a sibling read so the singleton never takes a candidate id.
