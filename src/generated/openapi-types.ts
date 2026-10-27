@@ -3549,7 +3549,7 @@ export interface paths {
         };
         /**
          * Suggest any place for a location search
-         * @description Location search beyond the board's own places: cities, towns, suburbs and villages in the countries where the board has published on-site or hybrid jobs (remote jobs do not count), in the board's language, ranked by size, by name match and by distance from `near`. Each result is a `PublicPlace` with `jobCount` 0, `parentId` null, `regionCode` the ISO 3166-2 code of its region (for example `AU-NSW`) or null when the region has none, `placeType` `city` or `locality`, and a `displayName` that adds the place's region and country. Its `canonicalSlug` works as the jobs `location` filter (jobs within `radius` km of the place, by default a distance that suits its size), on `GET /boards/{identifier}/places/{slug}`, and as the location page slug. Show these after the board's own matches from `GET /boards/{identifier}/places?q=`. Returns an empty list when the board's `features.placeSuggestions` is `false`, so check that flag before calling, and when the board has no on-site or hybrid jobs. A suggested place's `id` is not a `locationId` for job posting or profiles; use its `slug` for job search. Cacheable per URL; rate limited per client and board.
+         * @description Location search beyond the board's own places: cities, towns, suburbs and villages in the countries where a search would list the board's jobs: those of its on-site and hybrid jobs and those its remote jobs are open to, or every country when a remote job is open worldwide, in the board's language, ranked by size, by name match and by distance from `near`. Each result is a `PublicPlace` with `jobCount` 0, `parentId` null, `regionCode` the ISO 3166-2 code of its region (for example `AU-NSW`) or null when the region has none, `placeType` `city` or `locality`, and a `displayName` that adds the place's region and country. Its `canonicalSlug` works as the jobs `location` filter (jobs within `radius` km of the place, by default a distance that suits its size), on `GET /boards/{identifier}/places/{slug}`, and as the location page slug. Show these after the board's own matches from `GET /boards/{identifier}/places?q=`. Returns an empty list when the board's `features.placeSuggestions` is `false`, so check that flag before calling, and when no place would list any of the board's jobs. A suggested place's `id` is not a `locationId` for job posting or profiles; use its `slug` for job search. Cacheable per URL; rate limited per client and board.
          */
         get: operations["listBoardPlacesSuggest"];
         put?: never;
@@ -7150,7 +7150,7 @@ export interface components {
                      */
                     lte?: string;
                 };
-                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). Pass `radius` to widen a city or locality to nearby jobs. A place slug from `GET /places/suggest` returns jobs within `radius` km of that place, by default a distance that suits its size. Unresolvable slugs are ignored. */
+                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). The slug can also name a country or region remote jobs on the board are open to, as `GET /places?q=` suggests. Pass `radius` to widen a city or locality to nearby jobs. A place slug from `GET /places/suggest` returns jobs within `radius` km of that place, by default a distance that suits its size. Unresolvable slugs are ignored. */
                 location?: string;
                 /** @description Widen a city or locality `location` to also return jobs placed in a city or locality within this many kilometres of the place (1–250; decimals allowed, e.g. `8.05` for 5 miles). Omit for jobs in the place itself. Ignored for region and country places, and without `location`. For a place from `GET /places/suggest`, an omitted `radius` uses the place's own default distance: 15 km for a neighbourhood, 25 km for a town, 50 km for a city. */
                 radius?: number;
@@ -7216,6 +7216,10 @@ export interface components {
             geo: components["schemas"]["TaxonomyGeo"];
             /** @description The board's intro for this category or location page, as sanitized HTML. Absent when the page has none. Show it on page 1 with no filters. */
             introHtml?: string;
+            /** @description The board's `<title>` for this category or location page, to use as written in place of your own title on page 1 with no filters. Absent when the board has not set one. */
+            metaTitle?: string;
+            /** @description The board's meta description for this category or location page, to use as written on page 1 with no filters. Absent when the board has not set one. */
+            metaDescription?: string;
             /** @description Present, and `true`, when a place slug resolved to a place from `GET /boards/{identifier}/places/suggest` instead of one of the board's places; absent for every other resolution. Its location page lists the jobs within the place's own default distance (pass the slug as the jobs `location` with no `radius`). Index that page only when it lists at least 5 on-site or hybrid jobs: read `count` from `GET /boards/{identifier}/jobs?location={slug}&remoteOption=on_site&remoteOption=hybrid&limit=1`, in parallel with the page's own job read, and emit `noindex, follow` below 5. Remote jobs still list on the page and count in its headline; they only do not count toward indexing. A view with an explicit `radius` stays `noindex, follow`. Only suggested places need this read. */
             suggested?: boolean;
             /** @description The breadcrumb above a suggested place, country first: its country, its region and, for a neighbourhood or suburb (`geo.placeType` `locality`), its city. Present when `suggested` is `true`, absent otherwise. Render Jobs > each ancestor > the place (`displayName`), with the same BreadcrumbList JSON-LD as for the board's own places; link an ancestor to `/jobs/locations/:canonicalSlug` only when its `canonicalSlug` is not `null`. */
@@ -7755,11 +7759,15 @@ export interface components {
         StartConversationBody: {
             candidateBoardUserId: string;
             body: string;
+            /** @description Approved company whose message credits to use. Omit to retain the default company. */
+            companyId?: string;
             /** @description Optional job id. When set, this send is from that job pipeline and may auto-advance Shortlisted to Contacted. */
             job?: string;
         } | {
             candidateHandle: string;
             body: string;
+            /** @description Approved company whose message credits to use. Omit to retain the default company. */
+            companyId?: string;
             /** @description Optional job id. When set, this send is from that job pipeline and may auto-advance Shortlisted to Contacted. */
             job?: string;
         };
@@ -10463,7 +10471,7 @@ export interface operations {
                 customEmploymentType?: string[];
                 /** @description Only return jobs at any of the given seniority levels. Repeat the param for multiple values (up to 10). */
                 seniority?: ("entry_level" | "associate" | "mid_level" | "senior" | "lead" | "principal" | "director" | "executive")[];
-                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). Pass `radius` to widen a city or locality to nearby jobs. A place slug from `GET /places/suggest` returns jobs within `radius` km of that place, by default a distance that suits its size. Unresolvable slugs are ignored. */
+                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). The slug can also name a country or region remote jobs on the board are open to, as `GET /places?q=` suggests. Pass `radius` to widen a city or locality to nearby jobs. A place slug from `GET /places/suggest` returns jobs within `radius` km of that place, by default a distance that suits its size. Unresolvable slugs are ignored. */
                 location?: string;
                 /**
                  * @description Widen a city or locality `location` to also return jobs placed in a city or locality within this many kilometres of the place (1–250; decimals allowed, e.g. `8.05` for 5 miles). Omit for jobs in the place itself. Ignored for region and country places, and without `location`. For a place from `GET /places/suggest`, an omitted `radius` uses the place's own default distance: 15 km for a neighbourhood, 25 km for a town, 50 km for a city.
@@ -11420,7 +11428,7 @@ export interface operations {
                 seniority?: ("entry_level" | "associate" | "mid_level" | "senior" | "lead" | "principal" | "director" | "executive")[];
                 /** @description Result ordering. `relevance` (default) is the featured-ranked browse; `newest` orders by publish date and `salary_high` by salary (no-salary jobs last). Any explicit sort unpins featured jobs. */
                 sort?: "relevance" | "newest" | "salary_high";
-                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). Pass `radius` to widen a city or locality to nearby jobs. A place slug from `GET /places/suggest` returns jobs within `radius` km of that place, by default a distance that suits its size. Unresolvable slugs are ignored. */
+                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). The slug can also name a country or region remote jobs on the board are open to, as `GET /places?q=` suggests. Pass `radius` to widen a city or locality to nearby jobs. A place slug from `GET /places/suggest` returns jobs within `radius` km of that place, by default a distance that suits its size. Unresolvable slugs are ignored. */
                 location?: string;
                 /**
                  * @description Widen a city or locality `location` to also return jobs placed in a city or locality within this many kilometres of the place (1–250; decimals allowed, e.g. `8.05` for 5 miles). Omit for jobs in the place itself. Ignored for region and country places, and without `location`. For a place from `GET /places/suggest`, an omitted `radius` uses the place's own default distance: 15 km for a neighbourhood, 25 km for a town, 50 km for a city.
@@ -20645,7 +20653,10 @@ export interface operations {
     };
     listBoardMeTalentAccess: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Approved company whose talent entitlement to use. Omit to retain the default viewer context. */
+                companyId?: string;
+            };
             header?: never;
             path: {
                 /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
@@ -20704,7 +20715,10 @@ export interface operations {
     };
     getBoardMeTalentAccessCandidate: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Approved company whose talent entitlement to use. Omit to retain the default viewer context. */
+                companyId?: string;
+            };
             header?: never;
             path: {
                 /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
@@ -21117,7 +21131,7 @@ export interface operations {
         parameters: {
             query?: {
                 /**
-                 * @description Location autocomplete query. When provided with ≥2 characters after diacritic folding, returns the top matches against name or display name (substring) and slug or canonical slug (prefix), with prefix matches ranked first; under 2 folded characters returns an empty list.
+                 * @description Location autocomplete query. When provided with ≥2 characters after diacritic folding, returns the top matches against name or display name (substring) and slug or canonical slug (prefix), with prefix matches ranked first; under 2 folded characters returns an empty list. Matches include the countries and regions remote jobs on the board are open to, one entry per location.
                  * @example lon
                  */
                 q?: string;
@@ -22430,7 +22444,10 @@ export interface operations {
     };
     getBoardTalent: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Approved company whose talent entitlement to use. Omit to retain the default viewer context. */
+                companyId?: string;
+            };
             header?: never;
             path: {
                 /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
