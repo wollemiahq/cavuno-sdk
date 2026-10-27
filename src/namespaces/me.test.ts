@@ -316,6 +316,23 @@ describe('board.me', () => {
     expect(page.total).toBe(0);
   });
 
+  it('talentLists.members.list forwards sort=distance', async () => {
+    const spy = stubFetch(
+      jsonResponse({ object: 'list', data: [], total: 0, count: 0 }),
+    );
+    const board = await makeAuthedBoard();
+    await board.me.companies.talentLists.members.list('acme', 'tl_1', {
+      sort: 'distance',
+      place: 'sydney-australia',
+    });
+    const url = new URL(String(spy.mock.calls[0]![0]));
+    expect(url.pathname).toBe(
+      '/v1/boards/acme-jobs/me/companies/acme/talent-lists/tl_1/members',
+    );
+    expect(url.searchParams.get('sort')).toBe('distance');
+    expect(url.searchParams.get('place')).toBe('sydney-australia');
+  });
+
   it('talentLists.members.list sends a comma-separated stage filter', async () => {
     const spy = stubFetch(
       jsonResponse({ object: 'list', data: [], total: 0, count: 0 }),
@@ -1299,4 +1316,16 @@ describe('board.me.access (candidate paywall)', () => {
     expect(spy.mock.calls[0]![1]!.method).toBe('POST');
     expect(spy.mock.calls[0]![1]!.body).toBeUndefined();
   });
+});
+
+it('propagates the selected talent company through all entitlement and profile reads', async () => {
+  const spy = stubFetch(jsonResponse({}));
+  const board = await makeAuthedBoard();
+  const options = { query: { companyId: 'company-b' } };
+  await board.me.talentAccess.retrieve(options);
+  await board.me.talentAccess.retrieveCandidate('candidate', options);
+  await board.talent.retrieve('candidate', options);
+  expect(
+    spy.mock.calls.map(([url]) => new URL(url).searchParams.get('companyId')),
+  ).toEqual(['company-b', 'company-b', 'company-b']);
 });

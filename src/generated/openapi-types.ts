@@ -1156,7 +1156,7 @@ export interface paths {
         put?: never;
         /**
          * Search a public board's jobs
-         * @description Searches published jobs on the named public board using a free-text query and faceted filters. Results are ranked by the hosted search core: by relevance with featured jobs first by default; pass `sort` to order by publish date or salary (which unpins featured). Each filter array accepts up to 10 values. If the provided company filter resolves to no known companies, the result is empty. Sponsored jobs are included only for callers that send the Apply gateway capability header.
+         * @description Searches published jobs on the named public board using a free-text query and faceted filters. Results are ranked by the hosted search core: by relevance with featured jobs first by default; pass `sort` to order by publish date, salary, or distance from `filters.location` (which unpins featured). Each filter array accepts up to 10 values. If the provided company filter resolves to no known companies, the result is empty. Sponsored jobs are included only for callers that send the Apply gateway capability header.
          */
         post: operations["searchBoardJobs"];
         delete?: never;
@@ -3549,7 +3549,7 @@ export interface paths {
         };
         /**
          * Suggest any place for a location search
-         * @description Location search beyond the board's own places: cities, towns, suburbs and villages in the countries where the board has published on-site or hybrid jobs (remote jobs do not count), in the board's language, ranked by size, by name match and by distance from `near`. Each result is a `PublicPlace` with `jobCount` 0, `parentId` null, `regionCode` the ISO 3166-2 code of its region (for example `AU-NSW`) or null when the region has none, `placeType` `city` or `locality`, and a `displayName` that adds the place's region and country. Its `canonicalSlug` works as the jobs `location` filter (jobs within `radius` km of the place, by default a distance that suits its size), on `GET /boards/{identifier}/places/{slug}`, and as the location page slug. Show these after the board's own matches from `GET /boards/{identifier}/places?q=`. Returns an empty list when the board's `features.placeSuggestions` is `false`, so check that flag before calling, and when the board has no on-site or hybrid jobs. A suggested place's `id` is not a `locationId` for job posting or profiles; use its `slug` for job search. Cacheable per URL; rate limited per client and board.
+         * @description Location search beyond the board's own places: cities, towns, suburbs and villages in the countries where a search would list the board's jobs: those of its on-site and hybrid jobs and those its remote jobs are open to, or every country when a remote job is open worldwide, in the board's language, ranked by size, by name match and by distance from `near`. Each result is a `PublicPlace` with `jobCount` 0, `parentId` null, `regionCode` the ISO 3166-2 code of its region (for example `AU-NSW`) or null when the region has none, `placeType` `city` or `locality`, and a `displayName` that adds the place's region and country. Its `canonicalSlug` works as the jobs `location` filter (jobs within `radius` km of the place, by default a distance that suits its size), on `GET /boards/{identifier}/places/{slug}`, and as the location page slug. Show these after the board's own matches from `GET /boards/{identifier}/places?q=`. Returns an empty list when the board's `features.placeSuggestions` is `false`, so check that flag before calling, and when no place would list any of the board's jobs. A suggested place's `id` is not a `locationId` for job posting or profiles; use its `slug` for job search. Cacheable per URL; rate limited per client and board.
          */
         get: operations["listBoardPlacesSuggest"];
         put?: never;
@@ -7020,6 +7020,8 @@ export interface components {
             /** @description Plain-text card teaser derived from the job description (HTML stripped, first sentence / word-boundary cut). `null` when there is nothing honest to show. Always present — independent of the `?fields=+description` opt-in for the long-form HTML body. Prefer this over requesting `+description` for list/card renders. */
             summary: string | null;
             locationLabel: string | null;
+            /** @description Kilometres from the selected `location` to this job’s point. Computed at read time from the listing origin and the search hit — not stored. `null` when the listing has no origin or the job has no point. */
+            distanceKm: number | null;
             /** @description Embedded company summary, or `null` if none is attached. */
             company: {
                 slug: string;
@@ -7117,10 +7119,10 @@ export interface components {
             /** @description Free-text search query matched against job title and description. Up to 200 characters. */
             query?: string;
             /**
-             * @description Result ordering. `relevance` (default) ranks by search relevance with featured jobs first; `newest` orders by publish date and `salary_high` by salary (no-salary jobs last). Any explicit sort unpins featured jobs.
+             * @description Result ordering. `relevance` (default) ranks by search relevance with featured jobs first; `newest` orders by publish date, `salary_high` by salary (no-salary jobs last), and `distance` nearest-first from `filters.location` (jobs without a point last). `distance` requires a location that resolves to coordinates (`sort_distance_requires_location` otherwise). Any explicit sort unpins featured jobs.
              * @enum {string}
              */
-            sort?: "relevance" | "newest" | "salary_high";
+            sort?: "relevance" | "newest" | "salary_high" | "distance";
             /** @description Optional faceted filters to narrow search results. Multi-value filters match jobs in any of the supplied values; range filters accept `gte` and `lte` bounds. */
             filters?: {
                 /** @description Only return jobs at any of the given company IDs. Up to 10 values. */
@@ -7150,7 +7152,7 @@ export interface components {
                      */
                     lte?: string;
                 };
-                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). Pass `radius` to widen a city or locality to nearby jobs. A place slug from `GET /places/suggest` returns jobs within `radius` km of that place, by default a distance that suits its size. Unresolvable slugs are ignored. */
+                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). The slug can also name a country or region remote jobs on the board are open to, as `GET /places?q=` suggests. Pass `radius` to widen a city or locality to nearby jobs. A place slug from `GET /places/suggest` returns jobs within `radius` km of that place, by default a distance that suits its size. Unresolvable slugs are ignored. */
                 location?: string;
                 /** @description Widen a city or locality `location` to also return jobs placed in a city or locality within this many kilometres of the place (1–250; decimals allowed, e.g. `8.05` for 5 miles). Omit for jobs in the place itself. Ignored for region and country places, and without `location`. For a place from `GET /places/suggest`, an omitted `radius` uses the place's own default distance: 15 km for a neighbourhood, 25 km for a town, 50 km for a city. */
                 radius?: number;
@@ -7216,6 +7218,10 @@ export interface components {
             geo: components["schemas"]["TaxonomyGeo"];
             /** @description The board's intro for this category or location page, as sanitized HTML. Absent when the page has none. Show it on page 1 with no filters. */
             introHtml?: string;
+            /** @description The board's `<title>` for this category or location page, to use as written in place of your own title on page 1 with no filters. Absent when the board has not set one. */
+            metaTitle?: string;
+            /** @description The board's meta description for this category or location page, to use as written on page 1 with no filters. Absent when the board has not set one. */
+            metaDescription?: string;
             /** @description Present, and `true`, when a place slug resolved to a place from `GET /boards/{identifier}/places/suggest` instead of one of the board's places; absent for every other resolution. Its location page lists the jobs within the place's own default distance (pass the slug as the jobs `location` with no `radius`). Index that page only when it lists at least 5 on-site or hybrid jobs: read `count` from `GET /boards/{identifier}/jobs?location={slug}&remoteOption=on_site&remoteOption=hybrid&limit=1`, in parallel with the page's own job read, and emit `noindex, follow` below 5. Remote jobs still list on the page and count in its headline; they only do not count toward indexing. A view with an explicit `radius` stays `noindex, follow`. Only suggested places need this read. */
             suggested?: boolean;
             /** @description The breadcrumb above a suggested place, country first: its country, its region and, for a neighbourhood or suburb (`geo.placeType` `locality`), its city. Present when `suggested` is `true`, absent otherwise. Render Jobs > each ancestor > the place (`displayName`), with the same BreadcrumbList JSON-LD as for the board's own places; link an ancestor to `/jobs/locations/:canonicalSlug` only when its `canonicalSlug` is not `null`. */
@@ -7755,11 +7761,15 @@ export interface components {
         StartConversationBody: {
             candidateBoardUserId: string;
             body: string;
+            /** @description Approved company whose message credits to use. Omit to retain the default company. */
+            companyId?: string;
             /** @description Optional job id. When set, this send is from that job pipeline and may auto-advance Shortlisted to Contacted. */
             job?: string;
         } | {
             candidateHandle: string;
             body: string;
+            /** @description Approved company whose message credits to use. Omit to retain the default company. */
+            companyId?: string;
             /** @description Optional job id. When set, this send is from that job pipeline and may auto-advance Shortlisted to Contacted. */
             job?: string;
         };
@@ -7854,6 +7864,8 @@ export interface components {
             displayName: string | null;
             headline: string | null;
             location: string | null;
+            /** @description Kilometres from the selected `place` to this candidate’s home point. Computed at read time from the listing origin and the search hit — not stored. `null` when the listing has no origin or the candidate has no point. */
+            distanceKm: number | null;
             avatarUrl: string | null;
             /** @description Plain-text card teaser derived from `bio` (HTML stripped, first sentence / word-boundary cut). `null` when there is nothing honest to show. Prefer this over `bio` for directory/card renders; cards still lead with `headline` when present. */
             summary: string | null;
@@ -7908,7 +7920,7 @@ export interface components {
             openToRelocate?: boolean;
             place?: string;
             /** @enum {string} */
-            sort?: "relevance" | "newest";
+            sort?: "relevance" | "newest" | "distance";
             seniority?: string;
             permitCountry?: string;
             interestedRole?: string;
@@ -10463,7 +10475,7 @@ export interface operations {
                 customEmploymentType?: string[];
                 /** @description Only return jobs at any of the given seniority levels. Repeat the param for multiple values (up to 10). */
                 seniority?: ("entry_level" | "associate" | "mid_level" | "senior" | "lead" | "principal" | "director" | "executive")[];
-                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). Pass `radius` to widen a city or locality to nearby jobs. A place slug from `GET /places/suggest` returns jobs within `radius` km of that place, by default a distance that suits its size. Unresolvable slugs are ignored. */
+                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). The slug can also name a country or region remote jobs on the board are open to, as `GET /places?q=` suggests. Pass `radius` to widen a city or locality to nearby jobs. A place slug from `GET /places/suggest` returns jobs within `radius` km of that place, by default a distance that suits its size. Unresolvable slugs are ignored. */
                 location?: string;
                 /**
                  * @description Widen a city or locality `location` to also return jobs placed in a city or locality within this many kilometres of the place (1–250; decimals allowed, e.g. `8.05` for 5 miles). Omit for jobs in the place itself. Ignored for region and country places, and without `location`. For a place from `GET /places/suggest`, an omitted `radius` uses the place's own default distance: 15 km for a neighbourhood, 25 km for a town, 50 km for a city.
@@ -11418,9 +11430,9 @@ export interface operations {
                 customEmploymentType?: string[];
                 /** @description Only return jobs at any of the given seniority levels. Repeat the param for multiple values (up to 10). */
                 seniority?: ("entry_level" | "associate" | "mid_level" | "senior" | "lead" | "principal" | "director" | "executive")[];
-                /** @description Result ordering. `relevance` (default) is the featured-ranked browse; `newest` orders by publish date and `salary_high` by salary (no-salary jobs last). Any explicit sort unpins featured jobs. */
-                sort?: "relevance" | "newest" | "salary_high";
-                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). Pass `radius` to widen a city or locality to nearby jobs. A place slug from `GET /places/suggest` returns jobs within `radius` km of that place, by default a distance that suits its size. Unresolvable slugs are ignored. */
+                /** @description Result ordering. `relevance` (default) is the featured-ranked browse; `newest` orders by publish date, `salary_high` by salary (no-salary jobs last), and `distance` nearest-first from the selected `location` (jobs without a point last). `distance` requires a `location` that resolves to coordinates (`sort_distance_requires_location` otherwise). Any explicit sort unpins featured jobs. */
+                sort?: "relevance" | "newest" | "salary_high" | "distance";
+                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). The slug can also name a country or region remote jobs on the board are open to, as `GET /places?q=` suggests. Pass `radius` to widen a city or locality to nearby jobs. A place slug from `GET /places/suggest` returns jobs within `radius` km of that place, by default a distance that suits its size. Unresolvable slugs are ignored. */
                 location?: string;
                 /**
                  * @description Widen a city or locality `location` to also return jobs placed in a city or locality within this many kilometres of the place (1–250; decimals allowed, e.g. `8.05` for 5 miles). Omit for jobs in the place itself. Ignored for region and country places, and without `location`. For a place from `GET /places/suggest`, an omitted `radius` uses the place's own default distance: 15 km for a neighbourhood, 25 km for a town, 50 km for a city.
@@ -11491,7 +11503,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description Invalid pagination: `offset + limit` exceeds 10,000 (`pagination_offset_too_large`) or a malformed `cursor` (`pagination_invalid_cursor`). */
+            /** @description Invalid pagination: `offset + limit` exceeds 10,000 (`pagination_offset_too_large`) or a malformed `cursor` (`pagination_invalid_cursor`). `sort=distance` without a `location` that resolves to coordinates is `sort_distance_requires_location`. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -11572,7 +11584,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description The request was malformed, a filter array exceeded the per-array cap, a `customFields` / `companyCustomFields` clause named an unknown or private field or an undefined option (`invalid_filter`), or the pagination window is out of range (`pagination_offset_too_large` / `pagination_invalid_cursor`). */
+            /** @description The request was malformed, a filter array exceeded the per-array cap, a `customFields` / `companyCustomFields` clause named an unknown or private field or an undefined option (`invalid_filter`), the pagination window is out of range (`pagination_offset_too_large` / `pagination_invalid_cursor`), or `sort=distance` was sent without a `filters.location` that resolves to coordinates (`sort_distance_requires_location`). */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -16941,8 +16953,8 @@ export interface operations {
                  * @example 50
                  */
                 radius?: number;
-                /** @description Omit for most recently saved first when there is no keyword (`q`); with a keyword, omit for best match first. `relevance` is Best Match (status then recency); `newest` is newest candidate first. */
-                sort?: "relevance" | "newest";
+                /** @description Omit for most recently saved first when there is no keyword (`q`); with a keyword, omit for best match first. `relevance` is Best Match (status then recency); `newest` is newest candidate first; `distance` is nearest-first from the selected `place` and requires coordinates (`sort_distance_requires_location` otherwise). */
+                sort?: "relevance" | "newest" | "distance";
                 /** @description As on the public talent directory. */
                 seniority?: string;
                 /** @description As on the public talent directory. */
@@ -20645,7 +20657,10 @@ export interface operations {
     };
     listBoardMeTalentAccess: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Approved company whose talent entitlement to use. Omit to retain the default viewer context. */
+                companyId?: string;
+            };
             header?: never;
             path: {
                 /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
@@ -20704,7 +20719,10 @@ export interface operations {
     };
     getBoardMeTalentAccessCandidate: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Approved company whose talent entitlement to use. Omit to retain the default viewer context. */
+                companyId?: string;
+            };
             header?: never;
             path: {
                 /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
@@ -21117,7 +21135,7 @@ export interface operations {
         parameters: {
             query?: {
                 /**
-                 * @description Location autocomplete query. When provided with ≥2 characters after diacritic folding, returns the top matches against name or display name (substring) and slug or canonical slug (prefix), with prefix matches ranked first; under 2 folded characters returns an empty list.
+                 * @description Location autocomplete query. When provided with ≥2 characters after diacritic folding, returns the top matches against name or display name (substring) and slug or canonical slug (prefix), with prefix matches ranked first; under 2 folded characters returns an empty list. Matches include the countries and regions remote jobs on the board are open to, one entry per location.
                  * @example lon
                  */
                 q?: string;
@@ -22279,8 +22297,8 @@ export interface operations {
                  * @example 50
                  */
                 radius?: number;
-                /** @description `relevance` is Best Match (status then recency). `newest` is created_at descending. */
-                sort?: "relevance" | "newest";
+                /** @description `relevance` is Best Match (status then recency). `newest` is created_at descending. `distance` is nearest-first from the selected `place` (candidates without a home point last) and requires a `place` that resolves to coordinates (`sort_distance_requires_location` otherwise). */
+                sort?: "relevance" | "newest" | "distance";
                 /** @description Seniority band: `entry_level`, `mid_level`, `senior`, `manager`, `director` or `executive`. Matches candidates who list that band. Until the board's talent index has been re-synced with seniority data, this filter is ignored. */
                 seniority?: string;
                 /** @description ISO 3166-1 alpha-2 country code (case-insensitive). Matches candidates who list that country among the countries they are authorized to work in. Until the board's talent index has been re-synced with work-permit data, this filter is ignored. */
@@ -22331,7 +22349,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description The pagination window is out of range (`pagination_offset_too_large`) or the cursor is malformed (`pagination_invalid_cursor`). */
+            /** @description The pagination window is out of range (`pagination_offset_too_large`), the cursor is malformed (`pagination_invalid_cursor`), or `sort=distance` was sent without a `place` that resolves to coordinates (`sort_distance_requires_location`). */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -22430,7 +22448,10 @@ export interface operations {
     };
     getBoardTalent: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Approved company whose talent entitlement to use. Omit to retain the default viewer context. */
+                companyId?: string;
+            };
             header?: never;
             path: {
                 /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */

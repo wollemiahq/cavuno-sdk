@@ -49,7 +49,7 @@ export type TalentListFilters = {
   languages?: string[];
   openToRelocate?: boolean;
   place?: string;
-  sort?: 'relevance' | 'newest';
+  sort?: 'relevance' | 'newest' | 'distance';
   seniority?: string;
   permitCountry?: string;
   interestedRole?: string;
@@ -104,7 +104,7 @@ export type TalentListMembersQuery = {
    * Omit for most recently saved first when there is no keyword (`q`); with
    * a keyword, omit for best match first.
    */
-  sort?: 'relevance' | 'newest';
+  sort?: 'relevance' | 'newest' | 'distance';
   seniority?: string;
   permitCountry?: string;
   interestedRole?: string;
