@@ -50,6 +50,7 @@ const CARD: PublicJobCard = {
   remoteLocationLabel: 'Worldwide',
   remoteWorldwide: true,
   remoteWorkPermitCountryCodes: [],
+  remotePermits: [{ type: 'worldwide', value: 'worldwide' }],
   salaryMin: 100000,
   salaryMax: null,
   salaryCurrency: 'USD',
@@ -57,8 +58,16 @@ const CARD: PublicJobCard = {
   isFeatured: true,
   summary: 'We build robots for every home.',
   locationLabel: null,
+  distanceKm: null,
   company: { slug: 'acme', name: 'Acme', logoUrl: null, customFieldValues: {} },
-  categories: [{ slug: 'engineering', name: 'Engineering' }],
+  categories: [
+    {
+      slug: 'engineering',
+      name: 'Engineering',
+      canonicalSlug: 'engineering',
+      displayName: 'Engineering',
+    },
+  ],
   skills: [],
   customFieldValues: {},
   links: {
@@ -77,7 +86,14 @@ const ENVELOPE: JobCardListEnvelope = {
   offset: 0,
   gatedCount: 48,
   relatedSearches: [
-    { type: 'category', slug: 'engineering', term: 'Engineering', count: 5 },
+    {
+      type: 'category',
+      slug: 'engineering',
+      canonicalSlug: 'ingenieurwesen',
+      term: 'Engineering',
+      displayName: 'Ingenieurwesen',
+      count: 5,
+    },
   ],
 };
 

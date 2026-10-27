@@ -55,8 +55,14 @@ export type RemoteTimezone = PublicJob['remoteTimezones'][number];
  */
 export interface RelatedSearch {
   type: 'category' | 'skill' | 'market';
+  /** English source slug; filters and taxonomy lookups accept it. */
   slug: string;
+  /** The term's page slug in the board language; equals `slug` when untranslated. */
+  canonicalSlug: string;
+  /** English source label. */
   term: string;
+  /** The label in the board language; equals `term` when untranslated. */
+  displayName: string;
   count: number;
 }
 

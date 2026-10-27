@@ -469,7 +469,9 @@ describe('board.companies', () => {
         {
           type: 'market',
           slug: 'cybersecurity',
+          canonicalSlug: 'cybersicherheit',
           term: 'Cybersecurity',
+          displayName: 'Cybersicherheit',
           count: 2,
         },
       ],
@@ -701,7 +703,9 @@ describe('method conventions', () => {
       applyAction: 'native',
       remotePermits: [{ type: 'country', value: 'DE' }],
       remoteWorldwide: false,
-      remoteTimezones: [{ type: 'utc_offset', value: '+2', plusMinus: 2 }],
+      remoteTimezones: [
+        { type: 'utc_offset', value: '+2', plusMinus: 2, label: '+2' },
+      ],
       remoteAllowedTzOffsets: [2],
       remoteWorkPermitCountryCodes: ['DE'],
       remoteWorkPermitSubdivisionCodes: [],
@@ -730,8 +734,22 @@ describe('method conventions', () => {
           displayName: 'Berlin, Germany',
         },
       ],
-      categories: [{ slug: 'engineering', name: 'Engineering' }],
-      skills: [{ slug: 'typescript', name: 'TypeScript' }],
+      categories: [
+        {
+          slug: 'engineering',
+          name: 'Engineering',
+          canonicalSlug: 'engineering',
+          displayName: 'Engineering',
+        },
+      ],
+      skills: [
+        {
+          slug: 'typescript',
+          name: 'TypeScript',
+          canonicalSlug: 'typescript',
+          displayName: 'TypeScript',
+        },
+      ],
       placeHierarchy: [
         { slug: 'germany', name: 'Germany', canonicalSlug: 'germany' },
       ],
@@ -958,6 +976,18 @@ describe('board.talent', () => {
     expect(sentUrl(spy, 0)).toBe(`${BASE}/talent?q=eng&skill=react&limit=5`);
     expect(spy.mock.calls[0]![1]?.method ?? 'GET').toBe('GET');
     expect(sentUrl(spy, 1)).toBe(`${BASE}/talent/jane%20doe%2Fz%C3%BCrich`);
+  });
+
+  it('list forwards sort=distance', async () => {
+    const spy = stubFetch();
+    await makeBoard().talent.list({
+      sort: 'distance',
+      place: 'sydney-australia',
+    });
+    const url = new URL(sentUrl(spy));
+    expect(url.pathname).toBe('/v1/boards/acme-jobs/talent');
+    expect(url.searchParams.get('sort')).toBe('distance');
+    expect(url.searchParams.get('place')).toBe('sydney-australia');
   });
 
   it('JSON-encodes talent custom filters into flat query parameters', async () => {

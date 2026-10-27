@@ -3,6 +3,59 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.55.0 — 2026-10-27
+
+- Names now come in the board's language as well as English, so a starter
+  on a translated board can show and link them without its own lookups.
+  The English `name`/`term` and `slug` are unchanged, so filters keep working.
+  - Job `skills` and `categories` (on every job card and on job detail) and
+    company `markets` carry `displayName` and `canonicalSlug`.
+  - `relatedSearches` entries on the jobs and companies lists carry
+    `displayName` and `canonicalSlug`.
+  - Link with `canonicalSlug`; it equals `slug` when a term has no
+    translation.
+- `remoteTimezones` entries on job detail carry `label`, the area or time
+  zone named in the board's language.
+- `officeLocations[].displayName` names the city and region in the board's
+  language as well as the country (for example
+  "Krefeld, Nordrhein-Westfalen, Deutschland").
+- Job cards carry `remotePermits`, the same `{ type, value }` remote scopes
+  as job detail. Continent, region and subregion entries (on cards and job
+  detail) carry an optional `code`, a UN M.49 area code that
+  `Intl.DisplayNames` with `type: 'region'` accepts (`150` for Europe), so a
+  client can name the area in any language. Build the card's remote label
+  from these and fall back to `remoteLocationLabel`.
+- `listingJsonLd` links each job by its `links.public` URL when present, so
+  boards with translated URLs publish the URL a job lives at rather than a
+  redirect.
+
+## 4.54.0 — 2026-10-27
+
+- Jobs can be ordered nearest-first. `jobs.list`, `jobs.search`,
+  `companies.listJobs` and `embed.jobs` accept `sort: 'distance'` alongside a
+  `location` (and optional `radius`); jobs without a map point come last.
+  `sort: 'distance'` without a location that resolves to coordinates returns
+  400 `sort_distance_requires_location`. `JOB_SORTS` includes `'distance'`.
+- Job cards carry `distanceKm`: kilometres from the search location, or
+  `null` when the request has no location or the job has no map point.
+  It is present on every sort, not only `distance`.
+- `talent.list` and talent-list member queries accept `sort: 'distance'`
+  with a `place`.
+- Candidates can share their stored resume with employers.
+  `board.me.resume.update({ shareWithEmployers })` turns it on or off at any
+  time without re-uploading, and `me.resume.upload` takes the same option
+  (applied only with `keepResumeOnFile: true`). `me.resume.retrieve` returns
+  the current `shareWithEmployers`.
+- `talent.retrieve` returns `resumeUrl`, an expiring signed download URL, to
+  a signed-in approved employer on the board when the candidate shares their
+  resume and has one on file; `null` otherwise. Turning sharing off stops new
+  URLs; one already issued works until it expires. Directory cards never
+  include it.
+- The jobs `location` filter can name a country or region that the board's
+  remote jobs are open to, and location search suggests those places.
+- Category and location page responses include the board's own `metaTitle`
+  and `metaDescription` when it has set them, for page 1 with no filters.
+
 ## 4.53.0 — 2026-10-21
 
 - Sponsored jobs (`isSponsored: true`) are being restricted to callers that

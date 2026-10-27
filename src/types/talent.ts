@@ -58,7 +58,7 @@ export type TalentDirectoryQuery = {
    * neighbourhood, 25 km town, 50 km city).
    */
   radius?: number;
-  sort?: 'relevance' | 'newest';
+  sort?: 'relevance' | 'newest' | 'distance';
   seniority?: string;
   permitCountry?: string;
   interestedRole?: string;
