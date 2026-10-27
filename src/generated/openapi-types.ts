@@ -692,7 +692,7 @@ export interface paths {
         };
         /**
          * Retrieve a company's salary overview
-         * @description A company's salary breakdown on the named public board: overall pay, by-seniority rows vs the board baseline, top competitors, top locations, and a per-category summary. Names are localized to the board language; the company slug/name are not.
+         * @description A company's salary breakdown on the named public board: overall pay, by-seniority rows vs the board baseline, top competitors, top locations, and a per-category summary. Category names and slugs are in the board language by default; pass `locale` (as on the other salary routes) to get the category names and slugs and the top-location place names and slugs in that language instead. Without `locale`, top locations keep their English names and slugs. The company slug/name are not localized.
          */
         get: operations["listBoardCompanySalaries"];
         put?: never;
@@ -4815,8 +4815,14 @@ export interface components {
         CompanyMarket: {
             /** @enum {string} */
             object: "company_market";
+            /** @description Source slug of the market. Filters (`marketSlug`) accept it. */
             slug: string;
+            /** @description English source name of the market. */
             name: string;
+            /** @description The slug of the market's page in the board language. Equals `slug` when the market has no translation. Link market pages with this slug; the market-scoped company browse resolves it too. */
+            canonicalSlug: string;
+            /** @description The market name in the board language, for labels. Equals `name` when the market has no translation. */
+            displayName: string;
             /** @description Number of companies on the board in this market. */
             companyCount: number;
         };
@@ -4982,8 +4988,10 @@ export interface components {
                 jobCount: number;
             }[];
             topLocations: {
+                /** @description Place name. In the `locale` language when the request passes one and the place has a translation; English otherwise. */
                 locationName: string;
                 countryCode: string;
+                /** @description Place slug for the location salary page. The `locale` language's slug when the request passes one and the place has a translation; the English source slug otherwise. */
                 placeSlug: string;
                 avgSalaryMin: number;
                 avgSalaryMax: number;
@@ -10253,7 +10261,10 @@ export interface operations {
     };
     listBoardCompanySalaries: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Board language code (e.g. `de`). Defaults to `en` (identity). Overlays board-language names + canonical slugs on the response. */
+                locale?: string;
+            };
             header?: never;
             path: {
                 /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */

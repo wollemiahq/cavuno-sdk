@@ -93,6 +93,10 @@ export type CompanySimilarQuery = {
   limit?: number;
 };
 
+/**
+ * A row of the board's market list — English `name` + source `slug`, plus
+ * the board-language `displayName` and the `canonicalSlug` its page lives at.
+ */
 export type CompanyMarket = Schemas['CompanyMarket'];
 
 export type CompanyMarketsListQuery = {

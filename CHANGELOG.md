@@ -3,6 +3,17 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.56.0 — 2026-10-27
+
+- `companies.markets` entries carry `displayName` and `canonicalSlug`, the
+  market's name and slug in the board's language (equal to `name` and `slug`
+  when untranslated). Link market pages with `canonicalSlug`.
+- `companies.salaries(slug, { locale })` returns the top locations' place
+  names and slugs, and the category names and slugs, in that language, like
+  the other salary reads. Without `locale` the response is unchanged.
+  Passing fetch options as the second argument still works but is
+  deprecated; pass them third.
+
 ## 4.55.0 — 2026-10-27
 
 - Names now come in the board's language as well as English, so a starter
