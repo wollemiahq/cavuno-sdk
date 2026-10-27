@@ -960,6 +960,18 @@ describe('board.talent', () => {
     expect(sentUrl(spy, 1)).toBe(`${BASE}/talent/jane%20doe%2Fz%C3%BCrich`);
   });
 
+  it('list forwards sort=distance', async () => {
+    const spy = stubFetch();
+    await makeBoard().talent.list({
+      sort: 'distance',
+      place: 'sydney-australia',
+    });
+    const url = new URL(sentUrl(spy));
+    expect(url.pathname).toBe('/v1/boards/acme-jobs/talent');
+    expect(url.searchParams.get('sort')).toBe('distance');
+    expect(url.searchParams.get('place')).toBe('sydney-australia');
+  });
+
   it('JSON-encodes talent custom filters into flat query parameters', async () => {
     const spy = stubFetch();
     await makeBoard().talent.list({

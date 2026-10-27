@@ -43,7 +43,9 @@ export function talentNamespace(client: BoardClient) {
     /**
      * Retrieve a candidate's public profile by handle (or board-user id). Only
      * `public` profiles resolve; a non-public or unknown handle throws
-     * `talent_not_found` (404).
+     * `talent_not_found` (404). `resumeUrl` is an expiring signed download
+     * for a signed-in approved employer when the candidate opted in to share
+     * their stored resume; `null` otherwise. Directory cards never include it.
      *
      * @example
      * const profile = await board.talent.retrieve('jane-doe');

@@ -31,6 +31,8 @@ access.companyId;
 
 `companyId` is set when the viewer has exactly one approved membership. It is `null` when they have none or more than one — pass `companyId` on writes or the API returns `company_required`.
 
+For employers with multiple approved companies, select the same company for each read and write. Pass `{ query: { companyId } }` to `me.talentAccess.retrieve`, `me.talentAccess.retrieveCandidate`, and `talent.retrieve`. The selected company controls balances, candidate unlock state, and opaque profile access. Omission preserves the default viewer context; pending memberships and companies on another board grant no access. Pass `companyId` in unlock, checkout, upgrade, and cold `conversations.start` bodies so the same company pays.
+
 ## Gate one candidate
 
 Per-candidate already-unlocked state is a sibling read so the singleton never takes a candidate id.
@@ -135,6 +137,8 @@ await board.me.conversations.start({
 Named `/p/{handle}` is the share bypass and always shows a full `public` profile. Opaque `/p/{id}` is the unlock-gated route. When `accessModel === 'paid_unlocks_and_messaging'`, directory cards redact for viewers who are not unlimited.
 
 `lastActive` on directory cards and profiles is a coarse bucket (`today`, `this_week`, `this_month`, `last_3_months`, `over_3_months`) for a signed-in employer looking at a candidate who is actively looking or open to offers, and `null` otherwise. It stays on redacted cards. Render it as a short label such as "Active this week" and hide it when `null`.
+
+`resumeUrl` on `talent.retrieve` is an expiring signed download for a signed-in approved employer when the candidate opted in (`me.resume.update({ shareWithEmployers: true })` or the upload form field) and a file is on file. It is `null` for everyone else and never present on directory cards. Redacted opaque profiles also return `null`. Turning sharing off stops new URLs; one already issued works until it expires. Candidates manage the file through `me.resume`.
 
 ```ts snippet
 const named = await board.talent.retrieve('jane-doe');

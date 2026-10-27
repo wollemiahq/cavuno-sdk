@@ -376,6 +376,7 @@ export type {
   ReportBody,
   Resume,
   ResumeUploadOptions,
+  UpdateResumeBody,
   RecommendedJob,
   RecommendedJobsListQuery,
   SaveJobBody,

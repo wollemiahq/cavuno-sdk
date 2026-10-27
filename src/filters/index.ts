@@ -65,6 +65,7 @@ export const JOB_SORTS: readonly JobSort[] = [
   'relevance',
   'newest',
   'salary_high',
+  'distance',
 ];
 
 export const DEFAULT_SORT: JobSort = 'relevance';
