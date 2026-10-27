@@ -5,11 +5,13 @@
  * passes, so the walker is platform-neutral and unit-testable with a
  * stubbed client.
  *
- * Locale: no locale parameter is needed. Job, company, market, and blog
- * slugs arrive on the wire already board-language canonical; the salary
- * index lists take a `locale` query (en = identity fast-path) and the
- * walker passes `context().language`, so emitted salary URLs are
- * board-language canonical too.
+ * Locale: no locale parameter is needed. Job, company, and blog slugs are
+ * the same in every board language. Category, skill, and market rows carry
+ * the English source `slug` plus the board-language `canonicalSlug` their
+ * page lives at, and the walker links with `canonicalSlug` (the source slug
+ * 308s to it). The salary and location index lists take a `locale` query
+ * (en = identity fast-path) and the walker passes `context().language`, so
+ * those URLs are board-language canonical too.
  *
  * Two paths, in priority order:
  *
@@ -339,12 +341,16 @@ async function jobsTaxonomy(
 ): Promise<string[]> {
   const jobs = await enumerateJobs(board);
 
-  // Count distinct jobs per taxonomy slug (a Set per job dedupes within a job);
-  // emit only slugs at/above the thin-content floor, matching the hosted bucket.
+  // Count distinct jobs per taxonomy page slug (a Set per job dedupes within a
+  // job); emit only slugs at/above the thin-content floor, matching the hosted
+  // bucket. `canonicalSlug` is the board-language page slug.
   const counts = new Map<string, number>();
   for (const job of jobs) {
     const slugs = new Set(
-      (kind === 'categories' ? job.categories : job.skills).map((t) => t.slug),
+      (kind === 'categories' ? job.categories : job.skills).map(
+        // `?? slug`: a response cached before these fields existed lacks it.
+        (t) => t.canonicalSlug ?? t.slug,
+      ),
     );
     for (const slug of slugs) counts.set(slug, (counts.get(slug) ?? 0) + 1);
   }
@@ -407,8 +413,11 @@ async function companies(board: BoardSdk, origin: string): Promise<string[]> {
   const urls = [`${origin}${BOARD_PATHS.companies}`];
   for (const company of list)
     urls.push(`${origin}${companyPath(company.slug)}`);
+  // `canonicalSlug` is the board-language page slug; the source slug 308s.
   for (const market of markets) {
-    urls.push(`${origin}${companyMarketPath(market.slug)}`);
+    urls.push(
+      `${origin}${companyMarketPath(market.canonicalSlug ?? market.slug)}`,
+    );
   }
   return urls;
 }
