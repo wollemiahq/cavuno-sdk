@@ -13,7 +13,10 @@ import type {
 
 export type PublicCompany = Schemas['CompanyPublic'];
 
-/** A market (sector) a company operates in — name + its source slug. */
+/**
+ * A market (sector) a company operates in — English name + source slug, plus
+ * its board-language `displayName` and the `canonicalSlug` its page lives at.
+ */
 export type CompanyMarketRef = Schemas['CompanyMarketRef'];
 
 /** The company DETAIL shape — `PublicCompany` plus `markets` (detail-only). */

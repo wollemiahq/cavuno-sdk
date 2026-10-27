@@ -86,8 +86,10 @@ const sortOptions = JOB_SORTS;
 Render seniority as a multi-select with all eight `SENIORITIES`.
 `EMPLOYMENT_TYPES` contains five listing options; `volunteer` and `other`
 remain valid job wire values but are absent from the filter control.
-`JOB_SORTS` contains exactly `relevance`, `newest`, and `salary_high`;
-`relevance` is the featured-ranked default. Label each option with your
+`JOB_SORTS` contains exactly `relevance`, `newest`, `salary_high`, and
+`distance`; `relevance` is the featured-ranked default. `distance` is
+nearest-first from the selected location and needs coordinates — hide it
+in the sort menu until a location is set. Label each option with your
 application's copy (message catalog or hard-coded board language).
 
 ## Load taxonomy options

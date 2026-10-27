@@ -63,6 +63,8 @@ export function listingHead(options: ListingHeadOptions) {
 interface JobLink {
   slug: string;
   company: { slug: string } | null;
+  /** The job's public URL (`links.public` on a job card), in the board's URL language. */
+  links?: { public?: string | null } | null;
 }
 
 /**
@@ -114,10 +116,9 @@ export function listingJsonLd(options: {
       itemListElement: detailJobs.map((job, index) => ({
         '@type': 'ListItem',
         position: index + 1,
-        url: boardUrl(
-          options.origin,
-          jobDetailPath(job.company.slug, job.slug),
-        ),
+        url:
+          job.links?.public ||
+          boardUrl(options.origin, jobDetailPath(job.company.slug, job.slug)),
       })),
     });
   }

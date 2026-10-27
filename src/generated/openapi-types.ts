@@ -1156,7 +1156,7 @@ export interface paths {
         put?: never;
         /**
          * Search a public board's jobs
-         * @description Searches published jobs on the named public board using a free-text query and faceted filters. Results are ranked by the hosted search core: by relevance with featured jobs first by default; pass `sort` to order by publish date or salary (which unpins featured). Each filter array accepts up to 10 values. If the provided company filter resolves to no known companies, the result is empty. Sponsored jobs are included only for callers that send the Apply gateway capability header.
+         * @description Searches published jobs on the named public board using a free-text query and faceted filters. Results are ranked by the hosted search core: by relevance with featured jobs first by default; pass `sort` to order by publish date, salary, or distance from `filters.location` (which unpins featured). Each filter array accepts up to 10 values. If the provided company filter resolves to no known companies, the result is empty. Sponsored jobs are included only for callers that send the Apply gateway capability header.
          */
         post: operations["searchBoardJobs"];
         delete?: never;
@@ -3277,13 +3277,13 @@ export interface paths {
         };
         /**
          * Get my resume state
-         * @description The candidate’s resume: parse status + the stored file (signed URL) when present. Never cached.
+         * @description The candidate’s resume: parse status + the stored file (signed URL) when present, plus `shareWithEmployers` (whether approved employers may receive `resumeUrl` on talent.retrieve). Never cached.
          */
         get: operations["listBoardMeResume"];
         put?: never;
         /**
          * Upload a resume
-         * @description Upload a resume (multipart `resume`) and start an async parse that auto-populates the candidate profile. Returns `202` with `parseStatus: "parsing"`; poll `GET /me/resume` until `parsed` / `failed`, then re-read `/me/profile/*`. Form fields: `keepResumeOnFile` (bool), `importMode` (`append_only`|`replace_all`), `confirmReplaceAll` (bool, required for replace_all). Requires a verified candidate. 5 uploads / 15 min.
+         * @description Upload a resume (multipart `resume`) and start an async parse that auto-populates the candidate profile. Returns `202` with `parseStatus: "parsing"`; poll `GET /me/resume` until `parsed` / `failed`, then re-read `/me/profile/*`. Form fields: `keepResumeOnFile` (bool), `shareWithEmployers` (bool, default false; ignored unless `keepResumeOnFile` is true), `importMode` (`append_only`|`replace_all`), `confirmReplaceAll` (bool, required for replace_all). Requires a verified candidate. 5 uploads / 15 min.
          */
         post: operations["createBoardMeResume"];
         /**
@@ -3293,7 +3293,11 @@ export interface paths {
         delete: operations["deleteBoardMeResume"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Update my resume sharing
+         * @description Set whether signed-in approved employers may receive `resumeUrl` on `GET /talent/{handle}`. Does not upload or delete the file. Never cached.
+         */
+        patch: operations["updateBoardMeResume"];
         trace?: never;
     };
     "/boards/{identifier}/me/saved-jobs": {
@@ -3549,7 +3553,7 @@ export interface paths {
         };
         /**
          * Suggest any place for a location search
-         * @description Location search beyond the board's own places: cities, towns, suburbs and villages in the countries where the board has published on-site or hybrid jobs (remote jobs do not count), in the board's language, ranked by size, by name match and by distance from `near`. Each result is a `PublicPlace` with `jobCount` 0, `parentId` null, `regionCode` the ISO 3166-2 code of its region (for example `AU-NSW`) or null when the region has none, `placeType` `city` or `locality`, and a `displayName` that adds the place's region and country. Its `canonicalSlug` works as the jobs `location` filter (jobs within `radius` km of the place, by default a distance that suits its size), on `GET /boards/{identifier}/places/{slug}`, and as the location page slug. Show these after the board's own matches from `GET /boards/{identifier}/places?q=`. Returns an empty list when the board's `features.placeSuggestions` is `false`, so check that flag before calling, and when the board has no on-site or hybrid jobs. A suggested place's `id` is not a `locationId` for job posting or profiles; use its `slug` for job search. Cacheable per URL; rate limited per client and board.
+         * @description Location search beyond the board's own places: cities, towns, suburbs and villages in the countries where a search would list the board's jobs: those of its on-site and hybrid jobs and those its remote jobs are open to, or every country when a remote job is open worldwide, in the board's language, ranked by size, by name match and by distance from `near`. Each result is a `PublicPlace` with `jobCount` 0, `parentId` null, `regionCode` the ISO 3166-2 code of its region (for example `AU-NSW`) or null when the region has none, `placeType` `city` or `locality`, and a `displayName` that adds the place's region and country. Its `canonicalSlug` works as the jobs `location` filter (jobs within `radius` km of the place, by default a distance that suits its size), on `GET /boards/{identifier}/places/{slug}`, and as the location page slug. Show these after the board's own matches from `GET /boards/{identifier}/places?q=`. Returns an empty list when the board's `features.placeSuggestions` is `false`, so check that flag before calling, and when no place would list any of the board's jobs. A suggested place's `id` is not a `locationId` for job posting or profiles; use its `slug` for job search. Cacheable per URL; rate limited per client and board.
          */
         get: operations["listBoardPlacesSuggest"];
         put?: never;
@@ -4124,7 +4128,7 @@ export interface paths {
         };
         /**
          * Retrieve a candidate's public profile
-         * @description A candidate's public profile on the named public board: header (name, headline, location, bio, avatar, job-search status) plus their experiences, education, skills, and languages. Only `public` profiles are returned; a non-public or unknown handle is 404. `jobSearchStatus` is `null` when the candidate set it to employers-only. When the board sells profile unlocks, retrieve-by-id (`/p/{id}`) redacts the same fields the hosted opaque route hides until the viewer is unlimited or has unlocked; retrieve-by-handle is the named-share bypass and stays full.
+         * @description A candidate's public profile on the named public board: header (name, headline, location, bio, avatar, job-search status) plus their experiences, education, skills, and languages. Only `public` profiles are returned; a non-public or unknown handle is 404. `jobSearchStatus` is `null` when the candidate set it to employers-only. `resumeUrl` is an expiring signed URL for a signed-in approved employer when the candidate opted in to share their stored resume; `null` otherwise. When the board sells profile unlocks, retrieve-by-id (`/p/{id}`) redacts the same fields the hosted opaque route hides until the viewer is unlimited or has unlocked (including `resumeUrl`); retrieve-by-handle is the named-share bypass and stays full.
          */
         get: operations["getBoardTalent"];
         put?: never;
@@ -4817,10 +4821,14 @@ export interface components {
             companyCount: number;
         };
         CompanyMarketRef: {
-            /** @description Display name of the market. */
+            /** @description English source name of the market. */
             name: string;
             /** @description Source slug for the market. Use it as the `:market` segment of the market-scoped company browse. */
             slug: string;
+            /** @description The slug of the market's page in the board language. Equals `slug` when the market has no translation. Link market chips with this slug; the market-scoped company browse resolves it too. */
+            canonicalSlug: string;
+            /** @description The market name in the board language, for the chip label. Equals `name` when the market has no translation. */
+            displayName: string;
         };
         CompanyMember: {
             id: string;
@@ -5493,6 +5501,8 @@ export interface components {
                 /** @enum {string} */
                 type: "worldwide" | "world_region" | "continent" | "region" | "subregion" | "subdivision" | "country" | "custom";
                 value: string;
+                /** @description Ignored on input. Job reads add it to some entries; send it back or leave it out. */
+                code?: string;
             }[];
             /** @description Where remote candidates must be timezone-compatible. Each entry mirrors the `remotePermits` shape (`world_region`, `continent`, `region`, `subregion`, `country`) plus `timezone` (specific IANA name with optional `plusMinus` ±N hours expansion) and `all` (every timezone: equivalent of `worldwide` for permits). The canonical `{type, value}` set is published at `GET /v1/taxonomies/remote-timezones`. **When omitted on POST**, the server auto-derives this from `remotePermits` (or `[{all,all}]` if neither was provided). **PATCH never auto-re-derives**: once set, only an explicit replacement updates the stored value, even when `remotePermits` changes. Pass `[]` to clear an existing constraint. */
             remoteTimezones?: {
@@ -5566,6 +5576,8 @@ export interface components {
             remotePermits: {
                 type: string;
                 value: string;
+                /** @description UN M.49 area code of a `continent`, `region` or `subregion` entry (e.g. `"150"` for Europe, `"019"` for the Americas, `"155"` for Western Europe). It is a code `Intl.DisplayNames` with `type: "region"` accepts, so a client can name the area in any language: `new Intl.DisplayNames(["de"], { type: "region" }).of("150")` is `"Europa"`. Absent for areas without a standard code (e.g. "Central Europe"), for `world_region` and `custom` entries, and for `country` and `subdivision` entries, whose `value` is already an ISO 3166-1 alpha-2 or ISO 3166-2 code. */
+                code?: string;
             }[];
             /** @description Read-only: derived from `remotePermits`. */
             remoteWorldwide: boolean | null;
@@ -5804,6 +5816,8 @@ export interface components {
                 /** @enum {string} */
                 type: "worldwide" | "world_region" | "continent" | "region" | "subregion" | "subdivision" | "country" | "custom";
                 value: string;
+                /** @description Ignored on input. Job reads add it to some entries; send it back or leave it out. */
+                code?: string;
             }[];
             /** @description Where remote candidates must be timezone-compatible. Each entry mirrors the `remotePermits` shape (`world_region`, `continent`, `region`, `subregion`, `country`) plus `timezone` (specific IANA name with optional `plusMinus` ±N hours expansion) and `all` (every timezone: equivalent of `worldwide` for permits). The canonical `{type, value}` set is published at `GET /v1/taxonomies/remote-timezones`. **When omitted on POST**, the server auto-derives this from `remotePermits` (or `[{all,all}]` if neither was provided). **PATCH never auto-re-derives**: once set, only an explicit replacement updates the stored value, even when `remotePermits` changes. Pass `[]` to clear an existing constraint. */
             remoteTimezones?: {
@@ -6848,6 +6862,8 @@ export interface components {
             remotePermits: {
                 type: string;
                 value: string;
+                /** @description UN M.49 area code of a `continent`, `region` or `subregion` entry (e.g. `"150"` for Europe, `"019"` for the Americas, `"155"` for Western Europe). It is a code `Intl.DisplayNames` with `type: "region"` accepts, so a client can name the area in any language: `new Intl.DisplayNames(["de"], { type: "region" }).of("150")` is `"Europa"`. Absent for areas without a standard code (e.g. "Central Europe"), for `world_region` and `custom` entries, and for `country` and `subdivision` entries, whose `value` is already an ISO 3166-1 alpha-2 or ISO 3166-2 code. */
+                code?: string;
             }[];
             /** @description Read-only: derived from `remotePermits`. `true` only when the authored selection is a single `{type:"worldwide"}` entry. */
             remoteWorldwide: boolean | null;
@@ -6856,6 +6872,8 @@ export interface components {
                 type: string;
                 value: string;
                 plusMinus?: number;
+                /** @description Display name of the entry in the board language: the country, continent, region or subregion name ("Europa"), or the time zone name ("Mitteleuropäische Zeit"). A `world_region` shows its acronym ("EMEA"; the full English name on an English board), `all` the name of the world ("Welt"), and a group without a localized name its English `value`. Render this instead of `value`. */
+                label: string;
             }[];
             /** @description Read-only: derived from `remoteTimezones`. UTC hour offsets used by the job-search index. */
             remoteAllowedTzOffsets: number[];
@@ -6882,17 +6900,29 @@ export interface components {
             /** @description How often the candidate must be in-office over `inOfficePeriod`, or `null` if not specified. */
             inOfficeFrequency: number | null;
             company: components["schemas"]["JobCompany"];
-            /** @description Physical office locations associated with the job. */
+            /** @description Physical office locations associated with the job. Each `displayName` is in the board's language (city, region and country, each where a translation exists); `city`, `region` and `country` stay as stored. */
             officeLocations: components["schemas"]["JobOfficeLocation"][];
-            /** @description Resolved job categories (slug + board display name): same shape as the card; names joined server-side. Guaranteed resolvable: every emitted slug resolves via `GET /v1/boards/:identifier/categories/:slug` — consumers never need to re-verify before linking. */
+            /** @description Resolved job categories: same shape as the card; names joined server-side. Show `displayName` and link with `canonicalSlug` (board language); `name` and `slug` stay English. Guaranteed resolvable: every emitted slug resolves via `GET /v1/boards/:identifier/categories/:slug` — consumers never need to re-verify before linking. */
             categories: {
+                /** @description English source slug of the category. Accepted by the jobs `category` filter. */
                 slug: string;
+                /** @description English source name of the category. */
                 name: string;
+                /** @description The slug of the category's page in the board language. Equals `slug` when the category has no translation. Link chips with this slug. */
+                canonicalSlug: string;
+                /** @description The category name in the board language, for the chip label. Equals `name` when the category has no translation. */
+                displayName: string;
             }[];
-            /** @description Resolved job skills (slug + board display name). Guaranteed resolvable: every emitted slug resolves via `GET /v1/boards/:identifier/skills/:slug` — consumers never need to re-verify before linking. */
+            /** @description Resolved job skills. Show `displayName` and link with `canonicalSlug` (board language); `name` and `slug` stay English. Guaranteed resolvable: every emitted slug resolves via `GET /v1/boards/:identifier/skills/:slug` — consumers never need to re-verify before linking. */
             skills: {
+                /** @description English source slug of the skill. Accepted by the jobs `skill` filter. */
                 slug: string;
+                /** @description English source name of the skill. */
                 name: string;
+                /** @description The slug of the skill's page in the board language. Equals `slug` when the skill has no translation. Link chips with this slug. */
+                canonicalSlug: string;
+                /** @description The skill name in the board language, for the chip label. Equals `name` when the skill has no translation. */
+                displayName: string;
             }[];
             /** @description Place ancestor chain (country → region → city) for the breadcrumb. Link each entry with `canonicalSlug`; show `name`, which is in the board's language. `slug` stays the English source slug. */
             placeHierarchy: {
@@ -7010,6 +7040,13 @@ export interface components {
             remoteWorldwide: boolean | null;
             /** @description ISO 3166-1 alpha-2 codes the remote permit selection covers (derived expansion, mirroring the job detail field of the same name). Empty for worldwide/unconstrained and non-remote jobs. */
             remoteWorkPermitCountryCodes: string[];
+            /** @description The remote scopes the employer picked, with the same entries and order as the job detail field of the same name: `[{"type":"continent","value":"Europe","code":"150"},{"type":"country","value":"DE"}]`. Build the card label in the board language from it: name a `country` from its `value` and an area from its `code` with `Intl.DisplayNames`, and fall back to `remoteLocationLabel` for entries you cannot name. `[]` for non-remote jobs and for a remote job that declares no scope. */
+            remotePermits: {
+                type: string;
+                value: string;
+                /** @description UN M.49 area code of a `continent`, `region` or `subregion` entry (e.g. `"150"` for Europe, `"019"` for the Americas, `"155"` for Western Europe). It is a code `Intl.DisplayNames` with `type: "region"` accepts, so a client can name the area in any language: `new Intl.DisplayNames(["de"], { type: "region" }).of("150")` is `"Europa"`. Absent for areas without a standard code (e.g. "Central Europe"), for `world_region` and `custom` entries, and for `country` and `subdivision` entries, whose `value` is already an ISO 3166-1 alpha-2 or ISO 3166-2 code. */
+                code?: string;
+            }[];
             salaryMin: number | null;
             salaryMax: number | null;
             salaryCurrency: string | null;
@@ -7020,6 +7057,8 @@ export interface components {
             /** @description Plain-text card teaser derived from the job description (HTML stripped, first sentence / word-boundary cut). `null` when there is nothing honest to show. Always present — independent of the `?fields=+description` opt-in for the long-form HTML body. Prefer this over requesting `+description` for list/card renders. */
             summary: string | null;
             locationLabel: string | null;
+            /** @description Kilometres from the selected `location` to this job’s point. Computed at read time from the listing origin and the search hit — not stored. `null` when the listing has no origin or the job has no point. */
+            distanceKm: number | null;
             /** @description Embedded company summary, or `null` if none is attached. */
             company: {
                 slug: string;
@@ -7030,15 +7069,27 @@ export interface components {
                     [key: string]: string | string[] | boolean | number;
                 };
             } | null;
-            /** @description Job categories (slug + board display name). Guaranteed resolvable: every emitted slug resolves via `GET /v1/boards/:identifier/categories/:slug`. */
+            /** @description Job categories. Show `displayName` and link with `canonicalSlug` (board language); `name` and `slug` stay English. Guaranteed resolvable: every emitted slug resolves via `GET /v1/boards/:identifier/categories/:slug`. */
             categories: {
+                /** @description English source slug of the category. Accepted by the jobs `category` filter. */
                 slug: string;
+                /** @description English source name of the category. */
                 name: string;
+                /** @description The slug of the category's page in the board language. Equals `slug` when the category has no translation. Link chips with this slug. */
+                canonicalSlug: string;
+                /** @description The category name in the board language, for the chip label. Equals `name` when the category has no translation. */
+                displayName: string;
             }[];
-            /** @description Job skills (slug + board display name). Guaranteed resolvable: every emitted slug resolves via `GET /v1/boards/:identifier/skills/:slug`. */
+            /** @description Job skills. Show `displayName` and link with `canonicalSlug` (board language); `name` and `slug` stay English. Guaranteed resolvable: every emitted slug resolves via `GET /v1/boards/:identifier/skills/:slug`. */
             skills: {
+                /** @description English source slug of the skill. Accepted by the jobs `skill` filter. */
                 slug: string;
+                /** @description English source name of the skill. */
                 name: string;
+                /** @description The slug of the skill's page in the board language. Equals `slug` when the skill has no translation. Link chips with this slug. */
+                canonicalSlug: string;
+                /** @description The skill name in the board language, for the chip label. Equals `name` when the skill has no translation. */
+                displayName: string;
             }[];
             /** @description The job's custom-field values of the select, boolean, and number types, keyed by each field's `key`; select values are option `key`s. Resolve labels via the board's `customFields.job` definitions (see `GET /v1/boards/:identifier`). Values of fields no longer defined, and removed options, are omitted; text types are only on the full job (`PublicJob`). `{}` when none. */
             customFieldValues: {
@@ -7117,10 +7168,10 @@ export interface components {
             /** @description Free-text search query matched against job title and description. Up to 200 characters. */
             query?: string;
             /**
-             * @description Result ordering. `relevance` (default) ranks by search relevance with featured jobs first; `newest` orders by publish date and `salary_high` by salary (no-salary jobs last). Any explicit sort unpins featured jobs.
+             * @description Result ordering. `relevance` (default) ranks by search relevance with featured jobs first; `newest` orders by publish date, `salary_high` by salary (no-salary jobs last), and `distance` nearest-first from `filters.location` (jobs without a point last). `distance` requires a location that resolves to coordinates (`sort_distance_requires_location` otherwise). Any explicit sort unpins featured jobs.
              * @enum {string}
              */
-            sort?: "relevance" | "newest" | "salary_high";
+            sort?: "relevance" | "newest" | "salary_high" | "distance";
             /** @description Optional faceted filters to narrow search results. Multi-value filters match jobs in any of the supplied values; range filters accept `gte` and `lte` bounds. */
             filters?: {
                 /** @description Only return jobs at any of the given company IDs. Up to 10 values. */
@@ -7150,7 +7201,7 @@ export interface components {
                      */
                     lte?: string;
                 };
-                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). Pass `radius` to widen a city or locality to nearby jobs. A place slug from `GET /places/suggest` returns jobs within `radius` km of that place, by default a distance that suits its size. Unresolvable slugs are ignored. */
+                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). The slug can also name a country or region remote jobs on the board are open to, as `GET /places?q=` suggests. Pass `radius` to widen a city or locality to nearby jobs. A place slug from `GET /places/suggest` returns jobs within `radius` km of that place, by default a distance that suits its size. Unresolvable slugs are ignored. */
                 location?: string;
                 /** @description Widen a city or locality `location` to also return jobs placed in a city or locality within this many kilometres of the place (1–250; decimals allowed, e.g. `8.05` for 5 miles). Omit for jobs in the place itself. Ignored for region and country places, and without `location`. For a place from `GET /places/suggest`, an omitted `radius` uses the place's own default distance: 15 km for a neighbourhood, 25 km for a town, 50 km for a city. */
                 radius?: number;
@@ -7216,6 +7267,10 @@ export interface components {
             geo: components["schemas"]["TaxonomyGeo"];
             /** @description The board's intro for this category or location page, as sanitized HTML. Absent when the page has none. Show it on page 1 with no filters. */
             introHtml?: string;
+            /** @description The board's `<title>` for this category or location page, to use as written in place of your own title on page 1 with no filters. Absent when the board has not set one. */
+            metaTitle?: string;
+            /** @description The board's meta description for this category or location page, to use as written on page 1 with no filters. Absent when the board has not set one. */
+            metaDescription?: string;
             /** @description Present, and `true`, when a place slug resolved to a place from `GET /boards/{identifier}/places/suggest` instead of one of the board's places; absent for every other resolution. Its location page lists the jobs within the place's own default distance (pass the slug as the jobs `location` with no `radius`). Index that page only when it lists at least 5 on-site or hybrid jobs: read `count` from `GET /boards/{identifier}/jobs?location={slug}&remoteOption=on_site&remoteOption=hybrid&limit=1`, in parallel with the page's own job read, and emit `noindex, follow` below 5. Remote jobs still list on the page and count in its headline; they only do not count toward indexing. A view with an explicit `radius` stays `noindex, follow`. Only suggested places need this read. */
             suggested?: boolean;
             /** @description The breadcrumb above a suggested place, country first: its country, its region and, for a neighbourhood or suburb (`geo.placeType` `locality`), its city. Present when `suggested` is `true`, absent otherwise. Render Jobs > each ancestor > the place (`displayName`), with the same BreadcrumbList JSON-LD as for the board's own places; link an ancestor to `/jobs/locations/:canonicalSlug` only when its `canonicalSlug` is not `null`. */
@@ -7477,6 +7532,8 @@ export interface components {
             parsedAt: string | null;
             keepResumeOnFile: boolean | null;
             hasResumeOnFile: boolean;
+            /** @description When true, signed-in approved employers on this board receive an expiring `resumeUrl` on `GET /talent/{handle}`. Default false. Distinct from `keepResumeOnFile` (application downloads). */
+            shareWithEmployers: boolean;
             file: {
                 /** @description Short-lived signed download URL. */
                 url: string;
@@ -7755,11 +7812,15 @@ export interface components {
         StartConversationBody: {
             candidateBoardUserId: string;
             body: string;
+            /** @description Approved company whose message credits to use. Omit to retain the default company. */
+            companyId?: string;
             /** @description Optional job id. When set, this send is from that job pipeline and may auto-advance Shortlisted to Contacted. */
             job?: string;
         } | {
             candidateHandle: string;
             body: string;
+            /** @description Approved company whose message credits to use. Omit to retain the default company. */
+            companyId?: string;
             /** @description Optional job id. When set, this send is from that job pipeline and may auto-advance Shortlisted to Contacted. */
             job?: string;
         };
@@ -7854,6 +7915,8 @@ export interface components {
             displayName: string | null;
             headline: string | null;
             location: string | null;
+            /** @description Kilometres from the selected `place` to this candidate’s home point. Computed at read time from the listing origin and the search hit — not stored. `null` when the listing has no origin or the candidate has no point. */
+            distanceKm: number | null;
             avatarUrl: string | null;
             /** @description Plain-text card teaser derived from `bio` (HTML stripped, first sentence / word-boundary cut). `null` when there is nothing honest to show. Prefer this over `bio` for directory/card renders; cards still lead with `headline` when present. */
             summary: string | null;
@@ -7908,7 +7971,7 @@ export interface components {
             openToRelocate?: boolean;
             place?: string;
             /** @enum {string} */
-            sort?: "relevance" | "newest";
+            sort?: "relevance" | "newest" | "distance";
             seniority?: string;
             permitCountry?: string;
             interestedRole?: string;
@@ -7992,6 +8055,8 @@ export interface components {
              * @enum {string|null}
              */
             lastActive: "today" | "this_week" | "this_month" | "last_3_months" | "over_3_months" | null;
+            /** @description Expiring signed download URL for the candidate’s stored resume. Only returned to a signed-in approved employer on this board, and only when the candidate opted in to share it with employers and a file is on file; `null` otherwise. Turning sharing off stops new URLs; a URL already issued works until it expires. Never present on directory cards. */
+            resumeUrl: string | null;
         };
         TalentUnlock: {
             /** @enum {string} */
@@ -8299,6 +8364,10 @@ export interface components {
         UpdatePipelineStageBody: {
             label?: string;
             hidden?: boolean;
+        };
+        UpdateResumeBody: {
+            /** @description When true, signed-in approved employers on this board receive an expiring `resumeUrl` on `GET /talent/{handle}`. Distinct from `keepResumeOnFile`. */
+            shareWithEmployers: boolean;
         };
         UpdateSkillsBody: {
             skills: string[];
@@ -9881,7 +9950,11 @@ export interface operations {
                             /** @enum {string} */
                             type: "category" | "skill";
                             slug: string;
+                            /** @description The slug of the term's page in the board language. Equals `slug` when the term has no translation. Link chips with this slug. */
+                            canonicalSlug: string;
                             term: string;
+                            /** @description The term in the board language, for the chip label. Equals `term` when the term has no translation. */
+                            displayName: string;
                             count: number;
                         }[];
                     };
@@ -10463,7 +10536,7 @@ export interface operations {
                 customEmploymentType?: string[];
                 /** @description Only return jobs at any of the given seniority levels. Repeat the param for multiple values (up to 10). */
                 seniority?: ("entry_level" | "associate" | "mid_level" | "senior" | "lead" | "principal" | "director" | "executive")[];
-                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). Pass `radius` to widen a city or locality to nearby jobs. A place slug from `GET /places/suggest` returns jobs within `radius` km of that place, by default a distance that suits its size. Unresolvable slugs are ignored. */
+                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). The slug can also name a country or region remote jobs on the board are open to, as `GET /places?q=` suggests. Pass `radius` to widen a city or locality to nearby jobs. A place slug from `GET /places/suggest` returns jobs within `radius` km of that place, by default a distance that suits its size. Unresolvable slugs are ignored. */
                 location?: string;
                 /**
                  * @description Widen a city or locality `location` to also return jobs placed in a city or locality within this many kilometres of the place (1–250; decimals allowed, e.g. `8.05` for 5 miles). Omit for jobs in the place itself. Ignored for region and country places, and without `location`. For a place from `GET /places/suggest`, an omitted `radius` uses the place's own default distance: 15 km for a neighbourhood, 25 km for a town, 50 km for a city.
@@ -11418,9 +11491,9 @@ export interface operations {
                 customEmploymentType?: string[];
                 /** @description Only return jobs at any of the given seniority levels. Repeat the param for multiple values (up to 10). */
                 seniority?: ("entry_level" | "associate" | "mid_level" | "senior" | "lead" | "principal" | "director" | "executive")[];
-                /** @description Result ordering. `relevance` (default) is the featured-ranked browse; `newest` orders by publish date and `salary_high` by salary (no-salary jobs last). Any explicit sort unpins featured jobs. */
-                sort?: "relevance" | "newest" | "salary_high";
-                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). Pass `radius` to widen a city or locality to nearby jobs. A place slug from `GET /places/suggest` returns jobs within `radius` km of that place, by default a distance that suits its size. Unresolvable slugs are ignored. */
+                /** @description Result ordering. `relevance` (default) is the featured-ranked browse; `newest` orders by publish date, `salary_high` by salary (no-salary jobs last), and `distance` nearest-first from the selected `location` (jobs without a point last). `distance` requires a `location` that resolves to coordinates (`sort_distance_requires_location` otherwise). Any explicit sort unpins featured jobs. */
+                sort?: "relevance" | "newest" | "salary_high" | "distance";
+                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). The slug can also name a country or region remote jobs on the board are open to, as `GET /places?q=` suggests. Pass `radius` to widen a city or locality to nearby jobs. A place slug from `GET /places/suggest` returns jobs within `radius` km of that place, by default a distance that suits its size. Unresolvable slugs are ignored. */
                 location?: string;
                 /**
                  * @description Widen a city or locality `location` to also return jobs placed in a city or locality within this many kilometres of the place (1–250; decimals allowed, e.g. `8.05` for 5 miles). Omit for jobs in the place itself. Ignored for region and country places, and without `location`. For a place from `GET /places/suggest`, an omitted `radius` uses the place's own default distance: 15 km for a neighbourhood, 25 km for a town, 50 km for a city.
@@ -11476,7 +11549,11 @@ export interface operations {
                             /** @enum {string} */
                             type: "category" | "skill";
                             slug: string;
+                            /** @description The slug of the term's page in the board language. Equals `slug` when the term has no translation. Link chips with this slug. */
+                            canonicalSlug: string;
                             term: string;
+                            /** @description The term in the board language, for the chip label. Equals `term` when the term has no translation. */
+                            displayName: string;
                             count: number;
                         }[];
                         /** @description Silent zero-result typo rescue. Present only when a free-text query was rewritten; data/count belong to correctedQuery. */
@@ -11491,7 +11568,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description Invalid pagination: `offset + limit` exceeds 10,000 (`pagination_offset_too_large`) or a malformed `cursor` (`pagination_invalid_cursor`). */
+            /** @description Invalid pagination: `offset + limit` exceeds 10,000 (`pagination_offset_too_large`) or a malformed `cursor` (`pagination_invalid_cursor`). `sort=distance` without a `location` that resolves to coordinates is `sort_distance_requires_location`. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -11572,7 +11649,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description The request was malformed, a filter array exceeded the per-array cap, a `customFields` / `companyCustomFields` clause named an unknown or private field or an undefined option (`invalid_filter`), or the pagination window is out of range (`pagination_offset_too_large` / `pagination_invalid_cursor`). */
+            /** @description The request was malformed, a filter array exceeded the per-array cap, a `customFields` / `companyCustomFields` clause named an unknown or private field or an undefined option (`invalid_filter`), the pagination window is out of range (`pagination_offset_too_large` / `pagination_invalid_cursor`), or `sort=distance` was sent without a `filters.location` that resolves to coordinates (`sort_distance_requires_location`). */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -16941,8 +17018,8 @@ export interface operations {
                  * @example 50
                  */
                 radius?: number;
-                /** @description Omit for most recently saved first when there is no keyword (`q`); with a keyword, omit for best match first. `relevance` is Best Match (status then recency); `newest` is newest candidate first. */
-                sort?: "relevance" | "newest";
+                /** @description Omit for most recently saved first when there is no keyword (`q`); with a keyword, omit for best match first. `relevance` is Best Match (status then recency); `newest` is newest candidate first; `distance` is nearest-first from the selected `place` and requires coordinates (`sort_distance_requires_location` otherwise). */
+                sort?: "relevance" | "newest" | "distance";
                 /** @description As on the public talent directory. */
                 seniority?: string;
                 /** @description As on the public talent directory. */
@@ -20453,6 +20530,69 @@ export interface operations {
             };
         };
     };
+    updateBoardMeResume: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["UpdateResumeBody"];
+            };
+        };
+        responses: {
+            /** @description Updated resume state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Resume"];
+                };
+            };
+            /** @description Missing/invalid/expired access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Token was issued for a different board. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     listBoardMeSavedJobs: {
         parameters: {
             query?: {
@@ -20645,7 +20785,10 @@ export interface operations {
     };
     listBoardMeTalentAccess: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Approved company whose talent entitlement to use. Omit to retain the default viewer context. */
+                companyId?: string;
+            };
             header?: never;
             path: {
                 /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
@@ -20704,7 +20847,10 @@ export interface operations {
     };
     getBoardMeTalentAccessCandidate: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Approved company whose talent entitlement to use. Omit to retain the default viewer context. */
+                companyId?: string;
+            };
             header?: never;
             path: {
                 /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
@@ -21117,7 +21263,7 @@ export interface operations {
         parameters: {
             query?: {
                 /**
-                 * @description Location autocomplete query. When provided with ≥2 characters after diacritic folding, returns the top matches against name or display name (substring) and slug or canonical slug (prefix), with prefix matches ranked first; under 2 folded characters returns an empty list.
+                 * @description Location autocomplete query. When provided with ≥2 characters after diacritic folding, returns the top matches against name or display name (substring) and slug or canonical slug (prefix), with prefix matches ranked first; under 2 folded characters returns an empty list. Matches include the countries and regions remote jobs on the board are open to, one entry per location.
                  * @example lon
                  */
                 q?: string;
@@ -22279,8 +22425,8 @@ export interface operations {
                  * @example 50
                  */
                 radius?: number;
-                /** @description `relevance` is Best Match (status then recency). `newest` is created_at descending. */
-                sort?: "relevance" | "newest";
+                /** @description `relevance` is Best Match (status then recency). `newest` is created_at descending. `distance` is nearest-first from the selected `place` (candidates without a home point last) and requires a `place` that resolves to coordinates (`sort_distance_requires_location` otherwise). */
+                sort?: "relevance" | "newest" | "distance";
                 /** @description Seniority band: `entry_level`, `mid_level`, `senior`, `manager`, `director` or `executive`. Matches candidates who list that band. Until the board's talent index has been re-synced with seniority data, this filter is ignored. */
                 seniority?: string;
                 /** @description ISO 3166-1 alpha-2 country code (case-insensitive). Matches candidates who list that country among the countries they are authorized to work in. Until the board's talent index has been re-synced with work-permit data, this filter is ignored. */
@@ -22331,7 +22477,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description The pagination window is out of range (`pagination_offset_too_large`) or the cursor is malformed (`pagination_invalid_cursor`). */
+            /** @description The pagination window is out of range (`pagination_offset_too_large`), the cursor is malformed (`pagination_invalid_cursor`), or `sort=distance` was sent without a `place` that resolves to coordinates (`sort_distance_requires_location`). */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -22430,7 +22576,10 @@ export interface operations {
     };
     getBoardTalent: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Approved company whose talent entitlement to use. Omit to retain the default viewer context. */
+                companyId?: string;
+            };
             header?: never;
             path: {
                 /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */

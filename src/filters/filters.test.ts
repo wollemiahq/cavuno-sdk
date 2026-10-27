@@ -24,6 +24,12 @@ describe('vocabulary', () => {
     expect(EMPLOYMENT_TYPES).not.toContain('volunteer');
     // `oldest` is deliberately excluded.
     expect(JOB_SORTS).not.toContain('oldest');
+    expect(JOB_SORTS).toEqual([
+      'relevance',
+      'newest',
+      'salary_high',
+      'distance',
+    ]);
     expect(DEFAULT_SORT).toBe('relevance');
   });
 });
@@ -101,7 +107,7 @@ describe('parseListingFilters', () => {
         employmentType: 'full_time',
         seniority: 'senior,lead',
         company: 'acme,globex',
-        sort: 'newest',
+        sort: 'distance',
       }),
     ).toEqual({
       q: 'chef',
@@ -109,7 +115,7 @@ describe('parseListingFilters', () => {
       employmentType: 'full_time',
       seniority: ['senior', 'lead'],
       company: ['acme', 'globex'],
-      sort: 'newest',
+      sort: 'distance',
     });
 
     expect(

@@ -182,8 +182,17 @@ const JOB = {
       displayName: 'Berlin, Germany',
     },
   ],
-  categories: [{ slug: 'robotics-engineering', name: 'Robotics Engineering' }],
-  skills: [{ slug: 'ros', name: 'ROS' }],
+  categories: [
+    {
+      slug: 'robotics-engineering',
+      name: 'Robotics Engineering',
+      canonicalSlug: 'robotics-engineering',
+      displayName: 'Robotics Engineering',
+    },
+  ],
+  skills: [
+    { slug: 'ros', name: 'ROS', canonicalSlug: 'ros', displayName: 'ROS' },
+  ],
   placeHierarchy: [
     { slug: 'germany', name: 'Germany', canonicalSlug: 'germany' },
   ],
@@ -1257,6 +1266,37 @@ describe('listingJsonLd', () => {
             url: 'https://acme.example.com/companies/acme-robotics/jobs/robot-wrangler',
           },
         ],
+      },
+    ]);
+  });
+
+  it('links each job by its public URL when the card carries one', () => {
+    // A German board's job URLs read /unternehmen/…, not /companies/….
+    const [itemList] = listingJsonLd({
+      origin: 'https://jobs.example.de',
+      breadcrumbs: [],
+      jobs: [
+        {
+          slug: 'robot-wrangler',
+          company: { slug: 'acme-robotics' },
+          links: {
+            public:
+              'https://jobs.example.de/unternehmen/acme-robotics/jobs/robot-wrangler',
+          },
+        },
+        { slug: 'no-link', company: { slug: 'acme-robotics' }, links: null },
+      ],
+    });
+    expect(itemList!.itemListElement).toEqual([
+      {
+        '@type': 'ListItem',
+        position: 1,
+        url: 'https://jobs.example.de/unternehmen/acme-robotics/jobs/robot-wrangler',
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        url: 'https://jobs.example.de/companies/acme-robotics/jobs/no-link',
       },
     ]);
   });

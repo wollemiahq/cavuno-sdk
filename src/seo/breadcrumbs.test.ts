@@ -32,7 +32,14 @@ describe('buildJobBreadcrumbs', () => {
           { name: 'Germany', slug: 'germany', canonicalSlug: 'germany' },
           { name: 'Berlin', slug: 'berlin', canonicalSlug: 'berlin' },
         ],
-        categories: [{ name: 'Engineering', slug: 'engineering' }],
+        categories: [
+          {
+            name: 'Engineering',
+            slug: 'engineering',
+            canonicalSlug: 'engineering',
+            displayName: 'Engineering',
+          },
+        ],
       } as Partial<PublicJob>),
     );
     expect(crumbs).toContainEqual({
@@ -62,7 +69,14 @@ describe('buildJobBreadcrumbs', () => {
             canonicalSlug: 'amsterdam-noord-holland-nederland',
           },
         ],
-        categories: [{ name: 'Engineering', slug: 'engineering' }],
+        categories: [
+          {
+            name: 'Engineering',
+            slug: 'engineering',
+            canonicalSlug: 'engineering',
+            displayName: 'Engineering',
+          },
+        ],
       }),
     );
     expect(crumbs).toContainEqual({
@@ -85,7 +99,14 @@ describe('buildJobBreadcrumbs', () => {
   it('links the category at /jobs/:category when there is no place', () => {
     const crumbs = buildJobBreadcrumbs(
       job({
-        categories: [{ name: 'Engineering', slug: 'engineering' }],
+        categories: [
+          {
+            name: 'Engineering',
+            slug: 'engineering',
+            canonicalSlug: 'engineering',
+            displayName: 'Engineering',
+          },
+        ],
       } as Partial<PublicJob>),
     );
     expect(crumbs).toContainEqual({
