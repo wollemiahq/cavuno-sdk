@@ -91,6 +91,7 @@ import type {
   ReportBody,
   Resume,
   ResumeUploadOptions,
+  UpdateResumeBody,
   SaveJobBody,
   SavedJob,
   SavedJobsListQuery,
@@ -2041,6 +2042,7 @@ export function meNamespace(client: BoardClient) {
         const form = new FormData();
         form.append('resume', file);
         if (opts?.keepResumeOnFile) form.append('keepResumeOnFile', 'true');
+        if (opts?.shareWithEmployers) form.append('shareWithEmployers', 'true');
         if (opts?.importMode) form.append('importMode', opts.importMode);
         if (opts?.confirmReplaceAll) form.append('confirmReplaceAll', 'true');
         return client.fetch<Resume>('/me/resume', {
@@ -2059,6 +2061,21 @@ export function meNamespace(client: BoardClient) {
        */
       retrieve(options?: FetchOptions) {
         return client.fetch<Resume>('/me/resume', options);
+      },
+
+      /**
+       * Set whether signed-in approved employers may receive `resumeUrl` on
+       * `talent.retrieve`. Does not upload or delete the file.
+       *
+       * @example
+       * await board.me.resume.update({ shareWithEmployers: true });
+       */
+      update(body: UpdateResumeBody, options?: FetchOptions) {
+        return client.fetch<Resume>('/me/resume', {
+          ...options,
+          method: 'PATCH',
+          body,
+        });
       },
 
       /**
