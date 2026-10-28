@@ -20,6 +20,8 @@ import {
   jobsCategoryPath,
   jobsLocationPath,
   jobsSkillPath,
+  productPath,
+  purchasePath,
   salaryLocationPath,
   salarySkillPath,
   salaryTitlePath,
@@ -46,6 +48,10 @@ export type RouteRole =
   | 'blogAuthor'
   /** One candidate's public profile; optional, never required. */
   | 'talentProfile'
+  /** A digital product's page. */
+  | 'product'
+  /** A purchase's download page (emails link here). */
+  | 'purchase'
   // BOARD_PATHS statics
   | 'home'
   | 'jobs'
@@ -65,7 +71,10 @@ export type RouteRole =
   | 'employers'
   // Promoted alerts routes
   | 'alertsManage'
-  | 'alertsConfirm';
+  | 'alertsConfirm'
+  // Digital products (statics)
+  | 'products'
+  | 'mePurchases';
 
 /**
  * Exact param-name set per role, derived from each helper's signature.
@@ -86,6 +95,8 @@ export const ROLE_PARAM_REGISTRY: Record<RouteRole, readonly string[]> = {
   blogTag: ['tagSlug'],
   blogAuthor: ['authorSlug'],
   talentProfile: ['handle'],
+  product: ['productSlug'],
+  purchase: ['purchaseToken'],
   home: [],
   jobs: [],
   companies: [],
@@ -104,6 +115,8 @@ export const ROLE_PARAM_REGISTRY: Record<RouteRole, readonly string[]> = {
   employers: [],
   alertsManage: [],
   alertsConfirm: [],
+  products: [],
+  mePurchases: [],
 };
 
 /** Email-emitting roles — a missing one blocks publish. */
@@ -146,6 +159,8 @@ export const CANONICAL_MANIFEST: ManifestV1 = {
     blogTag: blogTagPath(':tagSlug'),
     blogAuthor: blogAuthorPath(':authorSlug'),
     talentProfile: talentProfilePath(':handle'),
+    product: productPath(':productSlug'),
+    purchase: purchasePath(':purchaseToken'),
     home: BOARD_PATHS.home,
     jobs: BOARD_PATHS.jobs,
     companies: BOARD_PATHS.companies,
@@ -164,5 +179,7 @@ export const CANONICAL_MANIFEST: ManifestV1 = {
     employers: BOARD_PATHS.employers,
     alertsManage: '/alerts/manage',
     alertsConfirm: '/alerts/confirm',
+    products: BOARD_PATHS.products,
+    mePurchases: BOARD_PATHS.mePurchases,
   },
 };

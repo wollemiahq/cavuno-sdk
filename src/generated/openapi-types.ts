@@ -3248,6 +3248,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/me/purchases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the signed-in user’s purchases
+         * @description The board user’s library: purchases made while signed in, and purchases made with their verified email. Newest first, at most 100, each with its download page path.
+         */
+        get: operations["listBoardMePurchases"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/boards/{identifier}/me/recommended-jobs": {
         parameters: {
             query?: never;
@@ -3604,6 +3624,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List digital products
+         * @description The board’s listed, published digital products as cards. Filter by `price`, search with `q`, sort with `sort`, and page with `cursor`.
+         */
+        get: operations["listBoardProducts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/products/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieve a digital product
+         * @description A product page: details, images, contents (file types, page counts and sizes; never file keys), price model, questions and, when ratings are on, the rating aggregate. Unlisted products answer by their exact slug (`isListed: false`).
+         */
+        get: operations["getBoardProduct"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/products/{slug}/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Buy or claim a digital product
+         * @description A free product (or $0 on a $0+ product) records the purchase, emails the buyer and returns `status: complete` with the download page path. A paid product returns the embedded Stripe Checkout mount kit (`status: open`), which expires after 30 minutes. With a board user token, the purchase is also linked to that user’s library.
+         */
+        post: operations["createBoardProductCheckout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/products/{slug}/checkout/{sessionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a digital product checkout
+         * @description After Stripe returns the buyer: `awaiting_payment` until the payment arrives (poll briefly), then `paid` with the download page path.
+         */
+        get: operations["getBoardProductCheckout"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/products/{slug}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List a product’s reviews
+         * @description Visible reviews, newest first. Empty when ratings are off. A page can be short; follow `nextCursor` while `hasMore`.
+         */
+        get: operations["listBoardProductReviews"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/boards/{identifier}/profile-fields/{entity}": {
         parameters: {
             query?: never;
@@ -3631,6 +3751,126 @@ export interface paths {
         /** List active choices for a public catalog field */
         get: operations["listPublicProfileFieldChoices"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/purchases/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Email a purchase’s download link again
+         * @description Sends the existing download link of the purchases this email holds (of one product with `productSlug`). Always `202`, whether or not a purchase exists; throttled per address.
+         */
+        post: operations["resendBoardPurchaseLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/purchases/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Open a purchase’s download page
+         * @description The download page: product summary, files and links with their state, downloads left, stamping state, receipt link and the buyer’s own review. A shared download link asks for the purchase email (`purchase_email_confirmation_required`) unless the request carries the email confirmation: the HttpOnly cookie this API sets, or, for a frontend that calls the API from its server, the `confirmationToken` returned here sent back in the `X-Cavuno-Purchase-Confirmation` header.
+         */
+        get: operations["getBoardPurchase"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/purchases/{token}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm the purchase email on a shared link
+         * @description Checks the typed email against the purchase and, when it matches, sets the confirmation cookie and returns `confirmationToken`. Attempts are throttled per link.
+         */
+        post: operations["confirmBoardPurchaseEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/purchases/{token}/download-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Download every purchased file as one ZIP
+         * @description Counts one download of every ready file and returns a short-lived link to a streamed ZIP. Files still being stamped or out of downloads are left out and listed. The files must total at most 500 MB; above that nothing is counted and the buyer downloads them one by one. A shared download link asks for the purchase email (`purchase_email_confirmation_required`) unless the request carries the email confirmation: the HttpOnly cookie this API sets, or, for a frontend that calls the API from its server, the `confirmationToken` returned here sent back in the `X-Cavuno-Purchase-Confirmation` header.
+         */
+        post: operations["createBoardPurchaseDownloadAll"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/purchases/{token}/files/{fileId}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Download a purchased file
+         * @description Counts one download, logs it and returns a signed link (attachment). A stamped PDF downloads the buyer’s own copy. A shared download link asks for the purchase email (`purchase_email_confirmation_required`) unless the request carries the email confirmation: the HttpOnly cookie this API sets, or, for a frontend that calls the API from its server, the `confirmationToken` returned here sent back in the `X-Cavuno-Purchase-Confirmation` header.
+         */
+        post: operations["createBoardPurchaseDownload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/purchases/{token}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Write or update the buyer’s review
+         * @description One review per purchase; writing again replaces it. A shared download link asks for the purchase email (`purchase_email_confirmation_required`) unless the request carries the email confirmation: the HttpOnly cookie this API sets, or, for a frontend that calls the API from its server, the `confirmationToken` returned here sent back in the `X-Cavuno-Purchase-Confirmation` header.
+         */
+        put: operations["upsertBoardPurchaseReview"];
         post?: never;
         delete?: never;
         options?: never;
@@ -6435,6 +6675,174 @@ export interface components {
             /** @description The `token` query parameter from the invite link (`/employers/invites/accept?token=…`). */
             token: string;
         };
+        ProductCard: {
+            /** @enum {string} */
+            object: "product";
+            slug: string;
+            name: string;
+            summary: string | null;
+            coverImageUrl: string | null;
+            price: components["schemas"]["ProductPrice"];
+            rating: components["schemas"]["ProductRatingSummary"];
+            soldOut: boolean;
+            /** @description The product page path on the board (its route manifest words). */
+            url: string;
+        };
+        ProductCheckout: {
+            /** @enum {string} */
+            object: "product_checkout";
+            /**
+             * @description `complete`: a free claim was recorded; send the buyer to `downloadUrl`. `open`: mount the embedded Stripe Checkout with the mount kit fields.
+             * @enum {string}
+             */
+            status: "complete" | "open";
+            /** @description `complete` only: the download page path on the board, with its token. */
+            downloadUrl: string | null;
+            /** @description `complete` only: the purchase token for `GET /purchases/{token}`. */
+            purchaseToken: string | null;
+            sessionId: string | null;
+            /** @description `open` only: the Checkout Session client secret. The session expires after 30 minutes. */
+            clientSecret: string | null;
+            /** @description `open` only: the board’s connected Stripe account. */
+            stripeAccountId: string | null;
+            /** @description `open` only: the Stripe publishable key for `loadStripe`. */
+            publishableKey: string | null;
+        };
+        ProductCheckoutBody: {
+            /** @description Where the download link and receipt are sent. */
+            email: string;
+            /**
+             * @description Answers to the product’s `questions`, by question id.
+             * @default []
+             */
+            answers: {
+                questionId: string;
+                value: string | boolean;
+            }[];
+            /** @description Pay what you want: the amount the buyer chose, in cents. Omit to let the buyer choose on the Stripe page. `0` on a $0+ product claims it for free. */
+            amountCents?: number;
+            /** @description Free products: also subscribe the email to the board’s job alerts. Show it unticked. */
+            jobAlertOptIn?: boolean;
+            /** @description Paid products: the relative path Stripe returns the buyer to (`session_id` is appended). Defaults to the product page. */
+            returnPath?: string;
+            /** @description Honeypot. Render it hidden and leave it empty; a filled value is answered like a success and nothing is recorded or sent. */
+            website?: string;
+        };
+        ProductCheckoutStatus: {
+            /** @enum {string} */
+            object: "product_checkout_status";
+            /**
+             * @description `awaiting_payment` until the payment webhook lands (poll briefly), then `paid` with the download page.
+             * @enum {string}
+             */
+            status: "awaiting_payment" | "paid" | "free" | "access_removed";
+            /** @description `paid` only: the download page path on the board, with its token. */
+            downloadUrl: string | null;
+            /** @description `paid` only: the purchase token for `GET /purchases/{token}`. */
+            purchaseToken: string | null;
+        };
+        ProductDetail: {
+            /** @enum {string} */
+            object: "product";
+            slug: string;
+            name: string;
+            /** @description Plain-text description. When `descriptionHtml` is set, this is its text. */
+            description: string | null;
+            /** @description Formatted description as sanitized HTML: `h2`, `h3`, `p`, `br`, `strong`, `em`, `u`, `s`, `ul`, `ol`, `li`, `blockquote`, `hr`, `a` (`rel="noopener nofollow ugc"`, new tab) and `img` (images uploaded to this board only). `null` when the seller wrote none; show `description` instead. */
+            descriptionHtml: string | null;
+            summary: string | null;
+            /** @description Operator facts shown on the product page. */
+            details: components["schemas"]["ProductDetailRow"][];
+            images: string[];
+            price: components["schemas"]["ProductPrice"];
+            soldOut: boolean;
+            /** @description Sales so far, when the seller shows the number of sales; otherwise `null`. */
+            salesCount: number | null;
+            refundPolicy: string | null;
+            questions: components["schemas"]["ProductQuestion"][];
+            contents: {
+                displayName: string;
+                description: string | null;
+                /** @enum {string} */
+                kind: "file" | "link";
+                /** @description File extension (`pdf`, `zip`, …) or `link`. */
+                fileType: string;
+                pageCount: number | null;
+                sizeBytes: number | null;
+            }[];
+            facts: {
+                fileCount: number;
+                linkCount: number;
+                fileTypes: string[];
+                pageCount: number | null;
+                totalSizeBytes: number;
+            };
+            /** @description `false` for an unlisted (link-only) product: keep it out of listings, sitemaps and search indexes. */
+            isListed: boolean;
+            ratingsEnabled: boolean;
+            rating: {
+                average: number | null;
+                count: number;
+                /** @description Counted reviews per star, 1 star first. */
+                histogram: number[];
+            } | null;
+            /** @description The product page path on the board. */
+            url: string;
+        };
+        /** @description A facts box row: `text` shows `value`; `check` is a yes/no row shown as a tick or a cross. */
+        ProductDetailRow: {
+            /** @enum {string} */
+            kind: "text";
+            label: string;
+            value: string;
+        } | {
+            /** @enum {string} */
+            kind: "check";
+            label: string;
+            /** @description Yes/no: show a tick for `true` and a cross for `false`, not a word. */
+            checked: boolean;
+        };
+        ProductPrice: {
+            /**
+             * @description `free`: claimed with an email. `fixed`: one price. `pay_what_you_want`: the buyer chooses at least `minimumCents`.
+             * @enum {string}
+             */
+            kind: "free" | "fixed" | "pay_what_you_want";
+            /** @description Lowercase ISO currency code; `null` for free products. */
+            currency: string | null;
+            /** @description The price (fixed), the minimum (pay what you want), or 0 (free). */
+            amountCents: number;
+            minimumCents?: number;
+            suggestedCents?: number | null;
+        };
+        ProductQuestion: {
+            id: string;
+            /** @enum {string} */
+            kind: "text" | "checkbox" | "dropdown";
+            label: string;
+            required: boolean;
+            /** @description Dropdown choices; `null` for the other kinds. */
+            options: string[] | null;
+        };
+        /** @description `null` when ratings are off for the product. */
+        ProductRatingSummary: {
+            /** @description Average stars, 1 to 5; `null` with no counted reviews. */
+            average: number | null;
+            count: number;
+        } | null;
+        ProductReview: {
+            id: string;
+            /** @enum {string} */
+            object: "product_review";
+            stars: number;
+            comment: string | null;
+            displayName: string | null;
+            /** @description The operator’s public reply. */
+            reply: string | null;
+            replyAt: string | null;
+            createdAt: string;
+            updatedAt: string;
+        };
         ProfileChoiceList: {
             data: {
                 id: string;
@@ -7311,6 +7719,148 @@ export interface components {
         PublicVerifyBoardPasswordBody: {
             /** @description The board password. */
             password: string;
+        };
+        Purchase: {
+            /** @enum {string} */
+            object: "purchase";
+            /** @enum {string} */
+            status: "awaiting_payment" | "paid" | "free";
+            product: {
+                slug: string;
+                name: string;
+                thankYouMessage: string | null;
+            };
+            email: string;
+            purchasedAt: string;
+            amountCents: number;
+            currency: string;
+            /** @description Downloads allowed per file. */
+            downloadCap: number;
+            files: ({
+                /** @enum {string} */
+                kind: "file";
+                fileId: string;
+                displayName: string;
+                description: string | null;
+                contentType: string | null;
+                sizeBytes: number | null;
+                pageCount: number | null;
+                /**
+                 * @description `preparing`: the buyer’s personal stamped copy is being made (they are emailed when it is ready). `limit_reached`: no downloads left.
+                 * @enum {string}
+                 */
+                state: "ready" | "preparing" | "limit_reached";
+                downloadsUsed: number;
+                downloadsLeft: number;
+                /** @description The buyer gets their own stamped copy of this PDF. */
+                stamped: boolean;
+            } | {
+                /** @enum {string} */
+                kind: "link";
+                fileId: string;
+                displayName: string;
+                description: string | null;
+                url: string;
+            })[];
+            /** @description Whether to offer Download all: a file is ready to download and the ready files total at most 500 MB. Above 500 MB the buyer downloads the files one by one. */
+            downloadAllAvailable: boolean;
+            /** @enum {string} */
+            stamping: "off" | "ready" | "preparing";
+            /** @description The Stripe receipt or paid invoice; `null` for free claims. */
+            receiptUrl: string | null;
+            refundPolicy: string | null;
+            ratingsEnabled: boolean;
+            /** @description The buyer’s own review, if any. */
+            review: {
+                stars: number;
+                comment: string | null;
+                displayName: string | null;
+                hidden: boolean;
+                reply: string | null;
+                updatedAt: string;
+            } | null;
+            purchaseToken: string;
+            /** @description Send it back in `X-Cavuno-Purchase-Confirmation` on later requests for this purchase; `null` when the request already carried it. */
+            confirmationToken: string | null;
+        };
+        PurchaseConfirmBody: {
+            email: string;
+        };
+        PurchaseConfirmation: {
+            /** @enum {string} */
+            object: "purchase_confirmation";
+            confirmationToken: string;
+        };
+        PurchaseDownload: {
+            /** @enum {string} */
+            object: "purchase_download";
+            /** @description A signed, short-lived link that downloads as an attachment. */
+            url: string;
+            expiresAt: string;
+            /** @description The name it downloads under: the file's `displayName`, with the file's extension added when that name has none. */
+            fileName: string;
+            downloadsLeft: number;
+            confirmationToken: string | null;
+        };
+        PurchaseDownloadAll: {
+            /** @enum {string} */
+            object: "purchase_download_all";
+            /** @description A short-lived link to the streamed ZIP of every ready file. */
+            url: string;
+            expiresAt: string;
+            fileCount: number;
+            totalBytes: number;
+            /** @description File ids left out while their stamped copy is made. */
+            preparing: string[];
+            /** @description File ids left out because no downloads are left. */
+            limitReached: string[];
+            confirmationToken: string | null;
+        };
+        PurchaseResendBody: {
+            email: string;
+            /** @description Only this product’s purchases; omit for all of them. */
+            productSlug?: string;
+            /** @description Honeypot. Render it hidden and leave it empty. */
+            website?: string;
+        };
+        PurchaseResendResult: {
+            /** @enum {string} */
+            object: "purchase_resend";
+            /** @enum {boolean} */
+            accepted: true;
+        };
+        PurchaseReviewBody: {
+            stars: number;
+            comment?: string;
+            /** @description The name shown with the review; omit to stay anonymous. */
+            displayName?: string;
+        };
+        PurchaseReviewResult: {
+            id: string;
+            /** @enum {string} */
+            object: "purchase_review";
+            /** @description Whether the stars count toward the product rating. */
+            counted: boolean;
+        };
+        PurchaseSummary: {
+            id: string;
+            /** @enum {string} */
+            object: "purchase_summary";
+            product: {
+                slug: string;
+                name: string;
+                coverImageUrl: string | null;
+            };
+            /** @enum {string} */
+            status: "paid" | "free";
+            purchasedAt: string;
+            amountCents: number;
+            currency: string;
+            /** @description `false` while the product cannot be delivered (taken down, or the board is closed). */
+            available: boolean;
+            purchaseToken: string;
+            /** @description The download page path on the board. */
+            downloadUrl: string;
         };
         ReadReceipt: {
             /** @enum {string} */
@@ -20271,6 +20821,63 @@ export interface operations {
             };
         };
     };
+    listBoardMePurchases: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        object: "list";
+                        url: string;
+                        hasMore: boolean;
+                        nextCursor: string | null;
+                        data: components["schemas"]["PurchaseSummary"][];
+                    };
+                };
+            };
+            /** @description Missing/invalid/expired access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Token issued for a different board. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     listBoardMeRecommendedJobs: {
         parameters: {
             query?: {
@@ -21482,6 +22089,279 @@ export interface operations {
             };
         };
     };
+    listBoardProducts: {
+        parameters: {
+            query?: {
+                /** @description Search words; every word must appear in the name or summary. */
+                q?: string;
+                /** @description Only free products, or only paid ones. */
+                price?: "free" | "paid";
+                /** @description `featured` (default): the operator’s order. `newest`, `rating` (best rated first) or `price_asc`. */
+                sort?: "featured" | "newest" | "rating" | "price_asc";
+                /** @description An opaque pagination cursor returned in the `nextCursor` field of a previous response. */
+                cursor?: string;
+                /**
+                 * @description Products per page, 1 to 50 (default 20).
+                 * @example 20
+                 */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        object: "list";
+                        url: string;
+                        hasMore: boolean;
+                        nextCursor: string | null;
+                        data: components["schemas"]["ProductCard"][];
+                    };
+                };
+            };
+            /** @description Invalid query or cursor. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getBoardProduct: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                /** @description The product slug. Unlisted products are reachable by their exact slug only. */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductDetail"];
+                };
+            };
+            /** @description Board or product not found (`products_not_found`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createBoardProductCheckout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                /** @description The product slug. Unlisted products are reachable by their exact slug only. */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductCheckoutBody"];
+            };
+        };
+        responses: {
+            /** @description The free claim, or the mount kit. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductCheckout"];
+                };
+            };
+            /** @description Invalid email (`product_email_invalid`), answers (`product_answers_invalid`, `details.questionId`), or amount (`product_amount_below_minimum` with `details.minimumCents`, `product_amount_invalid`). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The email is blocked by the board (`product_email_blocked`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board or product not found (`products_not_found`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Sold out (`product_sold_out`), or the board cannot take payments yet (`stripe_not_connected`). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Too many requests (`rate_limited`). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The abuse limiter is unavailable; nothing was recorded (`rate_limit_unavailable`). */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getBoardProductCheckout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                /** @description The product slug. Unlisted products are reachable by their exact slug only. */
+                slug: string;
+                /** @description The Stripe Checkout Session id from `POST /products/{slug}/checkout`. */
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The purchase behind the session. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductCheckoutStatus"];
+                };
+            };
+            /** @description No checkout with this session on the board (`product_checkout_not_found`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listBoardProductReviews: {
+        parameters: {
+            query?: {
+                /** @description An opaque pagination cursor returned in the `nextCursor` field of a previous response. */
+                cursor?: string;
+                /**
+                 * @description Reviews per page, 1 to 50 (default 20).
+                 * @example 20
+                 */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                /** @description The product slug. Unlisted products are reachable by their exact slug only. */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        object: "list";
+                        url: string;
+                        hasMore: boolean;
+                        nextCursor: string | null;
+                        data: components["schemas"]["ProductReview"][];
+                    };
+                };
+            };
+            /** @description Invalid query or cursor. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     retrievePublicProfileFields: {
         parameters: {
             query?: never;
@@ -21544,6 +22424,375 @@ export interface operations {
             };
             /** @description An error. Every non-2xx response uses the same envelope; see the Errors section of the introduction. */
             default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    resendBoardPurchaseLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PurchaseResendBody"];
+            };
+        };
+        responses: {
+            /** @description Accepted. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseResendResult"];
+                };
+            };
+            /** @description An error. Every non-2xx response uses the same envelope; see the Errors section of the introduction. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getBoardPurchase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                /** @description The purchase token from the download link. */
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The download page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Purchase"];
+                };
+            };
+            /** @description A shared link without the email confirmation (`purchase_email_confirmation_required`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No purchase with this token (`purchases_not_found`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The payment has not arrived yet (`purchase_awaiting_payment`). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access was removed (`purchase_access_removed`), or the product can no longer be delivered (`purchase_unavailable`). */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    confirmBoardPurchaseEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                /** @description The purchase token from the download link. */
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PurchaseConfirmBody"];
+            };
+        };
+        responses: {
+            /** @description Confirmed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseConfirmation"];
+                };
+            };
+            /** @description The email does not match (`purchase_email_mismatch`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No purchase with this token (`purchases_not_found`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Too many attempts (`rate_limited`). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The limiter is unavailable (`rate_limit_unavailable`). */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createBoardPurchaseDownloadAll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                /** @description The purchase token from the download link. */
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The ZIP link. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseDownloadAll"];
+                };
+            };
+            /** @description A shared link without the email confirmation (`purchase_email_confirmation_required`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No purchase with this token (`purchases_not_found`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The files total more than 500 MB, too large to download together; nothing was counted and the buyer downloads them one by one (`purchase_download_all_unavailable`). Or every file is out of downloads (`purchase_download_limit_reached`) or still being stamped (`purchase_file_preparing`). Or the payment has not arrived (`purchase_awaiting_payment`). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access was removed (`purchase_access_removed`), or the product can no longer be delivered (`purchase_unavailable`). */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Download all is not available right now; nothing was counted (`purchase_download_all_unavailable`). */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createBoardPurchaseDownload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                /** @description The purchase token from the download link. */
+                token: string;
+                /** @description A file id from the purchase’s `files`. */
+                fileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The signed link. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseDownload"];
+                };
+            };
+            /** @description A shared link without the email confirmation (`purchase_email_confirmation_required`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No purchase with this token (`purchases_not_found`), or no such file on it (`purchase_file_not_found`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The buyer’s stamped copy is being prepared; nothing was counted and the buyer is emailed when it is ready (`purchase_file_preparing`). Or the payment has not arrived (`purchase_awaiting_payment`). Or no downloads are left for this file (`purchase_download_limit_reached`), which only the board can reset. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access was removed (`purchase_access_removed`), or the product can no longer be delivered (`purchase_unavailable`). */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    upsertBoardPurchaseReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                /** @description The purchase token from the download link. */
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PurchaseReviewBody"];
+            };
+        };
+        responses: {
+            /** @description The review was saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseReviewResult"];
+                };
+            };
+            /** @description Invalid review (`purchase_review_invalid`). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A shared link without the email confirmation (`purchase_email_confirmation_required`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No purchase with this token (`purchases_not_found`), or ratings are off for the product (`product_reviews_disabled`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Refunded purchases cannot review (`purchase_refunded`), or the payment has not arrived (`purchase_awaiting_payment`). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access was removed (`purchase_access_removed`), or the product can no longer be delivered (`purchase_unavailable`). */
+            410: {
                 headers: {
                     [name: string]: unknown;
                 };

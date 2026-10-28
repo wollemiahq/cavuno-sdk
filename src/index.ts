@@ -18,7 +18,9 @@ import { meNamespace } from './namespaces/me';
 import { passwordNamespace } from './namespaces/password';
 import { paywallNamespace } from './namespaces/paywall';
 import { plansNamespace } from './namespaces/plans';
+import { productsNamespace } from './namespaces/products';
 import { profileFieldsNamespace } from './namespaces/profile-fields';
+import { purchasesNamespace } from './namespaces/purchases';
 import { redirectsNamespace } from './namespaces/redirects';
 import { salariesNamespace } from './namespaces/salaries';
 import { searchNamespace } from './namespaces/search';
@@ -124,6 +126,8 @@ export function createBoardClient(options: CreateBoardClientOptions) {
     profileFields: profileFieldsNamespace(client),
     plans: plansNamespace(client),
     paywall: paywallNamespace(client),
+    products: productsNamespace(client),
+    purchases: purchasesNamespace(client),
     sitemap: sitemapNamespace(client),
   };
 }
@@ -306,6 +310,35 @@ export type {
   PaywallOffer,
   PaywallOfferListEnvelope,
 } from './types/paywall';
+// Digital products — `board.products.*` (catalogue + checkout) and
+// `board.purchases.*` (download page by purchase token, library).
+export { PURCHASE_CONFIRMATION_HEADER } from './namespaces/purchases';
+export type {
+  Product,
+  ProductCard,
+  ProductCardListEnvelope,
+  ProductCheckout,
+  ProductCheckoutBody,
+  ProductCheckoutStatus,
+  ProductDetailRow,
+  ProductPrice,
+  ProductQuestion,
+  ProductReview,
+  ProductReviewListEnvelope,
+  ProductReviewsQuery,
+  ProductsListQuery,
+  Purchase,
+  PurchaseConfirmation,
+  PurchaseDownload,
+  PurchaseDownloadAll,
+  PurchaseRequestOptions,
+  PurchaseResendBody,
+  PurchaseResendResult,
+  PurchaseReviewBody,
+  PurchaseReviewResult,
+  PurchaseSummary,
+  PurchaseSummaryListEnvelope,
+} from './types/products';
 export type {
   EducationRequirement,
   EmploymentType,

@@ -3,6 +3,54 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.57.0 — 2026-10-28
+
+- Digital products. `board.products` lists a board's products (`list`, with
+  `q`, `price`, `sort` and cursor pages), reads a product page (`get`) and its
+  reviews (`reviews`), and starts a purchase (`checkout`): a free product
+  returns `status: 'complete'` with the download page path, a paid one an
+  embedded Stripe Checkout mount kit (`status: 'open'`) that lasts 30 minutes;
+  read it back after Stripe returns the buyer with `getCheckout`.
+- A product page carries `descriptionHtml`, the seller's formatted
+  description as sanitized HTML (headings, lists, quotes, dividers, links and
+  the board's own images), with `description` as its plain text; and
+  `salesCount`, set only when the seller shows the number of sales. Each row
+  of `details` (`ProductDetailRow`) names its `kind`: `text` rows carry
+  `value`; `check` rows are yes/no facts with `checked`, to show as a tick
+  or a cross.
+- `board.purchases` serves the download page by purchase token: `get`,
+  `confirmEmail` (shared links), `download` (a signed link per file),
+  `downloadAll` (one ZIP), `review`, `resend` ("email me this link again",
+  always accepted) and `mine` (the signed-in user's library). Responses that
+  pass the shared-link check return `confirmationToken`; pass it back as the
+  `confirmationToken` option (the `X-Cavuno-Purchase-Confirmation` header,
+  exported as `PURCHASE_CONFIRMATION_HEADER`). The page's
+  `downloadAllAvailable` says whether to offer Download all: the ready files
+  must total at most 500 MB, and above that `downloadAll` is refused with
+  `409 purchase_download_all_unavailable` and nothing counted.
+- Paths and route roles: `productPath(slug)`, `purchasePath(token)`,
+  `BOARD_PATHS.products` (`/products`) and `BOARD_PATHS.mePurchases`
+  (`/me/purchases`), with the route manifest roles `product`, `purchase`,
+  `products` and `mePurchases`.
+- New error codes for products and purchases, listed in
+  `BOARD_API_ERROR_CODES`: `products_not_found`,
+  `product_checkout_not_found`, `product_reviews_disabled`,
+  `product_sold_out`, `product_email_invalid`, `product_email_blocked`,
+  `product_amount_below_minimum`, `product_amount_invalid`,
+  `product_answers_invalid`, `purchases_not_found`,
+  `purchase_file_not_found`, `purchase_unavailable`,
+  `purchase_access_removed`, `purchase_awaiting_payment`,
+  `purchase_refunded`, `purchase_email_confirmation_required`,
+  `purchase_email_mismatch`, `purchase_file_preparing`,
+  `purchase_download_limit_reached`, `purchase_review_invalid` and
+  `purchase_download_all_unavailable`. A file out of downloads is
+  `409 purchase_download_limit_reached`, a permanent limit rather than a rate
+  limit, so `isRateLimited` is false for it and `isConflict` is true.
+
+## 4.56.2 — 2026-10-28
+
+- No changes to Board API types or runtime behavior.
+
 ## 4.56.1 — 2026-10-28
 
 - Market suggestions from `search.suggest` carry `displayName` and

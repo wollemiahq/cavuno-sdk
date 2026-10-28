@@ -16,6 +16,7 @@ const GOLDEN_ROBOTS = `User-Agent: *
 Allow: /
 Disallow: /go/
 Disallow: /t/
+Disallow: /v1/
 Disallow: /jobs?page=
 Disallow: /jobs*&page=
 Disallow: /jobs/*?page=
@@ -71,6 +72,7 @@ describe('robotsBody listingPaths', () => {
 Allow: /
 Disallow: /go/
 Disallow: /t/
+Disallow: /v1/
 Disallow: /vacatures?page=
 Disallow: /vacatures*&page=
 Disallow: /vacatures/*?page=
@@ -138,6 +140,7 @@ describe('robotsBody localeListingPaths', () => {
 Allow: /
 Disallow: /go/
 Disallow: /t/
+Disallow: /v1/
 Disallow: /vacatures?page=
 Disallow: /vacatures*&page=
 Disallow: /vacatures/*?page=
