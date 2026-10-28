@@ -3,6 +3,13 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.57.0 — 2026-10-28
+
+- Market suggestions from `search.suggest` carry `displayName` and
+  `canonicalSlug` and match the board-language name.
+- `suggestionPath` routes a market suggestion to its board-language page
+  (`canonicalSlug`) when present.
+
 ## 4.56.0 — 2026-10-27
 
 - `companies.markets` entries carry `displayName` and `canonicalSlug`, the
