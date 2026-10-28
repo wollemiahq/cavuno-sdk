@@ -55,44 +55,74 @@ export function companiesNamespace(client: BoardClient) {
    * top categories + sampleCount); `.category(slug, categorySlug)` is one job
    * category at the company. Pass `{ locale }` to the category call for
    * board-language names; it returns BOTH `categorySourceSlug` +
-   * `categoryCanonicalSlug` (the consumer 308s to the canonical itself). The
-   * company slug/name are never localized.
+   * `categoryCanonicalSlug` (the consumer 308s to the canonical itself). Pass
+   * `{ locale }` to the overview call too: its `topLocations` place names +
+   * slugs and its `byCategory` names + slugs then come back in that language
+   * (without it, top locations stay English). The company slug/name are never
+   * localized.
    *
    * Prefer `.summary` for company profile / overview UIs — it skips seniority,
    * competitors, locations, and logo joins. Format currency ranges and
    * multi-locale UI strings in the app.
    *
    * @example
-   * const overview = await board.companies.salaries('acme');
+   * const overview = await board.companies.salaries('acme', { locale: 'de' });
    * const teaser = await board.companies.salaries.summary('acme');
    * const cat = await board.companies.salaries.category('acme', 'software-engineer', { locale: 'de' });
    */
-  const salaries = Object.assign(
-    (companySlug: string, options?: FetchOptions) =>
-      client.fetch<CompanySalary>(
-        `/companies/${encodeURIComponent(companySlug)}/salaries`,
+  function overview(
+    companySlug: string,
+    query?: SalaryDetailQuery,
+    options?: FetchOptions,
+  ): Promise<CompanySalary>;
+  /**
+   * @deprecated Pass the fetch options third:
+   * `salaries(slug, undefined, options)` or `salaries(slug, { locale }, options)`.
+   */
+  function overview(
+    companySlug: string,
+    options?: FetchOptions,
+  ): Promise<CompanySalary>;
+  function overview(
+    companySlug: string,
+    queryOrOptions?: SalaryDetailQuery | FetchOptions,
+    maybeOptions?: FetchOptions,
+  ): Promise<CompanySalary> {
+    // The overview used to take the fetch options second. A query only ever
+    // carries `locale`, which no fetch option is named, so the second slot's
+    // `locale` is the query and anything else in it is the old options.
+    const { locale, ...rest } = (queryOrOptions ?? {}) as SalaryDetailQuery &
+      FetchOptions;
+    const query = locale === undefined ? undefined : { locale };
+    const options =
+      Object.keys(rest).length > 0
+        ? { ...(rest as FetchOptions), ...maybeOptions }
+        : maybeOptions;
+    return client.fetch<CompanySalary>(
+      `/companies/${encodeURIComponent(companySlug)}/salaries`,
+      query ? { ...options, query } : options,
+    );
+  }
+
+  const salaries = Object.assign(overview, {
+    summary(companySlug: string, options?: FetchOptions) {
+      return client.fetch<CompanySalarySummary>(
+        `/companies/${encodeURIComponent(companySlug)}/salaries/summary`,
         options,
-      ),
-    {
-      summary(companySlug: string, options?: FetchOptions) {
-        return client.fetch<CompanySalarySummary>(
-          `/companies/${encodeURIComponent(companySlug)}/salaries/summary`,
-          options,
-        );
-      },
-      category(
-        companySlug: string,
-        categorySlug: string,
-        query?: SalaryDetailQuery,
-        options?: FetchOptions,
-      ) {
-        return client.fetch<CompanyCategorySalary>(
-          `/companies/${encodeURIComponent(companySlug)}/salaries/${encodeURIComponent(categorySlug)}`,
-          { ...options, query },
-        );
-      },
+      );
     },
-  );
+    category(
+      companySlug: string,
+      categorySlug: string,
+      query?: SalaryDetailQuery,
+      options?: FetchOptions,
+    ) {
+      return client.fetch<CompanyCategorySalary>(
+        `/companies/${encodeURIComponent(companySlug)}/salaries/${encodeURIComponent(categorySlug)}`,
+        { ...options, query },
+      );
+    },
+  });
 
   return {
     /**

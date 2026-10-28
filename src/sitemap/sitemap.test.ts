@@ -283,8 +283,8 @@ function job(
     company: companySlug
       ? { slug: companySlug, name: companySlug, logoUrl: null }
       : null,
-    categories: categories.map((s) => ({ slug: s, name: s })),
-    skills: skills.map((s) => ({ slug: s, name: s })),
+    categories: categories.map((s) => ({ slug: s, name: s, canonicalSlug: s })),
+    skills: skills.map((s) => ({ slug: s, name: s, canonicalSlug: s })),
   };
 }
 
@@ -403,6 +403,25 @@ describe('jobs taxonomy buckets', () => {
       `${ORIGIN}/jobs/skills/zig`,
     ]);
   });
+
+  it('links categories with the board-language canonicalSlug, not the source slug', async () => {
+    const jobs = Array.from({ length: 5 }, (_, i) => ({
+      ...job(`j${i}`, 'acme'),
+      categories: [
+        {
+          slug: 'engineering',
+          name: 'Engineering',
+          canonicalSlug: 'ingenieurwesen',
+        },
+      ],
+    }));
+    const urls = await buildBucketUrls(
+      stubBoard({ jobs }),
+      ORIGIN,
+      'jobs-categories',
+    );
+    expect(urls).toEqual([`${ORIGIN}/jobs/ingenieurwesen`]);
+  });
 });
 
 describe('jobs-locations bucket', () => {
@@ -453,7 +472,7 @@ describe('companies bucket', () => {
     const urls = await buildBucketUrls(
       stubBoard({
         companies: [{ slug: 'acme' }, { slug: 'globex' }],
-        markets: [{ slug: 'robotics' }],
+        markets: [{ slug: 'robotics', canonicalSlug: 'robotics' }],
       }),
       ORIGIN,
       'companies',
@@ -462,6 +481,37 @@ describe('companies bucket', () => {
       `${ORIGIN}/companies`,
       `${ORIGIN}/companies/acme`,
       `${ORIGIN}/companies/globex`,
+      `${ORIGIN}/companies/markets/robotics`,
+    ]);
+  });
+
+  it('links markets with the board-language canonicalSlug, not the source slug', async () => {
+    const urls = await buildBucketUrls(
+      stubBoard({
+        companies: [],
+        markets: [{ slug: 'robotics', canonicalSlug: 'robotik' }],
+      }),
+      ORIGIN,
+      'companies',
+    );
+    expect(urls).toEqual([
+      `${ORIGIN}/companies`,
+      `${ORIGIN}/companies/markets/robotik`,
+    ]);
+  });
+
+  it('falls back to the source slug for a market without canonicalSlug', async () => {
+    const urls = await buildBucketUrls(
+      stubBoard({
+        companies: [],
+        // A response cached before markets carried `canonicalSlug`.
+        markets: [{ slug: 'robotics' } as never],
+      }),
+      ORIGIN,
+      'companies',
+    );
+    expect(urls).toEqual([
+      `${ORIGIN}/companies`,
       `${ORIGIN}/companies/markets/robotics`,
     ]);
   });
@@ -899,8 +949,9 @@ describe('404 fallback to the legacy path', () => {
       companies: [{ slug: 'acme' }],
       marketsList: async (query) => {
         seenCursors.push(query?.cursor as string | undefined);
-        if (query?.cursor === 'm1') return envelope([{ slug: 'biotech' }]);
-        return envelope([{ slug: 'robotics' }], {
+        if (query?.cursor === 'm1')
+          return envelope([{ slug: 'biotech', canonicalSlug: 'biotech' }]);
+        return envelope([{ slug: 'robotics', canonicalSlug: 'robotics' }], {
           hasMore: true,
           nextCursor: 'm1',
         });

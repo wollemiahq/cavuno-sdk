@@ -510,6 +510,29 @@ describe('board.companies', () => {
     );
   });
 
+  it('salaries(slug, { locale }) sends the locale; the old (slug, options) form still works', async () => {
+    const spy = stubFetch();
+    const board = makeBoard();
+    await board.companies.salaries('acme', { locale: 'de' });
+    await board.companies.salaries('acme', undefined, {
+      headers: { 'x-test': '1' },
+    });
+    // Deprecated: fetch options in the second slot.
+    await board.companies.salaries('acme', { headers: { 'x-test': '2' } });
+    expect(sentUrl(spy, 0)).toBe(`${BASE}/companies/acme/salaries?locale=de`);
+    expect(sentUrl(spy, 1)).toBe(`${BASE}/companies/acme/salaries`);
+    expect(sentUrl(spy, 2)).toBe(`${BASE}/companies/acme/salaries`);
+    expect(new Headers(spy.mock.calls[2]![1]!.headers).get('x-test')).toBe('2');
+  });
+
+  it('salaries keeps the locale when an untyped second argument mixes it with fetch options', async () => {
+    const spy = stubFetch();
+    const mixed = { locale: 'de', headers: { 'x-test': '3' } } as never;
+    await makeBoard().companies.salaries('acme', mixed);
+    expect(sentUrl(spy, 0)).toBe(`${BASE}/companies/acme/salaries?locale=de`);
+    expect(new Headers(spy.mock.calls[0]![1]!.headers).get('x-test')).toBe('3');
+  });
+
   it('passes the company-salary overview + summary + category through unchanged', async () => {
     const overview = {
       object: 'company_salary',
