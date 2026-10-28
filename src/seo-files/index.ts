@@ -96,6 +96,11 @@ export function robotsBody(input: {
     'Allow: /',
     'Disallow: /go/',
     'Disallow: /t/',
+    // Board API responses carry `url` fields that are Board API paths
+    // (`/v1/boards/<key>/...`). Crawlers pick them out of the page's embedded
+    // data and request them on the board's own host, where nothing is served
+    // under `/v1/`. Keep them out of the crawl instead of collecting 404s.
+    'Disallow: /v1/',
     ...baseRoots.flatMap(paginationRules),
     ...localeRoots.flatMap(paginationRules),
     '',

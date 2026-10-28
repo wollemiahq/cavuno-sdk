@@ -186,6 +186,30 @@ export const BOARD_API_ERROR_CODES = [
   'job_posting_logo_lookup_unavailable',
   'job_posting_logo_not_found',
   'job_posting_rejected',
+  // Digital products and purchases
+  'products_not_found',
+  'product_checkout_not_found',
+  'product_reviews_disabled',
+  'product_sold_out',
+  'product_email_invalid',
+  'product_email_blocked',
+  'product_amount_below_minimum',
+  'product_amount_invalid',
+  'product_answers_invalid',
+  'purchases_not_found',
+  'purchase_file_not_found',
+  'purchase_unavailable',
+  'purchase_access_removed',
+  'purchase_awaiting_payment',
+  'purchase_refunded',
+  'purchase_email_confirmation_required',
+  'purchase_email_mismatch',
+  'purchase_file_preparing',
+  // A permanent per-file cap (409), not a rate limit: `isRateLimited` is
+  // false for it, and retrying never helps.
+  'purchase_download_limit_reached',
+  'purchase_review_invalid',
+  'purchase_download_all_unavailable',
 ] as const;
 
 /**

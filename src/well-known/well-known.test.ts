@@ -53,6 +53,10 @@ const HARDCODED_CANONICAL_ROLES: Record<RouteRole, string> = {
   employers: '/employers',
   alertsManage: '/alerts/manage',
   alertsConfirm: '/alerts/confirm',
+  product: '/products/:productSlug',
+  purchase: '/purchases/:purchaseToken',
+  products: '/products',
+  mePurchases: '/me/purchases',
 };
 
 function canonicalRouteEntries(): RouteEntry[] {

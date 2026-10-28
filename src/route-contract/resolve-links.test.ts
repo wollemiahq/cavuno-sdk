@@ -18,6 +18,8 @@ import {
   jobsCategoryPath,
   jobsLocationPath,
   jobsSkillPath,
+  productPath,
+  purchasePath,
   salaryLocationPath,
   salarySkillPath,
   salaryTitlePath,
@@ -51,6 +53,8 @@ const SAMPLE_PARAMS: Record<string, string> = {
   tagSlug: 'announcements',
   authorSlug: 'jane',
   handle: 'jane-doe',
+  productSlug: 'salary-guide',
+  purchaseToken: 'tok_abc',
 };
 
 /** Canonical path via the paths helpers / BOARD_PATHS — equivalence oracle. */
@@ -84,6 +88,10 @@ function canonicalHelperPath(role: RouteRole): string {
       return blogAuthorPath(SAMPLE_PARAMS.authorSlug!);
     case 'talentProfile':
       return talentProfilePath(SAMPLE_PARAMS.handle!);
+    case 'product':
+      return productPath(SAMPLE_PARAMS.productSlug!);
+    case 'purchase':
+      return purchasePath(SAMPLE_PARAMS.purchaseToken!);
     case 'home':
     case 'jobs':
     case 'companies':
@@ -102,6 +110,8 @@ function canonicalHelperPath(role: RouteRole): string {
     case 'employers':
     case 'alertsManage':
     case 'alertsConfirm':
+    case 'products':
+    case 'mePurchases':
       return BOARD_PATHS[role];
     default: {
       const _exhaustive: never = role;

@@ -255,6 +255,23 @@ export function talentLocationPath(placeSlug: string): string {
 }
 
 /**
+ * A digital product's page (`/products/<slug>`). Unlisted products are
+ * reachable here by their exact slug.
+ */
+export function productPath(productSlug: string): string {
+  return `/products/${encodePathSegment(productSlug)}`;
+}
+
+/**
+ * A purchase's download page (`/purchases/<token>`). The token is the
+ * buyer's secret: never put this path in a sitemap, analytics or a
+ * shared-cache key.
+ */
+export function purchasePath(purchaseToken: string): string {
+  return `/purchases/${encodePathSegment(purchaseToken)}`;
+}
+
+/**
  * Static top-level board paths (indexed marketing + index surfaces). Kept
  * here so the sitemap and consumers share one definition of the chrome
  * routes too.
@@ -284,6 +301,10 @@ export const BOARD_PATHS = {
    */
   alertsManage: '/alerts/manage',
   alertsConfirm: '/alerts/confirm',
+  /** The digital product catalogue. */
+  products: '/products',
+  /** A signed-in board user's purchased products. */
+  mePurchases: '/me/purchases',
 } as const;
 
 /**

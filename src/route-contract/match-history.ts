@@ -49,6 +49,10 @@ export const ROLE_INDEX_PATHS: Record<RouteRole, string> = {
   employers: BOARD_PATHS.employers,
   alertsManage: BOARD_PATHS.home,
   alertsConfirm: BOARD_PATHS.home,
+  product: BOARD_PATHS.products,
+  purchase: BOARD_PATHS.home,
+  products: BOARD_PATHS.products,
+  mePurchases: BOARD_PATHS.home,
 };
 
 // Exhaustiveness: every ALL_ROLES entry must appear above.
