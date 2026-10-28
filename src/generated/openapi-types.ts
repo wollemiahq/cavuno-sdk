@@ -6222,10 +6222,14 @@ export interface components {
             type: "market";
             /** @description Stable market identity (source slug; markets are slug-keyed). */
             id: string;
-            /** @description Public market URL slug. */
+            /** @description Source slug of the market. Filters (`marketSlug`) accept it. */
             slug: string;
-            /** @description Market display name. */
+            /** @description English source name of the market. */
             name: string;
+            /** @description The slug of the market's page in the board language. Equals `slug` when the market has no translation. Link market pages with this slug. */
+            canonicalSlug: string;
+            /** @description The market name in the board language, for labels. Equals `name` when the market has no translation. The query matches it as well as `name`. */
+            displayName: string;
             /** @description Number of companies on the board in this market. */
             companyCount: number;
         };
