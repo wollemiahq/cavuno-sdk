@@ -195,6 +195,15 @@ describe('suggestionPath', () => {
     expect(suggestionPath(category, { scope: 'companies' })).toBeNull();
   });
 
+  it('routes a market suggestion to its board-language page', () => {
+    expect(
+      suggestionPath(
+        { type: 'market', slug: 'robotics', canonicalSlug: 'robotik' },
+        { scope: 'companies' },
+      ),
+    ).toBe('/companies/markets/robotik');
+  });
+
   it('routes companies-scope company and market', () => {
     expect(suggestionPath(company, { scope: 'companies' })).toBe(
       '/companies/acme-co',

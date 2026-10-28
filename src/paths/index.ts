@@ -101,7 +101,12 @@ export function companyMarketPath(marketSlug: string): string {
  */
 export type SuggestionPathInput =
   | { type: 'company'; slug: string }
-  | { type: 'market'; slug: string }
+  | {
+      type: 'market';
+      slug: string;
+      /** The market page's slug in the board language; routed when present. */
+      canonicalSlug?: string;
+    }
   | { type: 'post'; slug: string }
   | { type: 'tag'; slug: string }
   | {
@@ -144,7 +149,7 @@ export type SuggestionPathOptions = {
  * | jobs | market | `null` |
  * | jobs | post / tag | `null` |
  * | companies | company | `/companies/<slug>` |
- * | companies | market | `/companies/markets/<slug>` |
+ * | companies | market | `/companies/markets/<canonicalSlug ?? slug>` |
  * | companies | term / post / tag | `null` |
  * | blog | post | `/blog/<slug>` |
  * | blog | tag | `/blog/tag/<slug>` |
@@ -191,7 +196,7 @@ export function suggestionPath(
     return companyPath(suggestion.slug);
   }
   if (suggestion.type === 'market') {
-    return companyMarketPath(suggestion.slug);
+    return companyMarketPath(suggestion.canonicalSlug ?? suggestion.slug);
   }
   return null;
 }
