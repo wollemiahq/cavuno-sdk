@@ -1361,7 +1361,7 @@ export interface paths {
         post?: never;
         /**
          * Delete my account
-         * @description Permanently delete the authenticated candidate account and all dependent data (profile, collections, saved jobs, alerts, avatar/resume files). Synchronous: returns 204 only once the cascade completes. Irreversible.
+         * @description Permanently delete the authenticated candidate account and all dependent data on this board: profile, profile field values and files, avatar and resume files, collections, saved jobs and alerts; job applications with their resumes, notes and activity; conversations and messages, including the employer side; and shortlist and pipeline entries. Synchronous: returns 204 only once the cascade completes. Irreversible.
          */
         delete: operations["deleteBoardMe"];
         options?: never;
