@@ -411,8 +411,15 @@ async function companies(board: BoardSdk, origin: string): Promise<string[]> {
     ),
   ]);
   const urls = [`${origin}${BOARD_PATHS.companies}`];
-  for (const company of list)
-    urls.push(`${origin}${companyPath(company.slug)}`);
+  // A company page with no open roles is thin, so only companies with at least
+  // one published job are listed, matching the board's own sitemap. The page
+  // stays indexable; it returns here once the company has a published job.
+  for (const company of list) {
+    if (company.publishedJobCount > 0)
+      urls.push(`${origin}${companyPath(company.slug)}`);
+  }
+  // Markets are listed as before: the market list carries company counts, not
+  // job counts, so this path cannot tell an empty market from a busy one.
   // `canonicalSlug` is the board-language page slug; the source slug 308s.
   for (const market of markets) {
     urls.push(
