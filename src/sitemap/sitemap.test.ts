@@ -288,6 +288,11 @@ function job(
   };
 }
 
+/** A company list row; only the fields the walker reads. */
+function company(slug: string, publishedJobCount: number) {
+  return { slug, jobCount: publishedJobCount, publishedJobCount };
+}
+
 afterEach(() => {
   vi.restoreAllMocks();
 });
@@ -468,10 +473,10 @@ describe('jobs-details bucket', () => {
 });
 
 describe('companies bucket', () => {
-  it('emits the hub, every company, and every market', async () => {
+  it('emits the hub, every company with a published job, and every market', async () => {
     const urls = await buildBucketUrls(
       stubBoard({
-        companies: [{ slug: 'acme' }, { slug: 'globex' }],
+        companies: [company('acme', 1), company('globex', 4)],
         markets: [{ slug: 'robotics', canonicalSlug: 'robotics' }],
       }),
       ORIGIN,
@@ -481,6 +486,23 @@ describe('companies bucket', () => {
       `${ORIGIN}/companies`,
       `${ORIGIN}/companies/acme`,
       `${ORIGIN}/companies/globex`,
+      `${ORIGIN}/companies/markets/robotics`,
+    ]);
+  });
+
+  it('omits companies with no published jobs, but keeps markets and the hub', async () => {
+    const urls = await buildBucketUrls(
+      stubBoard({
+        companies: [company('acme', 2), company('quiet', 0)],
+        // Market pages carry company counts, not job counts, so they stay.
+        markets: [{ slug: 'robotics', canonicalSlug: 'robotics' }],
+      }),
+      ORIGIN,
+      'companies',
+    );
+    expect(urls).toEqual([
+      `${ORIGIN}/companies`,
+      `${ORIGIN}/companies/acme`,
       `${ORIGIN}/companies/markets/robotics`,
     ]);
   });
@@ -896,7 +918,7 @@ describe('lastModified carried through the mirror path', () => {
 
   it('yields bare { url } entries on the legacy fallback, which has no per-URL stamp', async () => {
     const entries = await buildBucketEntries(
-      stubBoard({ companies: [{ slug: 'acme' }], markets: [] }),
+      stubBoard({ companies: [company('acme', 1)], markets: [] }),
       ORIGIN,
       'companies',
     );
@@ -935,7 +957,7 @@ describe('404 fallback to the legacy path', () => {
 
   it('falls back to per-family enumeration for a bucket', async () => {
     const urls = await buildBucketUrls(
-      stubBoard({ companies: [{ slug: 'acme' }], markets: [] }),
+      stubBoard({ companies: [company('acme', 1)], markets: [] }),
       ORIGIN,
       'companies',
     );
@@ -946,7 +968,7 @@ describe('404 fallback to the legacy path', () => {
   it('paginates markets on the legacy companies path instead of taking one page', async () => {
     const seenCursors: Array<string | undefined> = [];
     const board = stubBoard({
-      companies: [{ slug: 'acme' }],
+      companies: [company('acme', 1)],
       marketsList: async (query) => {
         seenCursors.push(query?.cursor as string | undefined);
         if (query?.cursor === 'm1')
