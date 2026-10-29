@@ -114,6 +114,13 @@
       "category": "core"
     },
     {
+      "name": "cavuno-board-products",
+      "description": "Digital product storefront with @cavuno/board. Use for product lists and pages, reviews, free claims, embedded paid checkout, the purchase download page with its email confirmation, downloads, buyer reviews, resending the link, or the signed-in buyer's purchases.",
+      "path": "skills/cavuno-board-products/SKILL.md",
+      "framework": null,
+      "category": "core"
+    },
+    {
       "name": "cavuno-board-salaries",
       "description": "Salary read models with @cavuno/board. Use for title, skill, or location salary indexes and detail, cross-axis pages, or the salary companies hub.",
       "path": "skills/cavuno-board-salaries/SKILL.md",
