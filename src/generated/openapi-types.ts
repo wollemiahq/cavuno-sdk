@@ -1361,7 +1361,7 @@ export interface paths {
         post?: never;
         /**
          * Delete my account
-         * @description Permanently delete the authenticated candidate account and all dependent data (profile, collections, saved jobs, alerts, avatar/resume files). Synchronous: returns 204 only once the cascade completes. Irreversible.
+         * @description Permanently delete the authenticated candidate account and all dependent data on this board: profile, profile field values and files, avatar and resume files, collections, saved jobs and alerts; job applications with their resumes, notes and activity; conversations and messages, including the employer side; and shortlist and pipeline entries. Synchronous: returns 204 only once the cascade completes. Irreversible.
          */
         delete: operations["deleteBoardMe"];
         options?: never;
@@ -7044,6 +7044,10 @@ export interface components {
                 passwordProtected: boolean;
                 publicJobSubmission: boolean;
                 candidatePaywall: boolean;
+                /**
+                 * @deprecated
+                 * @description Deprecated: mirrors the `impressumEnabled` setting. Publish the Impressum page when your site has Impressum content of its own instead of reading this flag.
+                 */
                 impressum: boolean;
                 /** @description Whether the board accepts native (on-board ATS) applications. `false` means external-applications-only: the server rejects native submissions to `POST /jobs/:jobSlug/apply` with `applications_native_disabled` (422). Clients should hide native apply UI and treat a job with no external `applicationUrl` as not-applyable. */
                 nativeApplications: boolean;

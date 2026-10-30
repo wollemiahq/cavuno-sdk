@@ -30,7 +30,7 @@
     },
     {
       "title": "Candidate and engagement",
-      "description": "Implement candidate identity, applications, alerts, messaging, and access.",
+      "description": "Implement candidate identity, applications, alerts, messaging, access, and digital product sales.",
       "skills": [
         "cavuno-board-auth",
         "cavuno-board-account",
@@ -38,7 +38,8 @@
         "cavuno-board-job-alerts",
         "cavuno-board-messaging",
         "cavuno-board-paywall",
-        "cavuno-board-talent-access"
+        "cavuno-board-talent-access",
+        "cavuno-board-products"
       ]
     },
     {
