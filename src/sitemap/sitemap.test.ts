@@ -359,6 +359,40 @@ describe('marketing bucket', () => {
       `${ORIGIN}/employers`,
     ]);
   });
+
+  it('lets the caller decide /impressum with the impressum option', async () => {
+    const flagged = stubBoard({ features: { impressum: true } });
+    const off = await buildBucketUrls(flagged, ORIGIN, 'marketing', {
+      impressum: false,
+    });
+    expect(off).not.toContain(`${ORIGIN}/impressum`);
+
+    const on = await buildBucketUrls(stubBoard(), ORIGIN, 'marketing', {
+      impressum: true,
+    });
+    expect(on.filter((url) => url === `${ORIGIN}/impressum`)).toHaveLength(1);
+  });
+
+  it('applies the impressum option to the board-published sitemap too', async () => {
+    const board = stubBoard({
+      sitemapEntries: async () =>
+        envelope([
+          { object: 'sitemap_entry', path: '/' },
+          { object: 'sitemap_entry', path: '/impressum' },
+        ]),
+    });
+    expect(
+      await buildBucketUrls(board, ORIGIN, 'marketing', { impressum: false }),
+    ).toEqual([`${ORIGIN}/`]);
+    expect(
+      await buildBucketUrls(board, ORIGIN, 'marketing', { impressum: true }),
+    ).toEqual([`${ORIGIN}/`, `${ORIGIN}/impressum`]);
+    // Without the option the board's own list stands.
+    expect(await buildBucketUrls(board, ORIGIN, 'marketing')).toEqual([
+      `${ORIGIN}/`,
+      `${ORIGIN}/impressum`,
+    ]);
+  });
 });
 
 describe('jobs taxonomy buckets', () => {

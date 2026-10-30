@@ -3,6 +3,17 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.58.0 — 2026-10-30
+
+- `features.impressum` on the board context is deprecated. Publish your
+  Impressum page when your site has Impressum content of its own instead of
+  reading this flag. The operator setting behind it, `impressumEnabled`, is
+  deprecated too; both keep working until a future major version.
+- `buildBucketUrls` and `buildBucketEntries` take an optional fourth argument,
+  `{ impressum }`. When set, the marketing bucket lists `/impressum` exactly
+  when it is `true`, on both the board-published sitemap and the fallback
+  walk. Leave it unset to keep following the board.
+
 ## 4.57.0 — 2026-10-28
 
 - Digital products. `board.products` lists a board's products (`list`, with
