@@ -222,12 +222,25 @@ export async function listedBucketEntries(
   }
 }
 
+/** Options for `buildBucketUrls` and `buildBucketEntries`. */
+export interface BuildBucketOptions {
+  /**
+   * Whether your site publishes `/impressum`, usually because it has
+   * Impressum content of its own. When set, the marketing bucket lists
+   * `/impressum` exactly when this is `true`, whatever the board's published
+   * sitemap or the deprecated `features.impressum` says. Leave it unset to
+   * keep following the board.
+   */
+  impressum?: boolean;
+}
+
 export async function buildBucketUrls(
   board: BoardSdk,
   origin: string,
   bucket: SitemapBucket,
+  options?: BuildBucketOptions,
 ): Promise<string[]> {
-  const entries = await buildBucketEntries(board, origin, bucket);
+  const entries = await buildBucketEntries(board, origin, bucket, options);
   return entries.map((entry) => entry.url);
 }
 
@@ -242,6 +255,21 @@ export async function buildBucketUrls(
  * `buildBucketUrls`, just in the wider shape.
  */
 export async function buildBucketEntries(
+  board: BoardSdk,
+  origin: string,
+  bucket: SitemapBucket,
+  options?: BuildBucketOptions,
+): Promise<SitemapUrlEntry[]> {
+  const entries = await boardBucketEntries(board, origin, bucket);
+  if (bucket !== 'marketing' || options?.impressum === undefined) {
+    return entries;
+  }
+  const impressumUrl = `${origin}${BOARD_PATHS.impressum}`;
+  const listed = entries.filter((entry) => entry.url !== impressumUrl);
+  return options.impressum ? [...listed, { url: impressumUrl }] : listed;
+}
+
+async function boardBucketEntries(
   board: BoardSdk,
   origin: string,
   bucket: SitemapBucket,
