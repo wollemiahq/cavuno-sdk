@@ -158,8 +158,11 @@ export function meNamespace(client: BoardClient) {
     },
 
     /**
-     * Permanently delete my account and all dependent data (profile,
-     * collections, saved jobs, alerts, avatar/resume files). Synchronous and
+     * Permanently delete my account and all dependent data on this board:
+     * profile, profile field values and files, avatar and resume files,
+     * collections, saved jobs and alerts; job applications with their
+     * resumes, notes and activity; conversations and messages, including the
+     * employer side; and shortlist and pipeline entries. Synchronous and
      * irreversible — resolves void once the cascade completes (204).
      *
      * @example

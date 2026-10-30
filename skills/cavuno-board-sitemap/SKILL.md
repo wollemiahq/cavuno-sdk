@@ -132,8 +132,12 @@ it):
 
 - Taxonomy and location pages enter the sitemap at five distinct jobs,
   `MIN_JOBS_PER_INDEXED_PAGE`.
-- Marketing URLs follow context feature flags for impressum, talent directory,
-  and employers. Blog is listed only when `features.blog` is enabled.
+- Marketing URLs follow context feature flags for talent directory and
+  employers. Blog is listed only when `features.blog` is enabled.
+- `/impressum` follows the board unless you pass the `impressum` option
+  (`buildBucketEntries(board, origin, bucket, { impressum })`). Pass it when
+  your site owns its Impressum content, so the sitemap lists `/impressum`
+  exactly when the page exists. `features.impressum` is deprecated.
 - Salary index reads use `context().language`, producing board-language
   canonical salary slugs. Job, company, market, and blog slugs arrive
   canonical on the wire.

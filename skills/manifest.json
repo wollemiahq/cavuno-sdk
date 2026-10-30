@@ -1,5 +1,5 @@
 {
-  "version": "4.57.0",
+  "version": "4.58.0",
   "skills": [
     {
       "name": "cavuno-board-account",
@@ -110,6 +110,13 @@
       "name": "cavuno-board-post-a-job",
       "description": "Post a job publicly with @cavuno/board. Use for plan selection, logos, checkout handoff, or verified existing credit.",
       "path": "skills/cavuno-board-post-a-job/SKILL.md",
+      "framework": null,
+      "category": "core"
+    },
+    {
+      "name": "cavuno-board-products",
+      "description": "Digital product storefront with @cavuno/board. Use for product lists and pages, reviews, free claims, embedded paid checkout, the purchase download page with its email confirmation, downloads, buyer reviews, resending the link, or the signed-in buyer's purchases.",
+      "path": "skills/cavuno-board-products/SKILL.md",
       "framework": null,
       "category": "core"
     },
