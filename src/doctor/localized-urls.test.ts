@@ -192,6 +192,25 @@ describe('read.localizedUrls', () => {
     expect(outside.status).toBe('fail');
   });
 
+  it('lets the purchases library send a signed-out visitor to sign in', async () => {
+    const manifest = {
+      version: 1,
+      roles: { ...DUTCH_ROLES, mePurchases: '/mijn/aankopen' },
+    };
+    const result = await probeLocalizedUrls(
+      board({
+        '/me/purchases': { status: 308, location: '/mijn/aankopen' },
+        '/mijn/aankopen': {
+          status: 307,
+          location: '/auth/inloggen?returnTo=%2Fme%2Faankopen',
+        },
+      }),
+      BASE,
+      manifest,
+    );
+    expect(result.status).toBe('pass');
+  });
+
   it('does not let content pages redirect', async () => {
     const result = await probeLocalizedUrls(
       board({ '/bedrijven': { status: 302, location: '/' } }),
