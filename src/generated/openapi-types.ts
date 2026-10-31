@@ -5801,7 +5801,7 @@ export interface components {
             inOfficeFrequency?: number;
             /** @description Physical office locations associated with the job. Prefer `{locationId}` with an `id` from `GET /locations/search` (what a location picker returns); `{query: "City, Country"}` for free-form text and `{city, country, region?, locality?}` are also accepted and geocoded server-side (a country mismatch returns `400 jobs_unresolvable_location`). A location outside the board's job-form `allowedCountries` returns `400 jobs_constraint_violation`. */
             officeLocations?: components["schemas"]["EmployerJobOfficeLocationInput"][];
-            /** @description Collection-reference selections keyed by the configured job collection field key. Values are arrays of record IDs, including for single-select fields. On PATCH omitted keys are preserved; send null or an empty array to clear a field. */
+            /** @description Collection-reference selections keyed by the configured job collection field key. Values are arrays of record IDs, including for single-select fields. On PATCH omitted keys are preserved; send null or an empty array to clear a field. Keys for fields whose collection is archived are ignored, and their stored selections are kept. */
             collectionValues?: {
                 [key: string]: string[] | unknown;
             };
@@ -5977,7 +5977,7 @@ export interface components {
             customFieldValues: {
                 [key: string]: string | string[] | boolean | number;
             };
-            /** @description Collection record IDs keyed by configured job collection field. */
+            /** @description Collection record IDs keyed by configured job collection field. Fields whose collection is archived are omitted. */
             collectionValues: {
                 [key: string]: string[];
             };
@@ -6116,7 +6116,7 @@ export interface components {
             inOfficeFrequency?: number;
             /** @description Physical office locations associated with the job. Prefer `{locationId}` with an `id` from `GET /locations/search` (what a location picker returns); `{query: "City, Country"}` for free-form text and `{city, country, region?, locality?}` are also accepted and geocoded server-side (a country mismatch returns `400 jobs_unresolvable_location`). A location outside the board's job-form `allowedCountries` returns `400 jobs_constraint_violation`. */
             officeLocations?: components["schemas"]["EmployerJobOfficeLocationInput"][];
-            /** @description Collection-reference selections keyed by the configured job collection field key. Values are arrays of record IDs, including for single-select fields. On PATCH omitted keys are preserved; send null or an empty array to clear a field. */
+            /** @description Collection-reference selections keyed by the configured job collection field key. Values are arrays of record IDs, including for single-select fields. On PATCH omitted keys are preserved; send null or an empty array to clear a field. Keys for fields whose collection is archived are ignored, and their stored selections are kept. */
             collectionValues?: {
                 [key: string]: string[] | unknown;
             };
@@ -6926,6 +6926,7 @@ export interface components {
             }[];
         };
         ProfileObjectReferencesResult: {
+            /** @description The reference fields on this profile. Fields whose collection is archived are omitted, along with their selections. */
             definitions: components["schemas"]["ProfileObjectReferenceDefinition"][];
             selections: components["schemas"]["ResolvedProfileObjectReference"][];
         };
@@ -7105,7 +7106,7 @@ export interface components {
             customFields: {
                 /** @description This model's custom-field definitions in display order. Empty when the board defines none for the model. */
                 job: components["schemas"]["CustomFieldDefinition"][];
-                /** @description Collection-reference job field definitions in display order. Fetch choices from /boards/{identifier}/job-fields/{fieldKey}/choices. */
+                /** @description Collection-reference job field definitions in display order. Fetch choices from /boards/{identifier}/job-fields/{fieldKey}/choices. Fields whose collection is archived are omitted. */
                 jobCollections: components["schemas"]["JobCollectionFieldDefinition"][];
             };
             /** @description Built-in job-form field configuration from Settings → Job form (custom fields live on `customFields.job`). The platform ENFORCES these constraints when a job is created — a violation is a 400 — so a posting form that ignores them offers options the server will reject and the employer only finds out on submit. */
@@ -7904,6 +7905,7 @@ export interface components {
             orderedStageIds: string[];
         };
         ReplaceProfileObjectReferenceSelectionsBody: {
+            /** @description Replaces the stored selections. Selections for fields whose collection is archived are ignored, and their stored selections are kept. */
             selections: components["schemas"]["ProfileObjectReferenceSelectionWrite"][];
         };
         ReplyBody: {

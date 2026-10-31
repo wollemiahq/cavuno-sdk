@@ -37,6 +37,7 @@ const REDIRECT_OK: ReadonlySet<RouteRole> = new Set([
   'employers',
   'alertsManage',
   'alertsConfirm',
+  'mePurchases',
 ]);
 
 /**
