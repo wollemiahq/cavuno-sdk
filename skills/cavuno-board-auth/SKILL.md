@@ -90,3 +90,10 @@ The signed-in OTP verification, resend, magic-link, and OAuth branches use their
 ## Cavuno SDK reference
 
 For setup and API details beyond this workflow, use the [Cavuno Board SDK documentation](https://cavuno.com/docs/sdk).
+
+
+### OAuth browser proof
+
+SSO sign-ins require proof from the browser that started authorization. Google and LinkedIn sign-ins accept and check the same proof whenever it is supplied, and it will become required for them in a later release. The browser SDK establishes and retains a random secret before `getOAuthAuthorizationUrl` or `getSsoAuthorizationUrl`, sends only its SHA-256 hash to authorization, and supplies the secret when `exchangeOAuth` runs. Keep browser storage available through the provider round trip. Never take a binding secret from a completion URL or copy another browser's completion token.
+
+Server callers (a Worker or other server runtime without browser storage) should generate a random secret, retain it securely in the visitor's session (for example an HttpOnly cookie), pass its lowercase SHA-256 hex as `browserBindingHash` to `getOAuthAuthorizationUrl`, and pass the original secret as `browserBinding` to `exchangeOAuth`. Without a `browserBindingHash`, the SDK sends a Google or LinkedIn request unbound from a server runtime; that is accepted today so existing deployments keep working, and will be refused once proof becomes required. A sign-in started with proof must finish with the matching secret: failed proof leaves the one-time token unconsumed. Automatic OAuth proof is cleared if authorization fails or once exchange succeeds; a rejected exchange keeps the proof available for retry.

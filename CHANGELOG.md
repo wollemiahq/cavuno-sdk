@@ -3,6 +3,18 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.59.0 — 2026-11-01
+
+- Security and reliability improvements.
+- `getOAuthAuthorizationUrl` accepts `browserBindingHash` and `exchangeOAuth`
+  accepts `browserBinding` for Google and LinkedIn sign-in. Browsers get this
+  automatically; server callers pass the SHA-256 hex of a secret they keep in
+  an HttpOnly cookie, then the secret itself. Optional today, required later.
+- `resolveCustomFieldDisplay` returns `kind: 'rich_text'` for rich text
+  fields, with sanitized HTML as `value`.
+- New operator operations: `getApplication`, `listJobApplications`,
+  `deleteApplication`, `deleteCustomObjectType` and `deleteInboxTicket`.
+
 ## 4.58.0 — 2026-10-30
 
 - `features.impressum` on the board context is deprecated. Publish your

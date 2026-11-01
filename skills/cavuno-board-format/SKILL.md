@@ -59,7 +59,9 @@ formatSalaryStatRange(language, 90000, 120000, detail.currency);
 formatSalaryStatRange(language, 90000, 120000, detail.currency, 'standard');
 
 // Custom fields — language first. number → kind: 'number' (raw);
-// multi_select → kind: 'multi_select' with values: string[] (labels).
+// multi_select → kind: 'multi_select' with values: string[] (labels);
+// rich_text → kind: 'rich_text' with API-sanitized HTML: render it as HTML.
+// kind: 'text' stays plain text, so keep escaping it.
 // Do not String(n). Do not join multi-select in the SDK — app owns list
 // style (conjunction / short / chips):
 // new Intl.ListFormat(language, { style: 'long', type: 'conjunction' })
@@ -121,6 +123,8 @@ const jobBadges = resolveCustomFieldDisplay(
   switch (entry.kind) {
     case 'text': // a single_select resolves to its option label
       return [entry.value];
+    case 'rich_text': // sanitized HTML: render in a detail section, not a badge
+      return [];
     case 'multi_select':
       return entry.values;
     case 'boolean':
