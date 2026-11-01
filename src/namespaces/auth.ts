@@ -268,23 +268,60 @@ export function authNamespace(client: BoardClient, board = '') {
     },
 
     /**
-     * Build a provider authorization URL. The SDK returns the URL; the
-     * host app owns browser navigation.
+     * Build a provider authorization URL and bind the sign-in to the
+     * initiating browser. With an explicit `browserBindingHash`, the SDK sends
+     * it and the caller keeps the raw secret for `exchangeOAuth`. Otherwise,
+     * in a browser with storage and Web Crypto, the SDK creates and retains
+     * the proof automatically. Server runtimes should pass
+     * `browserBindingHash` (the SHA-256 hex of a random secret they keep
+     * for the visitor) and later supply that secret as `browserBinding` on
+     * exchange; without one the request is sent unbound, which is accepted
+     * for now and will be refused once proof becomes required. The host app
+     * owns navigation.
      *
      * @example
      * const { authorizeUrl } = await board.auth.getOAuthAuthorizationUrl('google');
      * window.location.href = authorizeUrl;
      */
-    getOAuthAuthorizationUrl(
+    async getOAuthAuthorizationUrl(
       provider: OAuthProvider,
       query?: OAuthAuthorizationQuery,
       options?: FetchOptions,
     ) {
-      return client.fetch<OAuthAuthorizationUrl>(`/auth/oauth/${provider}`, {
-        ...options,
-        method: 'GET',
-        query,
-      });
+      let browserBindingHash = query?.browserBindingHash;
+      let secret: string | undefined;
+      if (!browserBindingHash && globalThis.crypto?.subtle) {
+        try {
+          secret = ssoProof().begin();
+        } catch {
+          // No usable browser storage (server runtime): send unbound.
+        }
+      }
+      const automatic = secret !== undefined;
+      try {
+        if (secret !== undefined) {
+          const digest = await globalThis.crypto.subtle.digest(
+            'SHA-256',
+            new TextEncoder().encode(secret),
+          );
+          browserBindingHash = Array.from(new Uint8Array(digest), (byte) =>
+            byte.toString(16).padStart(2, '0'),
+          ).join('');
+        }
+        return await client.fetch<OAuthAuthorizationUrl>(
+          `/auth/oauth/${provider}`,
+          {
+            ...options,
+            method: 'GET',
+            query: browserBindingHash
+              ? { ...query, browserBindingHash }
+              : query,
+          },
+        );
+      } catch (error) {
+        if (automatic) ssoProof().clear();
+        throw error;
+      }
     },
 
     /**
@@ -307,7 +344,9 @@ export function authNamespace(client: BoardClient, board = '') {
           },
         },
       );
-      return persist(session);
+      const result = await persist(session);
+      ssoProof().clear();
+      return result;
     },
 
     /**

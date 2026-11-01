@@ -35,6 +35,24 @@ describe('matchPathToTemplate', () => {
     });
   });
 
+  it('captures identifier tokens without their required literal suffix', () => {
+    expect(
+      matchPathAgainstHistory(
+        [{ role: 'blogPost', template: '/articles/:postSlug.html' }],
+        '/articles/welcome.html',
+      )?.params,
+    ).toEqual({ postSlug: 'welcome' });
+    expect(
+      matchPathToTemplate('/articles/:postSlug.html', '/articles/welcome'),
+    ).toBeNull();
+    expect(
+      matchPathToTemplate('/articles/:postSlug.html', '/articles/.html'),
+    ).toBeNull();
+    expect(matchPathToTemplate('/@:handle.html', '/@jane.html')).toEqual({
+      handle: 'jane',
+    });
+  });
+
   it('requires literal segments to match exactly', () => {
     expect(
       matchPathToTemplate(

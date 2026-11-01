@@ -251,13 +251,91 @@ describe('auth.oauth', () => {
 
     const result = await board.auth.getOAuthAuthorizationUrl('google', {
       returnTo: '/account',
+      browserBindingHash: 'a'.repeat(64),
     });
 
     expect(spy.mock.calls[0]![0]).toBe(
-      'https://api.cavuno.com/v1/boards/acme-jobs/auth/oauth/google?returnTo=%2Faccount',
+      'https://api.cavuno.com/v1/boards/acme-jobs/auth/oauth/google?returnTo=%2Faccount&browserBindingHash=' +
+        'a'.repeat(64),
     );
     expect(spy.mock.calls[0]![1]!.method).toBe('GET');
     expect(result.authorizeUrl).toContain('accounts.google.com');
+  });
+
+  it.each(['google', 'linkedin'] as const)(
+    'retains the initiating browser proof for %s and clears it after exchange',
+    async (provider) => {
+      vi.stubGlobal('localStorage', resolveStorage('memory'));
+      vi.stubGlobal('crypto', {
+        getRandomValues: (bytes: Uint8Array) => bytes.fill(0),
+        subtle: globalThis.crypto.subtle,
+      });
+      const spy = stubFetch(jsonResponse(SESSION));
+      const { board } = makeBoard();
+      await board.auth.getOAuthAuthorizationUrl(provider);
+      const binding = ssoLinkProofBindingStore('acme-jobs');
+      const secret = '0'.repeat(64);
+      expect(binding.read()).toBe(secret);
+      // Known-answer SHA-256 of 64 ASCII zeroes, independently computed.
+      expect(
+        new URL(spy.mock.calls[0]![0]).searchParams.get('browserBindingHash'),
+      ).toBe(
+        '60e05bd1b195af2f94112fa7197a5c88289058840ce7c6df9693756bc6250f55',
+      );
+      expect(spy.mock.calls[0]![0]).not.toContain(secret);
+      await board.auth.exchangeOAuth({ token: 't1' });
+      expect(
+        JSON.parse(spy.mock.calls[1]![1]!.body as string).browserBinding,
+      ).toBe(secret);
+      expect(binding.read()).toBeNull();
+    },
+  );
+
+  it('sends an unbound request from a server runtime without browser storage', async () => {
+    vi.stubGlobal('localStorage', undefined);
+    const spy = stubFetch(jsonResponse(SESSION));
+    const { board } = makeBoard();
+    await board.auth.getOAuthAuthorizationUrl('google', { returnTo: '/a' });
+    expect(spy.mock.calls[0]![0]).toBe(
+      'https://api.cavuno.com/v1/boards/acme-jobs/auth/oauth/google?returnTo=%2Fa',
+    );
+    await board.auth.exchangeOAuth({ token: 't1' });
+    expect(
+      JSON.parse(spy.mock.calls[1]![1]!.body as string).browserBinding,
+    ).toBeUndefined();
+  });
+
+  it('clears automatic proof after a failed authorization request', async () => {
+    vi.stubGlobal('localStorage', resolveStorage('memory'));
+    stubFetch(
+      jsonResponse({ error: { code: 'auth_failed', message: 'failed' } }, 400),
+    );
+    const { board } = makeBoard();
+    await expect(
+      board.auth.getOAuthAuthorizationUrl('google'),
+    ).rejects.toThrow();
+    expect(ssoLinkProofBindingStore('acme-jobs').read()).toBeNull();
+  });
+
+  it('clears automatic proof if browser hashing fails before authorization', async () => {
+    vi.stubGlobal('localStorage', resolveStorage('memory'));
+    vi.stubGlobal('crypto', {
+      getRandomValues: (bytes: Uint8Array) => bytes.fill(0),
+      subtle: {
+        digest: async () => {
+          throw new Error('browser hashing failed');
+        },
+      },
+    });
+    const spy = stubFetch(jsonResponse(SESSION));
+    const { board } = makeBoard();
+
+    await expect(board.auth.getOAuthAuthorizationUrl('google')).rejects.toThrow(
+      'browser hashing failed',
+    );
+
+    expect(spy).not.toHaveBeenCalled();
+    expect(ssoLinkProofBindingStore('acme-jobs').read()).toBeNull();
   });
 
   it('exchangeOAuth POSTs the one-time token, persists the bearer pair, and returns it', async () => {

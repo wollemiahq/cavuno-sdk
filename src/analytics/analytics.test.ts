@@ -397,6 +397,82 @@ describe('matchAnalyticsWellKnown', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it.each(['/collect', '/collect/v0/events'])(
+    'caps anonymous %s streams even without a truthful Content-Length',
+    async (path) => {
+      for (const contentLength of [undefined, '1']) {
+        const cancel = vi.fn();
+        let reads = 0;
+        const body = new ReadableStream<Uint8Array>(
+          {
+            pull(controller) {
+              reads++;
+              if (reads === 4) {
+                controller.close();
+                return;
+              }
+              controller.enqueue(new Uint8Array(32 * 1024 + 1));
+            },
+            cancel,
+          },
+          { highWaterMark: 0 },
+        );
+        const response = await matchAnalyticsWellKnown(
+          new Request('https://board.example/.well-known/cavuno' + path, {
+            method: 'POST',
+            headers: contentLength ? { 'Content-Length': contentLength } : {},
+            body,
+            duplex: 'half',
+          } as RequestInit),
+        );
+        expect(response?.status).toBe(413);
+        expect(response?.headers.get('Access-Control-Allow-Origin')).toBe('*');
+        expect(cancel).toHaveBeenCalledOnce();
+        expect(reads).toBe(2);
+        expect(fetchMock).not.toHaveBeenCalled();
+      }
+    },
+  );
+
+  it('refuses a declared oversized body without reading it', async () => {
+    const pull = vi.fn(
+      (controller: ReadableStreamDefaultController<Uint8Array>) =>
+        controller.close(),
+    );
+    const cancel = vi.fn();
+    const response = await matchAnalyticsWellKnown(
+      new Request('https://board.example/.well-known/cavuno/collect', {
+        method: 'POST',
+        headers: { 'Content-Length': String(64 * 1024 + 1) },
+        body: new ReadableStream({ pull, cancel }, { highWaterMark: 0 }),
+        duplex: 'half',
+      } as RequestInit),
+    );
+    expect(response?.status).toBe(413);
+    expect(pull).not.toHaveBeenCalled();
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it.each(['/collect', '/collect/v0/events'])(
+    'forwards %s bytes unchanged at the 64 KiB limit',
+    async (path) => {
+      const bytes = new Uint8Array(64 * 1024).fill(0x61);
+      const response = await matchAnalyticsWellKnown(
+        new Request('https://board.example/.well-known/cavuno' + path, {
+          method: 'POST',
+          body: bytes,
+        }),
+      );
+      expect(response?.status).toBe(200);
+      expect(fetchMock).toHaveBeenCalledOnce();
+      const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(
+        new Uint8Array(await new Response(init.body).arrayBuffer()),
+      ).toEqual(bytes);
+    },
+  );
+
   it('proxies POST collect to the central collect URL', async () => {
     const response = await matchAnalyticsWellKnown(
       new Request('https://board.example/.well-known/cavuno/collect', {

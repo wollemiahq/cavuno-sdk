@@ -246,12 +246,25 @@ function scoreBoardIdentity(
  * starter still emits its production domain). Probe the equivalent path
  * on the frontend under test, never the canonical host.
  */
-function onFrontend(base: string, locUrl: string): string {
+function onFrontend(base: string, locUrl: string): string | null {
   try {
-    const parsed = new URL(locUrl);
-    return `${base}${parsed.pathname}${parsed.search}`;
+    const frontend = new URL(base);
+    const parsed = new URL(locUrl, frontend.origin + '/');
+    if (
+      (frontend.protocol !== 'http:' && frontend.protocol !== 'https:') ||
+      (parsed.protocol !== 'http:' && parsed.protocol !== 'https:')
+    ) {
+      return null;
+    }
+    // Assign URL properties: resolving a pathname beginning with // as a
+    // relative URL would interpret it as a different host.
+    const rebased = new URL(frontend);
+    rebased.pathname = frontend.pathname.replace(/\/$/, '') + parsed.pathname;
+    rebased.search = parsed.search;
+    rebased.hash = '';
+    return rebased.origin === frontend.origin ? rebased.href : null;
   } catch {
-    return locUrl;
+    return null;
   }
 }
 
@@ -278,6 +291,9 @@ async function probeSitemap(
   let urls = doc.urls;
   if (doc.kind === 'index') {
     const childUrl = onFrontend(base, urls[0]!);
+    if (childUrl === null) {
+      return READ.sitemap('fail', 'child sitemap has an invalid HTTP(S) URL');
+    }
     let child = await probe(fetchImpl, childUrl);
     // Concurrent SSR on one Worker isolate 503s the first child while
     // the index is still warm (Cybersecurity marketing.xml 2026-08-25).
@@ -295,6 +311,9 @@ async function probeSitemap(
   }
 
   const sampleUrl = onFrontend(base, urls[0]!);
+  if (sampleUrl === null) {
+    return READ.sitemap('fail', 'sitemap page has an invalid HTTP(S) URL');
+  }
   const sample = await probe(fetchImpl, sampleUrl);
   return sample.ok
     ? READ.sitemap('pass', `${urls.length} entries; sample page resolves`)
