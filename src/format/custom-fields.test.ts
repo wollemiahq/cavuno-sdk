@@ -94,6 +94,25 @@ describe('resolveCustomFieldDisplay', () => {
     ]);
   });
 
+  it('preserves the rich-text variant and HTML while plain text stays text', () => {
+    const definitions: CustomFieldDefinition[] = [
+      { key: 'rich', label: 'Benefits', type: 'rich_text', required: false },
+      { key: 'plain', label: 'Notes', type: 'long_text', required: false },
+    ];
+    const html = '<p><strong>Benefits</strong></p>';
+    expect(
+      resolveCustomFieldDisplay('en', definitions, { rich: html, plain: html }),
+    ).toEqual([
+      { key: 'rich', label: 'Benefits', kind: 'rich_text', value: html },
+      { key: 'plain', label: 'Notes', kind: 'text', value: html },
+    ]);
+    for (const value of ['', '  ', 42, false]) {
+      expect(
+        resolveCustomFieldDisplay('en', definitions, { rich: value }),
+      ).toEqual([]);
+    }
+  });
+
   it('is empty when there are no definitions', () => {
     expect(resolveCustomFieldDisplay('en', undefined, { visa: true })).toEqual(
       [],

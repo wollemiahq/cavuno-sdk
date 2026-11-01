@@ -48,6 +48,45 @@ function corsPreflight(): Response {
   return withCors(new Response(null, { status: 204 }));
 }
 
+// Match the central collector's 64 KiB payload cap, including keepalive batches.
+const COLLECT_BODY_MAX_BYTES = 64 * 1024;
+
+async function readCollectBody(
+  request: Request,
+): Promise<Uint8Array<ArrayBuffer> | null> {
+  if (Number(request.headers.get('Content-Length')) > COLLECT_BODY_MAX_BYTES) {
+    await request.body?.cancel().catch(() => {});
+    return null;
+  }
+  if (!request.body) return new Uint8Array();
+
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > COLLECT_BODY_MAX_BYTES) {
+        await reader.cancel().catch(() => {});
+        return null;
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const bytes = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
+}
+
 async function proxyCollect(
   request: Request,
   targetUrl: string,
@@ -73,7 +112,10 @@ async function proxyCollect(
   const target = new URL(targetUrl);
   target.search = new URL(request.url).search;
 
-  const body = await request.arrayBuffer();
+  const body = await readCollectBody(request);
+  if (body === null) {
+    return withCors(new Response(null, { status: 413 }));
+  }
   const upstream = await fetch(target.toString(), {
     method: 'POST',
     headers,
