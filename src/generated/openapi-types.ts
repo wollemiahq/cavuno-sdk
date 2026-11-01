@@ -7171,6 +7171,10 @@ export interface components {
                 linkedinUrl: string | null;
                 /** @description Instagram profile URL. Null when unset or invalid. */
                 instagramUrl: string | null;
+                /** @description TikTok profile URL (`https://www.tiktok.com/@handle`). Null when unset or invalid. */
+                tiktokUrl: string | null;
+                /** @description YouTube channel URL (`https://www.youtube.com/...`). Null when unset or invalid. */
+                youtubeUrl: string | null;
             };
         };
         PublicCompaniesSearchBody: {
