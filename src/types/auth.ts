@@ -17,6 +17,8 @@ export type RequestMagicLinkBody = Schemas['BoardAuthRequestMagicLinkBody'];
 export type ConsumeMagicLinkBody = Schemas['BoardAuthConsumeMagicLinkBody'];
 export type OAuthProvider = 'google' | 'linkedin';
 export type OAuthAuthorizationQuery = {
+  /** SHA-256 hex of a random secret retained for the initiating browser. Supplied automatically in browsers. Server callers should pass it and later send the raw secret as `browserBinding` on exchange; it is optional for now and will become required. */
+  browserBindingHash?: string;
   /** JSON-encoded audience evidence captured after analytics consent. */
   audienceAttribution?: string;
   returnTo?: string;

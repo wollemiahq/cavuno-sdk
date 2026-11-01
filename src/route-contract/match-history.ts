@@ -3,10 +3,9 @@
  *.
  *
  * Segment-wise matcher (no RegExp construction from templates). Templates
- * are validated at write time but stay defensive here: a segment starting
- * with ':' is a whole-segment param, a segment with fixed text before a
- * `:name` (`@:handle`) captures what follows that text, and anything else
- * is a literal.
+ * are validated at write time but stay defensive here: identifier params
+ * capture between optional fixed text (`@:handle`, `:postSlug.html`),
+ * and segments without params are literal.
  */
 
 import { BOARD_PATHS } from '../paths';
@@ -71,8 +70,8 @@ function splitSegments(path: string): string[] {
   return withoutTrailing.split('/');
 }
 
-/** Fixed text, then a `:name` param, then optional fixed text (`@:handle`). */
-const PREFIXED_PARAM_RE = /^([^:]+):([A-Za-z_][A-Za-z0-9_]*)(.*)$/;
+/** Optional fixed text around an identifier param in the template charset. */
+const PARAM_SEGMENT_RE = /^([^:]*):([A-Za-z_][A-Za-z0-9_]*)([A-Za-z0-9_.@-]*)$/;
 
 /**
  * Segment-wise match of `pathname` against a URLPattern-style `:param` template.
@@ -104,16 +103,15 @@ export function matchPathToTemplate(
 
     let name: string | null = null;
     let value = pSeg;
-    if (tSeg.startsWith(':') && tSeg.length > 1) {
+    const parameter = PARAM_SEGMENT_RE.exec(tSeg);
+    if (parameter) {
+      const [, prefix = '', param = '', suffix = ''] = parameter;
+      if (!pSeg.startsWith(prefix) || !pSeg.endsWith(suffix)) return null;
+      name = param;
+      value = pSeg.slice(prefix.length, pSeg.length - suffix.length);
+    } else if (tSeg.startsWith(':') && tSeg.length > 1) {
+      // Preserve legacy direct-call handling of non-contract parameter names.
       name = tSeg.slice(1);
-    } else {
-      const prefixed = PREFIXED_PARAM_RE.exec(tSeg);
-      if (prefixed) {
-        const [, prefix = '', param = '', suffix = ''] = prefixed;
-        if (!pSeg.startsWith(prefix) || !pSeg.endsWith(suffix)) return null;
-        name = param;
-        value = pSeg.slice(prefix.length, pSeg.length - suffix.length);
-      }
     }
     if (name !== null) {
       if (value.length === 0) return null;

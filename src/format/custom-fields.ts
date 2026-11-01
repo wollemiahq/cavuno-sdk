@@ -13,6 +13,9 @@ import type { CustomFieldValues } from '../types/jobs';
  * with the board locale (`Intl.NumberFormat`, Yes/No chrome). Pre-stringifying
  * numbers would ship `kind: 'text'` and foreclose locale-aware formatting.
  *
+ * Rich text preserves API-sanitized HTML as `kind: 'rich_text'`. Render that
+ * variant as sanitized HTML; continue escaping plain `kind: 'text'` values.
+ *
  * Multi-select stays an array of resolved labels (`kind: 'multi_select'`).
  * Pre-joining with `Intl.ListFormat` would ship `kind: 'text'` and foreclose
  * locale-aware **list** formatting (short style, disjunction, separate chips)
@@ -27,6 +30,7 @@ import type { CustomFieldValues } from '../types/jobs';
  */
 export type CustomFieldDisplayEntry =
   | { key: string; label: string; kind: 'text'; value: string }
+  | { key: string; label: string; kind: 'rich_text'; value: string }
   | { key: string; label: string; kind: 'boolean'; value: boolean }
   | { key: string; label: string; kind: 'number'; value: number }
   | { key: string; label: string; kind: 'multi_select'; values: string[] };
@@ -58,7 +62,7 @@ function renderTextValue(
       return def.options?.find((o) => o.key === raw)?.label ?? null;
     }
     default:
-      // short_text / long_text — free text, shown as-is when non-blank.
+      // Text and rich text preserve their non-blank string values.
       return typeof raw === 'string' && raw.trim() !== '' ? raw : null;
   }
 }
@@ -121,7 +125,12 @@ export function resolveCustomFieldDisplay(
 
     const value = renderTextValue(def, raw);
     if (value !== null) {
-      entries.push({ key: def.key, label: def.label, kind: 'text', value });
+      entries.push({
+        key: def.key,
+        label: def.label,
+        kind: def.type === 'rich_text' ? 'rich_text' : 'text',
+        value,
+      });
     }
   }
 
