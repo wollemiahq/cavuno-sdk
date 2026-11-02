@@ -4368,7 +4368,7 @@ export interface paths {
         };
         /**
          * Retrieve a candidate's public profile
-         * @description A candidate's public profile on the named public board: header (name, headline, location, bio, avatar, job-search status) plus their experiences, education, skills, and languages. Only `public` profiles are returned; a non-public or unknown handle is 404. `jobSearchStatus` is `null` when the candidate set it to employers-only. `resumeUrl` is an expiring signed URL for a signed-in approved employer when the candidate opted in to share their stored resume; `null` otherwise. When the board sells profile unlocks, retrieve-by-id (`/p/{id}`) redacts the same fields the hosted opaque route hides until the viewer is unlimited or has unlocked (including `resumeUrl`); retrieve-by-handle is the named-share bypass and stays full.
+         * @description A candidate's public profile on the named public board: header (name, headline, location, bio, avatar, job-search status) plus their experiences, education, skills, and languages. Anonymous callers get `public` profiles; a signed-in board user also gets `logged_in_only` profiles, except on a board whose directory is restricted to employers, where only approved employers (and the candidate themselves) do. Any other profile, or an unknown handle, is 404. `jobSearchStatus` is `null` when the candidate set it to employers-only. `resumeUrl` is an expiring signed URL for a signed-in approved employer when the candidate opted in to share their stored resume; `null` otherwise. When the board sells profile unlocks, retrieve-by-id (`/p/{id}`) redacts the same fields the hosted opaque route hides until the viewer is unlimited or has unlocked (including `resumeUrl`); retrieve-by-handle is the named-share bypass and stays full.
          */
         get: operations["getBoardTalent"];
         put?: never;
@@ -7171,6 +7171,10 @@ export interface components {
                 linkedinUrl: string | null;
                 /** @description Instagram profile URL. Null when unset or invalid. */
                 instagramUrl: string | null;
+                /** @description TikTok profile URL (`https://www.tiktok.com/@handle`). Null when unset or invalid. */
+                tiktokUrl: string | null;
+                /** @description YouTube channel URL (`https://www.youtube.com/...`). Null when unset or invalid. */
+                youtubeUrl: string | null;
             };
         };
         PublicCompaniesSearchBody: {
@@ -23872,7 +23876,7 @@ export interface operations {
                     "application/json": components["schemas"]["TalentProfile"];
                 };
             };
-            /** @description Public board not found, or no public profile for that handle. */
+            /** @description Public board not found, or no profile for that handle visible to the caller. */
             404: {
                 headers: {
                     [name: string]: unknown;
