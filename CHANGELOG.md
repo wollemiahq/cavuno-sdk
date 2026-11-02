@@ -3,6 +3,21 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.59.1 — 2026-11-02
+
+- The board context's `contact` carries `tiktokUrl` and `youtubeUrl` next to
+  the other social links: a normalized profile URL, or `null`.
+- Operator settings take `companyTiktokUrl` and `companyYoutubeUrl`, a handle
+  or profile URL stored as the canonical profile URL.
+- Digital products: `isPublic: true` on a product with no ready file or link
+  is kept as a request. The product reports `digitalProduct.listingPending`
+  and is listed automatically once its first file or link is ready.
+- On a board whose talent directory is for employers only, a profile shown to
+  signed-in members only is returned to approved employers and its owner, not
+  to every signed-in user.
+- `talent.retrieve` returns the experience, education, skills and languages of a
+  members-only profile to viewers allowed to see it.
+
 ## 4.59.0 — 2026-11-01
 
 - Security and reliability improvements.
