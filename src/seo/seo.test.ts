@@ -124,6 +124,8 @@ const BOARD = {
     facebookUrl: null,
     linkedinUrl: null,
     instagramUrl: null,
+    tiktokUrl: null,
+    youtubeUrl: null,
   },
 } satisfies PublicBoard;
 
