@@ -101,6 +101,39 @@ describe('board.jobAlerts', () => {
     expect(url(spy2)).toBe(`${BASE}/job-alerts/resubscribe`);
   });
 
+  it('unsubscribe forwards the digest attribution', async () => {
+    const spy = stubFetch({ object: 'job_alert_manage_result', success: true });
+    await board().jobAlerts.unsubscribe({
+      subscriptionId: 'bu_1',
+      token: 'tok',
+      alertId: 'k57d2x1tq8m3ffhr4y6v9b0n7s7tqa12',
+      emailId: '0123456789abcdef',
+    });
+    expect(JSON.parse(init(spy).body as string)).toEqual({
+      subscriptionId: 'bu_1',
+      token: 'tok',
+      alertId: 'k57d2x1tq8m3ffhr4y6v9b0n7s7tqa12',
+      emailId: '0123456789abcdef',
+    });
+  });
+
+  it('recordClick POSTs the click to /job-alerts/clicks', async () => {
+    const spy = stubFetch({ object: 'job_alert_click', status: 'accepted' });
+    const click = {
+      alertId: 'k57d2x1tq8m3ffhr4y6v9b0n7s7tqa12',
+      emailId: '0123456789abcdef',
+      jobId: 'j57d2x1tq8m3ffhr4y6v9b0n7s7tqa99',
+      position: 2,
+      matcherVersion: 'alert-exact-v1',
+      userAgent: 'Mozilla/5.0',
+    };
+    const receipt = await board().jobAlerts.recordClick(click);
+    expect(url(spy)).toBe(`${BASE}/job-alerts/clicks`);
+    expect(init(spy).method).toBe('POST');
+    expect(JSON.parse(init(spy).body as string)).toEqual(click);
+    expect(receipt).toEqual({ object: 'job_alert_click', status: 'accepted' });
+  });
+
   it('updatePreference POSTs + deletePreference DELETEs /job-alerts/preferences', async () => {
     const spy = stubFetch({ object: 'job_alert_manage_result', success: true });
     await board().jobAlerts.updatePreference({
