@@ -560,6 +560,20 @@ describe('board.me', () => {
     expect(spy.mock.calls[1]![1]!.method).toBe('PUT');
   });
 
+  it('profile verification methods use the owner routes', async () => {
+    const spy = stubFetch(jsonResponse({ object: 'list', data: [] }));
+    const board = await makeAuthedBoard();
+    await board.me.profile.listVerifications();
+    await board.me.profile.submitVerification({ itemKey: 'experience:e1' });
+    await board.me.companies.listVerifications('acme/labs');
+    expect(spy.mock.calls[0]![0]).toBe(`${BASE}/me/profile/verifications`);
+    expect(spy.mock.calls[1]![1]!.method).toBe('POST');
+    expect(spy.mock.calls[1]![1]!.body).toBe('{"itemKey":"experience:e1"}');
+    expect(spy.mock.calls[2]![0]).toBe(
+      `${BASE}/me/companies/acme%2Flabs/verifications`,
+    );
+  });
+
   it('companies.list GETs /me/companies', async () => {
     const spy = stubFetch(jsonResponse({ object: 'list', data: [] }));
     const board = await makeAuthedBoard();

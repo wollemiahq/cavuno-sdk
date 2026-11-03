@@ -167,6 +167,17 @@ export type ReplaceProfileObjectReferencesBody =
   Schemas['ReplaceProfileObjectReferenceSelectionsBody'];
 export type ProfileObjectReferences = Schemas['ProfileObjectReferencesResult'];
 
+/**
+ * One profile item's verification as its owner sees it: status and reason,
+ * never the board team's note.
+ */
+export type ItemVerification = Schemas['ItemVerification'];
+/** Body for asking the board team to verify one of my items. */
+export type SubmitMyItemVerificationBody =
+  Schemas['SubmitMyItemVerificationBody'];
+/** The "Verified" badge carried by a verified item on a public profile. */
+export type ItemVerificationBadge = Schemas['ItemVerificationBadge'];
+
 /** Optional-field merge-patch body for `board.me.profile.update`. */
 export type UpdateCandidateProfileBody = Schemas['UpdateCandidateProfileBody'];
 
