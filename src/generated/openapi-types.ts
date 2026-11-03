@@ -323,6 +323,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/auth/verify-item-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm an email-domain check with its link
+         * @description Consume the token from the emailed link (24-hour TTL) and verify the item. No session: the single-use token is the authorization. Confirming revokes the emailed code. Every rejected token (unknown, expired, used, revoked or from another board) is the opaque 401 `board_auth_invalid_token`; start the check again to recover.
+         */
+        post: operations["confirmItemEmailDomainVerificationLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/boards/{identifier}/auth/verify-work-email": {
         parameters: {
             query?: never;
@@ -2526,6 +2546,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/me/companies/{slug}/verifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the item verifications on my company profile
+         * @description Every item with a verification status and its reason. Items without one are `unverified`. The staff note is never included.
+         */
+        get: operations["listMyCompanyItemVerifications"];
+        put?: never;
+        /**
+         * Ask the board to verify an item on my company profile
+         * @description Ask the board team to check one item. Moves it to `pending`; allowed while it is unverified, changed, lapsed, rejected, needs more information or unable to verify. An item verified by email domain can also be confirmed with `…/verifications/email-domain`.
+         */
+        post: operations["submitMyCompanyItemVerification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/boards/{identifier}/me/companies/{slug}/work-email/confirm": {
         parameters: {
             query?: never;
@@ -3242,6 +3286,70 @@ export interface paths {
          */
         put: operations["updateBoardMeProfileSkills"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/me/profile/verifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the item verifications on my profile
+         * @description Every item with a verification status and its reason. Items without one are `unverified`. The staff note is never included.
+         */
+        get: operations["listMyItemVerifications"];
+        put?: never;
+        /**
+         * Ask the board to verify an item on my profile
+         * @description Ask the board team to check one item. Moves it to `pending`; allowed while it is unverified, changed, lapsed, rejected, needs more information or unable to verify. An item verified by email domain can also be confirmed with `…/verifications/email-domain`.
+         */
+        post: operations["submitMyItemVerification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/me/profile/verifications/email-domain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start an email-domain check of a profile item
+         * @description Emails a 6-digit code and a link to an address at the item's domain: the company website for a current job, the institution website for education, or the domain the board set on a collection field verified by email domain. A subdomain passes (`student.ox.ac.uk` for `ox.ac.uk`); personal email providers do not. Confirm with `POST …/email-domain/confirm` or the link. Within a minute of the last email for the same item nothing new is sent (`sent: false`). A new check replaces the item's earlier code and link. An item can start 5 checks a day and a worker 20.
+         */
+        post: operations["submitMyItemEmailDomainVerification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/me/profile/verifications/email-domain/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm an email-domain check with its code
+         * @description Verifies the item with the code from the email and revokes the emailed link. Five wrong codes end the check, link included.
+         */
+        post: operations["confirmMyItemEmailDomainVerification"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5300,6 +5408,16 @@ export interface components {
         ConfirmEmailChangeBody: {
             token: string;
         };
+        ConfirmItemEmailDomainVerificationBody: {
+            /** @description The item: `experience:{id}`, `education:{id}`, `ref:{fieldKey}:{recordId}` or `ref:{fieldKey}:{recordId}:{entryKey}`. */
+            itemKey: string;
+            /** @description The 6-digit code from the email. */
+            code: string;
+        };
+        ConfirmItemEmailDomainVerificationLinkBody: {
+            /** @description The `token` query parameter of the emailed `/auth/verify-item-email` link. */
+            token: string;
+        };
         ConfirmWorkEmailBody: {
             token: string;
         };
@@ -5385,6 +5503,8 @@ export interface components {
             instagramUrl?: string | null;
             /** @description Canonical market slugs assigned to the company. Pass an empty array to clear all markets. */
             markets?: string[];
+            /** @description Makes this company a subsidiary of another company in the same account: the parent company's `id`. Groups are one level deep, so the parent cannot itself be a subsidiary, and a company with subsidiaries cannot get a parent. A subsidiary may use its parent's website domain (or a path on it); it is then not filled in automatically from the website, and shows the parent's logo until it has its own. Changing it changes the public company page, so confirm with the operator first. `null` or `""` means not set. */
+            parentCompanyId?: string | null;
             /** @description The company's display name. */
             name: string;
             /** @description URL-friendly slug for the company. Auto-generated from `name` when omitted. */
@@ -6154,6 +6274,115 @@ export interface components {
             handle: string;
             available: boolean;
         };
+        ItemEmailDomainVerification: {
+            /** @enum {string} */
+            object: "item_email_domain_verification";
+            itemKey: string;
+            /** @description The domain of the address the code and link were sent to. */
+            emailDomain: string;
+            /** @description False when an email for this item went out less than a minute ago; nothing new was sent. */
+            sent: boolean;
+            /** @description Seconds until another email can be sent for this item. */
+            retryAfterSeconds: number;
+            /** Format: date-time */
+            codeExpiresAt: string;
+            /** Format: date-time */
+            linkExpiresAt: string;
+        };
+        ItemVerification: {
+            id: string;
+            /** @enum {string} */
+            object: "item_verification";
+            itemKey: string;
+            /**
+             * @description `changed`: a checked field was edited after verification. `lapsed`: past its expiry or re-check date (see `lapseReason`).
+             * @enum {string}
+             */
+            status: "unverified" | "pending" | "needs_info" | "verified" | "rejected" | "unable_to_verify" | "changed" | "lapsed" | "revoked";
+            /** @enum {string|null} */
+            lapseReason: "expired" | "recheck_due" | null;
+            /**
+             * @description Why the last team decision went the way it did.
+             * @enum {string|null}
+             */
+            reasonCode: "details_mismatch" | "not_found_in_register" | "document_unreadable" | "document_expired" | "suspected_fraud" | "issuer_unreachable" | "other" | null;
+            /** Format: date-time */
+            verifiedAt: string | null;
+            /**
+             * Format: date-time
+             * @description When a verified item lapses. `null` when it never does.
+             */
+            expiresAt: string | null;
+            hasProof: boolean;
+            /** @description The email domain the worker confirmed, while verified by email domain; otherwise `null`. Show it with the item: the item's name is what the worker typed. */
+            verifiedDomain: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        /** @description Present on a public profile read when this entry is verified. */
+        ItemVerificationBadge: {
+            /**
+             * @description The item was verified by the board.
+             * @enum {string}
+             */
+            status: "verified";
+            /** @description The email domain the worker confirmed, when it was verified by email domain; otherwise `null`. Show it with the badge: the item's name is what the worker typed. */
+            verifiedDomain: string | null;
+        };
+        /** @description Item verification (each filled-in entry, or the selection when the field has no repeatable entries, is verified on its own). Absent means off. */
+        ItemVerificationConfig: {
+            /** @description Keys of this field's `valueDefinitions` or `entryDefinitions` the verification covers. Editing any of them, or changing the selected entry, removes verification. */
+            checkedFieldKeys: string[];
+            /** @description How long a verification holds. */
+            validity: {
+                /**
+                 * @description Never lapses.
+                 * @enum {string}
+                 */
+                kind: "never";
+            } | {
+                /**
+                 * @description Lapses after the date in one of the item’s fields.
+                 * @enum {string}
+                 */
+                kind: "expiry_field";
+                /** @description A `date` field of this definition; the verification holds through that day (UTC). */
+                fieldKey: string;
+            } | {
+                /**
+                 * @description Lapses a number of months after it was verified.
+                 * @enum {string}
+                 */
+                kind: "recheck";
+                /** @description Months between checks, 1 to 120. */
+                months: number;
+            };
+            /**
+             * @description `team`: the board team verifies in the dashboard or through the Operator API. `email_domain`: the worker confirms an address at the item’s domain.
+             * @enum {string}
+             */
+            verifiedBy: "team" | "email_domain";
+            /** @description Required when `verifiedBy` is `email_domain`; absent otherwise. */
+            domainSource?: {
+                /**
+                 * @description Take the domain from one of the item’s fields.
+                 * @enum {string}
+                 */
+                from: "field";
+                /** @description A `url` or `short_text` field of this definition holding the website. */
+                fieldKey: string;
+            } | {
+                /**
+                 * @description Accept any of a fixed list of domains.
+                 * @enum {string}
+                 */
+                from: "list";
+                /** @description Bare domains, for example `example.org`. Subdomains also pass. */
+                domains: string[];
+            };
+            /** @description Unverified items show "Not verified" to employers and staff. Nothing is blocked. */
+            required: boolean;
+        };
         JobCollectionChoiceList: {
             data: {
                 id: string;
@@ -6909,6 +7138,7 @@ export interface components {
             descriptionFieldKey?: string;
             valueDefinitions?: components["schemas"]["ScalarProfileCustomFieldDefinition"][];
             entryDefinitions?: components["schemas"]["ScalarProfileCustomFieldDefinition"][];
+            verification?: components["schemas"]["ItemVerificationConfig"];
         };
         ProfileObjectReferenceSelectionWrite: {
             fieldKey: string;
@@ -8089,7 +8319,9 @@ export interface components {
                 values: {
                     [key: string]: string | number | boolean | string[];
                 };
+                verification?: components["schemas"]["ItemVerificationBadge"];
             }[];
+            verification?: components["schemas"]["ItemVerificationBadge"] & unknown;
         };
         Resume: {
             /** @enum {string} */
@@ -8396,6 +8628,16 @@ export interface components {
             /** @description Optional job id. When set, this send is from that job pipeline and may auto-advance Shortlisted to Contacted. */
             job?: string;
         };
+        SubmitItemEmailDomainVerificationBody: {
+            /** @description The item: `experience:{id}`, `education:{id}`, `ref:{fieldKey}:{recordId}` or `ref:{fieldKey}:{recordId}:{entryKey}`. */
+            itemKey: string;
+            /** @description An address at the item's domain or a subdomain of it, for example a work email at the company's website domain. Personal email providers are refused. Only its domain is stored. */
+            email: string;
+        };
+        SubmitMyItemVerificationBody: {
+            /** @description The item: `experience:{id}`, `education:{id}`, `ref:{fieldKey}:{recordId}` or `ref:{fieldKey}:{recordId}:{entryKey}`. */
+            itemKey: string;
+        };
         SuggestResult: {
             /** @enum {string} */
             object: "suggest_result";
@@ -8594,6 +8836,7 @@ export interface components {
                 description: string | null;
                 /** @description Skills the candidate applied in this role. */
                 experienceSkills: string[];
+                verification?: components["schemas"]["ItemVerificationBadge"] & unknown;
             }[];
             education: {
                 institutionName: string;
@@ -8607,6 +8850,7 @@ export interface components {
                 startDate: string | null;
                 endDate: string | null;
                 description: string | null;
+                verification?: components["schemas"]["ItemVerificationBadge"] & unknown;
             }[];
             skills: {
                 name: string;
@@ -9857,6 +10101,78 @@ export interface operations {
                 };
             };
             /** @description Rate limited (`rate_limited`). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    confirmItemEmailDomainVerificationLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmItemEmailDomainVerificationLinkBody"];
+            };
+        };
+        responses: {
+            /** @description The item, now verified. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemVerification"];
+                };
+            };
+            /** @description Invalid or expired token (`board_auth_invalid_token`). */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The item is already verified or cannot be verified now (`item_verification_conflict`), or its checked fields changed after the email was sent (`item_verification_changed`): start again. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The item cannot be verified by email any more. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited. */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -17730,6 +18046,164 @@ export interface operations {
             };
         };
     };
+    listMyCompanyItemVerifications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        object: "list";
+                        url: string;
+                        hasMore: boolean;
+                        nextCursor: string | null;
+                        data: components["schemas"]["ItemVerification"][];
+                    };
+                };
+            };
+            /** @description Missing/invalid (`board_auth_invalid_token`) or expired (`board_auth_token_expired`) access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Token was issued for a different board, or the caller is not an approved member of the company (`employer_not_member`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board or company not found (`employer_company_not_found`), or the item is not on the profile (`item_verification_not_found`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited (`rate_limited`). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    submitMyCompanyItemVerification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitMyItemVerificationBody"];
+            };
+        };
+        responses: {
+            /** @description The item, now pending. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemVerification"];
+                };
+            };
+            /** @description Invalid body or item key (`validation_bad_request`). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing/invalid (`board_auth_invalid_token`) or expired (`board_auth_token_expired`) access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Token was issued for a different board, or the caller is not an approved member of the company (`employer_not_member`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board or company not found (`employer_company_not_found`), or the item is not on the profile (`item_verification_not_found`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The item is already verified, already waiting, or revoked (`item_verification_conflict`). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Verification is not switched on for the item (`item_verification_disabled`). */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited (`rate_limited`). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     confirmBoardMeCompanyWorkEmail: {
         parameters: {
             query?: never;
@@ -20823,6 +21297,342 @@ export interface operations {
                 };
             };
             /** @description Rate limited. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listMyItemVerifications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        object: "list";
+                        url: string;
+                        hasMore: boolean;
+                        nextCursor: string | null;
+                        data: components["schemas"]["ItemVerification"][];
+                    };
+                };
+            };
+            /** @description Missing/invalid (`board_auth_invalid_token`) or expired (`board_auth_token_expired`) access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Token was issued for a different board, or the caller has no candidate profile (`candidate_profile_required`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board not found, or the item is not on this profile (`item_verification_not_found`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited (`rate_limited`). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    submitMyItemVerification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitMyItemVerificationBody"];
+            };
+        };
+        responses: {
+            /** @description The item, now pending. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemVerification"];
+                };
+            };
+            /** @description Invalid body or item key (`validation_bad_request`). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing/invalid (`board_auth_invalid_token`) or expired (`board_auth_token_expired`) access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Token was issued for a different board, or the caller has no candidate profile (`candidate_profile_required`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board not found, or the item is not on this profile (`item_verification_not_found`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The item is already verified, already waiting, or revoked (`item_verification_conflict`). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Verification is not switched on for the item (`item_verification_disabled`). */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited (`rate_limited`). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    submitMyItemEmailDomainVerification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitItemEmailDomainVerificationBody"];
+            };
+        };
+        responses: {
+            /** @description The check, with the domain it was sent to. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemEmailDomainVerification"];
+                };
+            };
+            /** @description Invalid body or email (`validation_bad_request`). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing/invalid (`board_auth_invalid_token`) or expired (`board_auth_token_expired`) access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Token was issued for a different board, or the caller has no candidate profile (`candidate_profile_required`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board not found, or the item is not on this profile (`item_verification_not_found`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The item is already verified or cannot be verified now (`item_verification_conflict`). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Verification is off for the item (`item_verification_disabled`), the board team verifies it (`item_verification_method_mismatch`), it has no usable domain (`item_verification_no_domain`, e.g. a past job or no website), or the address is not at its domain (`item_verification_email_mismatch`). */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited (`rate_limited`), within a minute of a check that ended (`item_verification_rate_limited`), or over the daily checks for the item or the worker (`item_verification_rate_limited`). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    confirmMyItemEmailDomainVerification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmItemEmailDomainVerificationBody"];
+            };
+        };
+        responses: {
+            /** @description The item, now verified. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemVerification"];
+                };
+            };
+            /** @description Invalid body (`validation_bad_request`). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing/invalid (`board_auth_invalid_token`) or expired (`board_auth_token_expired`) access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Token was issued for a different board, or the caller has no candidate profile (`candidate_profile_required`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board not found, or the item is not on this profile (`item_verification_not_found`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The item is already verified or cannot be verified now (`item_verification_conflict`), or its checked fields changed after the email was sent (`item_verification_changed`): start again. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Wrong, expired or used code (`item_verification_invalid_code`), or the item cannot be verified by email any more. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited (`rate_limited`). */
             429: {
                 headers: {
                     [name: string]: unknown;
