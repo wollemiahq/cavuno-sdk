@@ -3,6 +3,19 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.60.0 — 2026-11-03
+
+- Profile item verification. `board.me.profile.listVerifications` and
+  `submitVerification` list the verification status of the items on my
+  profile and ask for one to be checked; `board.me.companies` has the same
+  pair for a company I manage.
+- Public talent and company profiles carry an optional `verification` badge
+  on items the board has verified.
+- New operator operations for item verification (list, read, the review
+  queue and decisions), company routing rules (create, read, update,
+  delete, reorder and preview), `deleteCustomObjectRecord` and
+  `startJobFormCustomFieldAiFill`.
+
 ## 4.59.1 — 2026-11-02
 
 - The board context's `contact` carries `tiktokUrl` and `youtubeUrl` next to

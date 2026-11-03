@@ -68,8 +68,10 @@ import type {
   MoveApplicantStageBody,
   NotificationPreference,
   ProfileFieldValues,
+  ItemVerification,
   ProfileObjectReferences,
   ReplaceProfileObjectReferencesBody,
+  SubmitMyItemVerificationBody,
   ReadReceipt,
   ReorderPipelineStagesBody,
   ReplyBody,
@@ -329,6 +331,40 @@ export function meNamespace(client: BoardClient) {
       },
 
       /**
+       * List the verification status of the items on my profile (experience,
+       * education and collection entries). Items not listed are unverified.
+       *
+       * @example
+       * const { data } = await board.me.profile.listVerifications();
+       */
+      listVerifications(options?: FetchOptions) {
+        return client.fetch<ListEnvelope<ItemVerification>>(
+          '/me/profile/verifications',
+          options,
+        );
+      },
+
+      /**
+       * Ask the board team to verify one item on my profile. It becomes
+       * `pending` until they decide.
+       *
+       * @example
+       * await board.me.profile.submitVerification({
+       *   itemKey: 'experience:abc123',
+       * });
+       */
+      submitVerification(
+        body: SubmitMyItemVerificationBody,
+        options?: FetchOptions,
+      ) {
+        return client.fetch<ItemVerification>('/me/profile/verifications', {
+          ...options,
+          method: 'POST',
+          body,
+        });
+      },
+
+      /**
        * Check whether a handle is available for me on this board (my own
        * current handle counts as available). Advisory — `update` re-checks.
        *
@@ -525,6 +561,26 @@ export function meNamespace(client: BoardClient) {
         return client.fetch<ProfileObjectReferences>(
           `/me/companies/${encodeURIComponent(slug)}/object-references`,
           { ...options, method: 'PUT', body },
+        );
+      },
+
+      /** List the verification status of the items on one of my companies. */
+      listVerifications(slug: string, options?: FetchOptions) {
+        return client.fetch<ListEnvelope<ItemVerification>>(
+          `/me/companies/${encodeURIComponent(slug)}/verifications`,
+          options,
+        );
+      },
+
+      /** Ask the board team to verify one item on one of my companies. */
+      submitVerification(
+        slug: string,
+        body: SubmitMyItemVerificationBody,
+        options?: FetchOptions,
+      ) {
+        return client.fetch<ItemVerification>(
+          `/me/companies/${encodeURIComponent(slug)}/verifications`,
+          { ...options, method: 'POST', body },
         );
       },
       /**
