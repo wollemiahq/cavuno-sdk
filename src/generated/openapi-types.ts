@@ -884,6 +884,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/job-alerts/clicks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record a click on a job alert digest link
+         * @description Record that a visitor opened a job from a job alert digest email. Call it once from the job page when its URL carries the digest's `ja_alert`, `ja_email`, `ja_pos` and `ja_mv` params, on a real page load (not a prefetch or `HEAD` request). Clicks count toward the board's job alert engagement. Always 202 for a well-formed body; the click is recorded after the response.
+         */
+        post: operations["createBoardJobAlertsClick"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/boards/{identifier}/job-alerts/confirm": {
         parameters: {
             query?: never;
@@ -999,7 +1019,7 @@ export interface paths {
         put?: never;
         /**
          * Unsubscribe from job alerts via a manage link
-         * @description Deactivate a subscription via the HMAC manage token.
+         * @description Deactivate a subscription via the HMAC manage token. Pass the link's `ja_alert` and `ja_email` params as `alertId` and `emailId` to record which digest the subscriber unsubscribed from; that record is made only when the alert is the subscriber's own and they were still subscribed.
          */
         post: operations["unsubscribeBoardJobAlerts"];
         delete?: never;
@@ -7599,6 +7619,15 @@ export interface components {
             /** @description Configured collection references resolved to current live names, logos, and public record details. Archived collections and records are omitted. */
             resolvedCollectionFields: components["schemas"]["ResolvedJobCollectionField"][];
         };
+        PublicJobAlertClickReceipt: {
+            /** @enum {string} */
+            object: "job_alert_click";
+            /**
+             * @description Always `accepted`. The click is recorded after the response, and only when the alert and the job belong to this board and the visitor is not a crawler, so the response does not reveal either.
+             * @enum {string}
+             */
+            status: "accepted";
+        };
         PublicJobAlertConfirmation: {
             /** @enum {string} */
             object: "job_alert_confirmation";
@@ -11713,6 +11742,55 @@ export interface operations {
             };
         };
     };
+    createBoardJobAlertsClick: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @description The `ja_alert` param of the job link: the alert whose digest was clicked. */
+                    alertId: string;
+                    /** @description The `ja_email` param of the job link: the digest email, 16 lowercase hex characters. */
+                    emailId: string;
+                    /** @description The `id` of the job the link opened (the job page the visitor landed on). */
+                    jobId: string;
+                    /** @description The `ja_pos` param of the job link: the job's 1-based position in the digest. */
+                    position: number;
+                    /** @description The `ja_mv` param of the job link: the matcher version that chose the digest's jobs, a short lowercase kebab-case name. */
+                    matcherVersion: string;
+                    /** @description The visitor's `User-Agent` request header. Send it when you call from your server, so crawlers and link scanners are left out. When omitted, this request's own `User-Agent` is used. A click with no user agent, or a crawler's, is not recorded. */
+                    userAgent?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Click received. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicJobAlertClickReceipt"];
+                };
+            };
+            /** @description The body is not a digest link's params (`validation_bad_request`). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     confirmBoardJobAlerts: {
         parameters: {
             query?: never;
@@ -11974,6 +12052,10 @@ export interface operations {
                     subscriptionId: string;
                     token: string;
                     preferenceId?: string;
+                    /** @description The `ja_alert` value of the manage or unsubscribe link the subscriber followed: the alert whose digest they unsubscribed from. Send it together with `emailId`. Optional; an unknown or malformed value is ignored and the unsubscribe still succeeds. */
+                    alertId?: string | null;
+                    /** @description The `ja_email` value of the same link: the digest email (16 hex characters). Optional; an unknown or malformed value is ignored and the unsubscribe still succeeds. */
+                    emailId?: string | null;
                 };
             };
         };

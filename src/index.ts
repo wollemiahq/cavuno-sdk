@@ -177,6 +177,15 @@ export {
   resolveApplyDecision,
 } from './apply-derive';
 export type { ApplyAction, ApplyDecisionState } from './apply-derive';
+// Job alert digest link params — pure, read from the landing URL.
+export {
+  parseJobAlertClickParams,
+  parseJobAlertUnsubscribeParams,
+} from './job-alert-links';
+export type {
+  JobAlertClickParams,
+  JobAlertUnsubscribeParams,
+} from './job-alert-links';
 // Sign-in completion helpers (OAuth + SSO) — pure, framework-neutral.
 export {
   SIGN_IN_REDIRECT_ERROR_CODES,
@@ -509,6 +518,8 @@ export type {
 } from './types/me';
 export type {
   JobAlertAnchorJob,
+  JobAlertClickInput,
+  JobAlertClickReceipt,
   JobAlertConfirmation,
   JobAlertDeletePreferenceInput,
   JobAlertFiltersInput,
@@ -524,6 +535,7 @@ export type {
   JobAlertStoredFilters,
   JobAlertSubscribeInput,
   JobAlertSubscription,
+  JobAlertUnsubscribeInput,
   JobAlertUpdatePreferenceInput,
 } from './types/job-alerts';
 export type {
