@@ -21,7 +21,12 @@ import type {
   SsoLinkProofBody,
   VerifyEmailBody,
 } from '../types/auth';
-import type { CompanyMembership, ConfirmWorkEmailBody } from '../types/me';
+import type {
+  CompanyMembership,
+  ConfirmItemEmailDomainVerificationLinkBody,
+  ConfirmWorkEmailBody,
+  ItemVerification,
+} from '../types/me';
 
 export function authNamespace(client: BoardClient, board = '') {
   const ssoProof = () => ssoLinkProofBindingStore(board);
@@ -157,6 +162,26 @@ export function authNamespace(client: BoardClient, board = '') {
      */
     verifyWorkEmail(body: ConfirmWorkEmailBody, options?: FetchOptions) {
       return client.fetch<CompanyMembership>('/auth/verify-work-email', {
+        ...options,
+        method: 'POST',
+        body,
+      });
+    },
+
+    /**
+     * Confirm a profile item's email-domain check with the token from the
+     * emailed link. No session required: the single-use token is the
+     * authorization. Returns the item, now verified. Any rejected token is a
+     * 401 `BoardApiError`; start the check again to recover.
+     *
+     * @example
+     * const item = await board.auth.verifyItemEmail({ token });
+     */
+    verifyItemEmail(
+      body: ConfirmItemEmailDomainVerificationLinkBody,
+      options?: FetchOptions,
+    ) {
+      return client.fetch<ItemVerification>('/auth/verify-item-email', {
         ...options,
         method: 'POST',
         body,

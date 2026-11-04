@@ -158,6 +158,7 @@ describe('board.context()', () => {
       },
       talentAccessModel: null,
       posting: { requiresMembership: false },
+      verification: { experience: false, education: false },
       signIn: {
         candidate: {
           ssoRequired: false,

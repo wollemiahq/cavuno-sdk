@@ -108,6 +108,36 @@ await board.jobAlerts.updatePreference({
 });
 ```
 
+## Anonymous lane: digest engagement
+
+Digest job links open your job page with `ja_alert`, `ja_email`, `ja_pos` and `ja_mv`. Report the click from the job page's server code, once per full `GET` (not on prefetches or `HEAD`), and forward the visitor's user agent so crawlers and link scanners are left out. `recordClick` always resolves with `status: 'accepted'`; never block the page on it.
+
+Digest manage and unsubscribe links carry `ja_alert` and `ja_email`. Spread them into `unsubscribe` to attribute the unsubscribe to that email; a link without them returns `null`, which spreads to nothing.
+
+```ts snippet
+import {
+  parseJobAlertClickParams,
+  parseJobAlertUnsubscribeParams,
+} from '@cavuno/board';
+
+const click = parseJobAlertClickParams(request.url);
+if (click) {
+  await board.jobAlerts
+    .recordClick({
+      ...click,
+      jobId: job.id,
+      userAgent: request.headers.get('user-agent') ?? undefined,
+    })
+    .catch(() => undefined);
+}
+
+await board.jobAlerts.unsubscribe({
+  subscriptionId,
+  token,
+  ...parseJobAlertUnsubscribeParams(request.url),
+});
+```
+
 ## Signed-in lane
 
 Authenticated alerts use `placeIds`, while anonymous alerts use `placeSlugs`. Create and update accept the same `AlertBody`; update is a full replacement.
@@ -150,6 +180,7 @@ Removal is the signed-in lane's stop action; there is no pause state.
 - Anonymous subscribe sends `consent: true` and reveals no subscription existence.
 - The confirm UI handles all four statuses, including resend after expiry.
 - Manage reads use `subscription`; manage writes use `subscriptionId`.
+- Job pages opened from a digest call `recordClick` once, server-side, with the visitor's user agent; the unsubscribe passes the link's `ja_*` attribution.
 - Editing one field preserves every other field in both full-replace APIs.
 - UI promises only weekly delivery filtered by job function, place, and remote option.
 
