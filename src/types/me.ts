@@ -175,6 +175,18 @@ export type ItemVerification = Schemas['ItemVerification'];
 /** Body for asking the board team to verify one of my items. */
 export type SubmitMyItemVerificationBody =
   Schemas['SubmitMyItemVerificationBody'];
+/** Body for starting an email-domain check of one of my items. */
+export type SubmitItemEmailDomainVerificationBody =
+  Schemas['SubmitItemEmailDomainVerificationBody'];
+/** A started email-domain check: where the code and link went, and when they expire. */
+export type ItemEmailDomainVerification =
+  Schemas['ItemEmailDomainVerification'];
+/** Body for confirming an email-domain check with its emailed code. */
+export type ConfirmItemEmailDomainVerificationBody =
+  Schemas['ConfirmItemEmailDomainVerificationBody'];
+/** Body for confirming an email-domain check with the token from its emailed link. */
+export type ConfirmItemEmailDomainVerificationLinkBody =
+  Schemas['ConfirmItemEmailDomainVerificationLinkBody'];
 /** The "Verified" badge carried by a verified item on a public profile. */
 export type ItemVerificationBadge = Schemas['ItemVerificationBadge'];
 

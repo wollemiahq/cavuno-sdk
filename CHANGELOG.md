@@ -3,6 +3,23 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.61.0 — 2026-11-04
+
+- `board.context()` carries `verification.experience` and
+  `verification.education`: whether workers can get those profile items
+  verified on the board.
+- Email-domain verification of profile items:
+  `board.me.profile.submitEmailDomainVerification` emails a code and a link
+  to an address at the item's domain, and
+  `board.me.profile.confirmEmailDomainVerification` (code) or
+  `board.auth.verifyItemEmail` (link token) confirms it. New exported types:
+  `ItemEmailDomainVerification`, `SubmitItemEmailDomainVerificationBody`,
+  `ConfirmItemEmailDomainVerificationBody` and
+  `ConfirmItemEmailDomainVerificationLinkBody`.
+- `board.me.profile.listVerifications` and
+  `board.me.companies.listVerifications` no longer list items whose type the
+  board has switched verification off for.
+
 ## 4.60.0 — 2026-11-03
 
 - Profile item verification. `board.me.profile.listVerifications` and
