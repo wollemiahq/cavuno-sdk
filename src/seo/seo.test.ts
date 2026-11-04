@@ -94,6 +94,7 @@ const BOARD = {
   forms: { job: [], company: [], talent: [] },
   talentAccessModel: null,
   posting: { requiresMembership: false },
+  verification: { experience: false, education: false },
   signIn: {
     candidate: {
       ssoRequired: false,

@@ -1,5 +1,7 @@
 import type { BoardClient, FetchOptions } from '../client';
 import type {
+  JobAlertClickInput,
+  JobAlertClickReceipt,
   JobAlertConfirmation,
   JobAlertDeletePreferenceInput,
   JobAlertManageQuery,
@@ -9,6 +11,7 @@ import type {
   JobAlertResendResult,
   JobAlertSubscribeInput,
   JobAlertSubscription,
+  JobAlertUnsubscribeInput,
   JobAlertUpdatePreferenceInput,
 } from '../types/job-alerts';
 
@@ -18,7 +21,8 @@ import type {
  * `subscribe` sends a confirmation email; the recipient completes it via
  * `confirm({ token })` (token from the email link). The digest emails carry an
  * HMAC manage token used by `manage`/`unsubscribe`/`resubscribe`/preference
- * edits. Available only when `board.context().features.jobAlerts` is true.
+ * edits. Their job links carry digest params that `recordClick` reports.
+ * Available only when `board.context().features.jobAlerts` is true.
  */
 export function jobAlertsNamespace(client: BoardClient) {
   return {
@@ -56,9 +60,27 @@ export function jobAlertsNamespace(client: BoardClient) {
       });
     },
 
-    /** Deactivate a subscription via the HMAC manage token. */
-    unsubscribe(input: JobAlertManageTokenInput, options?: FetchOptions) {
+    /**
+     * Deactivate a subscription via the HMAC manage token. Spread
+     * `parseJobAlertUnsubscribeParams(url)` into the input to record which
+     * digest the subscriber unsubscribed from.
+     */
+    unsubscribe(input: JobAlertUnsubscribeInput, options?: FetchOptions) {
       return client.fetch<JobAlertManageResult>('/job-alerts/unsubscribe', {
+        ...options,
+        method: 'POST',
+        body: input,
+      });
+    },
+
+    /**
+     * Record a visitor opening a job from a digest email. Call it once on a
+     * job page load whose URL carries the digest params
+     * (`parseJobAlertClickParams(url)` returns them). Resolves with a uniform
+     * `accepted` receipt; the click is recorded after the response.
+     */
+    recordClick(input: JobAlertClickInput, options?: FetchOptions) {
+      return client.fetch<JobAlertClickReceipt>('/job-alerts/clicks', {
         ...options,
         method: 'POST',
         body: input,

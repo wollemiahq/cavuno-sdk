@@ -574,6 +574,32 @@ describe('board.me', () => {
     );
   });
 
+  it('profile email-domain verification methods POST to the owner routes', async () => {
+    const spy = stubFetch(jsonResponse({ object: 'item_verification' }));
+    const board = await makeAuthedBoard();
+    await board.me.profile.submitEmailDomainVerification({
+      itemKey: 'experience:e1',
+      email: 'me@acme.com',
+    });
+    await board.me.profile.confirmEmailDomainVerification({
+      itemKey: 'experience:e1',
+      code: '123456',
+    });
+    expect(spy.mock.calls[0]![0]).toBe(
+      `${BASE}/me/profile/verifications/email-domain`,
+    );
+    expect(spy.mock.calls[0]![1]!.method).toBe('POST');
+    expect(spy.mock.calls[0]![1]!.body).toBe(
+      '{"itemKey":"experience:e1","email":"me@acme.com"}',
+    );
+    expect(spy.mock.calls[1]![0]).toBe(
+      `${BASE}/me/profile/verifications/email-domain/confirm`,
+    );
+    expect(spy.mock.calls[1]![1]!.body).toBe(
+      '{"itemKey":"experience:e1","code":"123456"}',
+    );
+  });
+
   it('companies.list GETs /me/companies', async () => {
     const spy = stubFetch(jsonResponse({ object: 'list', data: [] }));
     const board = await makeAuthedBoard();
