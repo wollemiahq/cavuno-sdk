@@ -75,6 +75,41 @@ export type JobAlertManageTokenInput = {
   preferenceId?: string;
 };
 
+/**
+ * Body for `jobAlerts.unsubscribe`: the manage token plus, optionally, the
+ * digest the link came from (its `ja_alert` / `ja_email` params, see
+ * `parseJobAlertUnsubscribeParams`), so the board's job alert engagement
+ * shows which email the subscriber unsubscribed from. A malformed or
+ * unknown value is ignored and the unsubscribe still succeeds.
+ */
+export type JobAlertUnsubscribeInput = JobAlertManageTokenInput & {
+  alertId?: string;
+  emailId?: string;
+};
+
+/**
+ * Body for `jobAlerts.recordClick`: the digest link's params (see
+ * `parseJobAlertClickParams`), the job the visitor landed on, and the
+ * visitor's `User-Agent` when you call from your server.
+ */
+export type JobAlertClickInput = {
+  alertId: string;
+  emailId: string;
+  /** The landed job's `id`. */
+  jobId: string;
+  /** The job's 1-based position in the digest. */
+  position: number;
+  matcherVersion: string;
+  /**
+   * The visitor's `User-Agent` header. Pass it from a server call so
+   * crawlers and link scanners are left out; without it the request's own
+   * user agent is used, and a click with none is not recorded.
+   */
+  userAgent?: string;
+};
+
+export type JobAlertClickReceipt = Schemas['PublicJobAlertClickReceipt'];
+
 export type JobAlertUpdatePreferenceInput = {
   subscriptionId: string;
   preferenceId: string;
