@@ -72,6 +72,9 @@ import type {
   ProfileObjectReferences,
   ReplaceProfileObjectReferencesBody,
   SubmitMyItemVerificationBody,
+  ItemEmailDomainVerification,
+  SubmitItemEmailDomainVerificationBody,
+  ConfirmItemEmailDomainVerificationBody,
   ReadReceipt,
   ReorderPipelineStagesBody,
   ReplyBody,
@@ -362,6 +365,50 @@ export function meNamespace(client: BoardClient) {
           method: 'POST',
           body,
         });
+      },
+
+      /**
+       * Start an email-domain check of one item on my profile: a 6-digit code
+       * and a link go to an address at the item's domain (for example a work
+       * email at a current employer's website domain). Confirm with
+       * `confirmEmailDomainVerification` or `board.auth.verifyItemEmail`.
+       * `sent` is false when an email for the item went out under a minute
+       * ago and nothing new was sent.
+       *
+       * @example
+       * const check = await board.me.profile.submitEmailDomainVerification({
+       *   itemKey: 'experience:abc123',
+       *   email: 'me@acme.com',
+       * });
+       */
+      submitEmailDomainVerification(
+        body: SubmitItemEmailDomainVerificationBody,
+        options?: FetchOptions,
+      ) {
+        return client.fetch<ItemEmailDomainVerification>(
+          '/me/profile/verifications/email-domain',
+          { ...options, method: 'POST', body },
+        );
+      },
+
+      /**
+       * Confirm an email-domain check with the 6-digit code from the email.
+       * Returns the item, now verified; the emailed link stops working.
+       *
+       * @example
+       * await board.me.profile.confirmEmailDomainVerification({
+       *   itemKey: 'experience:abc123',
+       *   code: '123456',
+       * });
+       */
+      confirmEmailDomainVerification(
+        body: ConfirmItemEmailDomainVerificationBody,
+        options?: FetchOptions,
+      ) {
+        return client.fetch<ItemVerification>(
+          '/me/profile/verifications/email-domain/confirm',
+          { ...options, method: 'POST', body },
+        );
       },
 
       /**

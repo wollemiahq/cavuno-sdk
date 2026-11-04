@@ -183,6 +183,24 @@ describe('token-action endpoints', () => {
     expect(spy.mock.calls[0]![1]!.method).toBe('POST');
   });
 
+  it('verifyItemEmail POSTs the link token to /auth/verify-item-email', async () => {
+    const spy = stubFetch(
+      () =>
+        new Response(
+          JSON.stringify({ id: 'iv_1', object: 'item_verification' }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        ),
+    );
+    const { board } = makeBoard();
+
+    await expect(
+      board.auth.verifyItemEmail({ token: 't4' }),
+    ).resolves.toMatchObject({ id: 'iv_1' });
+    expect(spy.mock.calls[0]![0]).toContain('/auth/verify-item-email');
+    expect(spy.mock.calls[0]![1]!.method).toBe('POST');
+    expect(spy.mock.calls[0]![1]!.body).toBe('{"token":"t4"}');
+  });
+
   it('verifyEmail, forgotPassword, and resetPassword POST their bodies and resolve void on 204', async () => {
     const spy = stubFetch(() => new Response(null, { status: 204 }));
     const { board } = makeBoard();
