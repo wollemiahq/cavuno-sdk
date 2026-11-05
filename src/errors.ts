@@ -217,6 +217,7 @@ export const BOARD_API_ERROR_CODES = [
   'tip_amount_invalid',
   'tip_note_not_allowed',
   'tip_note_too_long',
+  'tip_fee_cover_not_allowed',
 ] as const;
 
 /**

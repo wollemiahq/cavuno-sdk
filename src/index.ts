@@ -351,6 +351,7 @@ export type {
   PurchaseSummaryListEnvelope,
 } from './types/products';
 // Tip jar — `board.tipJar.*` (the tip page and tip checkout).
+export { tipCoverFeeCents } from './tip-cover-fee';
 export type {
   TipJar,
   TipJarCheckout,
@@ -422,6 +423,7 @@ export type {
   ProfileObjectReferenceSelectionWrite,
   ProfileObjectReferences,
   ItemVerification,
+  MyItemVerification,
   ItemVerificationBadge,
   SubmitMyItemVerificationBody,
   ItemEmailDomainVerification,
