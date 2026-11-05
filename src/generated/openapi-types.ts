@@ -5944,7 +5944,7 @@ export interface components {
              * @enum {string}
              */
             remoteOption: "on_site" | "hybrid" | "remote";
-            /** @description Where remote candidates must hold work authorization. Each entry is the smallest relevant scope: `worldwide`, a `world_region` (EMEA / LATAM / NA / APAC), a `continent`, a `region`, a `subregion`, a `custom` group (e.g. `EU`), a `country` (ISO 3166-1 alpha-2), or a `subdivision` (ISO 3166-2). Subdivisions auto-imply their parent country in the derived `remoteWorkPermitCountryCodes` output. Worldwide is mutually exclusive with all other entries. The canonical `{type, value}` set is published at `GET /v1/taxonomies/remote-permits`. Pass `[]` to clear an existing constraint. */
+            /** @description Where remote candidates must hold work authorization. Each entry is the smallest relevant scope: `worldwide`, a `world_region` (EMEA / LATAM / NA / APAC), a `continent`, a `region`, a `subregion`, a `custom` group (e.g. `EU`), a `country` (ISO 3166-1 alpha-2), or a `subdivision` (ISO 3166-2). Subdivisions auto-imply their parent country in the derived `remoteWorkPermitCountryCodes` output. Worldwide is mutually exclusive with all other entries. The canonical `{type, value}` set is published at `GET /v1/taxonomies/remote-permits`. Pass `[]` to clear an existing constraint on an `on_site` or `hybrid` job; a `remote` job always needs at least one entry, so send `[{"type":"worldwide","value":"worldwide"}]` to lift the restriction. */
             remotePermits?: {
                 /** @enum {string} */
                 type: "worldwide" | "world_region" | "continent" | "region" | "subregion" | "subdivision" | "country" | "custom";
@@ -6259,7 +6259,7 @@ export interface components {
              * @enum {string}
              */
             remoteOption?: "on_site" | "hybrid" | "remote";
-            /** @description Where remote candidates must hold work authorization. Each entry is the smallest relevant scope: `worldwide`, a `world_region` (EMEA / LATAM / NA / APAC), a `continent`, a `region`, a `subregion`, a `custom` group (e.g. `EU`), a `country` (ISO 3166-1 alpha-2), or a `subdivision` (ISO 3166-2). Subdivisions auto-imply their parent country in the derived `remoteWorkPermitCountryCodes` output. Worldwide is mutually exclusive with all other entries. The canonical `{type, value}` set is published at `GET /v1/taxonomies/remote-permits`. Pass `[]` to clear an existing constraint. */
+            /** @description Where remote candidates must hold work authorization. Each entry is the smallest relevant scope: `worldwide`, a `world_region` (EMEA / LATAM / NA / APAC), a `continent`, a `region`, a `subregion`, a `custom` group (e.g. `EU`), a `country` (ISO 3166-1 alpha-2), or a `subdivision` (ISO 3166-2). Subdivisions auto-imply their parent country in the derived `remoteWorkPermitCountryCodes` output. Worldwide is mutually exclusive with all other entries. The canonical `{type, value}` set is published at `GET /v1/taxonomies/remote-permits`. Pass `[]` to clear an existing constraint on an `on_site` or `hybrid` job; a `remote` job always needs at least one entry, so send `[{"type":"worldwide","value":"worldwide"}]` to lift the restriction. */
             remotePermits?: {
                 /** @enum {string} */
                 type: "worldwide" | "world_region" | "continent" | "region" | "subregion" | "subdivision" | "country" | "custom";
