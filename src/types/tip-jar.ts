@@ -5,8 +5,10 @@ import type { Schemas } from './_spec';
 
 /**
  * The tip page (`tipJar.get`): name, description, currency, the smallest
- * tip, three suggested amounts, whether a note is allowed, the thank-you
- * message, and `tipCount` only while the board shows it.
+ * tip, three suggested amounts, whether a note is allowed, the card rate
+ * when the tipper may cover the card fee (`coverFee`; see
+ * `tipCoverFeeCents`), the thank-you message, and `tipCount` only while the
+ * board shows it.
  */
 export type TipJar = Schemas['TipJar'];
 

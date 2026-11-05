@@ -3,6 +3,22 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.63.0 — 2026-11-05
+
+- `board.me.profile.listVerifications` returns a row for every item on the
+  profile that can be verified, including unchecked ones, typed as the new
+  exported `MyItemVerification`. Each row's `nextStep` (`email`, `team` or
+  `none`) says which check the item allows now, and `emailCheck` is set
+  while an emailed code is waiting. A rejected item reopens only after its
+  checked details change.
+- New operator operations: `batchPlans` (`POST /plans/batch`, up to 10
+  complete plans with their prices per call) and `listTodos`
+  (`GET /todos`, the board's setup to-dos as they read on Home).
+- Domains returned by the operator domain operations carry `dnsRecords`,
+  the routing records to add at the DNS provider.
+- `PATCH /jobs/{id}` clears `experienceMonths` and in-office attendance
+  when they are sent as `null`.
+
 ## 4.62.0 — 2026-11-04
 
 - Tip jar. `board.tipJar.get` reads the board's tip page settings,

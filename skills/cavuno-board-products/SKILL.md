@@ -130,10 +130,13 @@ A board can have one tip jar: visitors tip any amount at or above a minimum on t
 const jar = await board.tipJar.get(); // tip_jar_not_found (404): hide the tip page and its links
 // jar.suggestedCents: three amounts, smallest first; jar.minimumCents; jar.allowNote
 // jar.tipCount is null unless the board shows the number of tips
+// jar.coverFee: the card rate, or null when the board does not offer to cover the card fee;
+// tipCoverFeeCents(amountCents, jar.coverFee) is the fee to show ("Add {fee} to cover the card fee")
 
 const kit = await board.tipJar.checkout({
   amountCents: 500, // at least jar.minimumCents
   note: 'Thanks for the weekly roundup!', // only when jar.allowNote; 280 characters max
+  coverFee: true, // the tipper ticked "cover the card fee"; only when jar.coverFee is not null
   returnPath: '/tip',
   website: '', // honeypot: render hidden, send empty
 });
@@ -145,7 +148,7 @@ if (status.status === 'paid') showThanks(status.thankYouMessage, status.receiptE
 // 'processing' until the payment clears: poll briefly
 ```
 
-Stripe collects the tipper's email (prefilled for a signed-in board user), so the form asks only for the amount and the note. Render the note as a plain `textarea`. `receiptEmail` is masked (`m•••@gmail.com`) because the session id is in a shareable URL. Link to the tip page with `jar.url`, which follows the board's route manifest. Errors: `tip_amount_below_minimum` (400, `details.minimumCents`), `tip_amount_invalid`, `tip_note_not_allowed`, `tip_note_too_long` (400), `tip_jar_not_found` (404), `stripe_not_connected` (409), `rate_limited` (429), `rate_limit_unavailable` (503); `getCheckout` with an unknown session is `tip_checkout_not_found` (404). The API never returns other tippers' emails or notes.
+Stripe collects the tipper's email (prefilled for a signed-in board user), so the form asks only for the amount and the note. Render the note as a plain `textarea`. `receiptEmail` is masked (`m•••@gmail.com`) because the session id is in a shareable URL. Link to the tip page with `jar.url`, which follows the board's route manifest. Errors: `tip_amount_below_minimum` (400, `details.minimumCents`), `tip_amount_invalid`, `tip_note_not_allowed`, `tip_note_too_long`, `tip_fee_cover_not_allowed` (400), `tip_jar_not_found` (404), `stripe_not_connected` (409), `rate_limited` (429), `rate_limit_unavailable` (503); `getCheckout` with an unknown session is `tip_checkout_not_found` (404). The API never returns other tippers' emails or notes.
 
 ## Completion gate
 
