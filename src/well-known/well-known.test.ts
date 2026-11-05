@@ -57,6 +57,7 @@ const HARDCODED_CANONICAL_ROLES: Record<RouteRole, string> = {
   purchase: '/purchases/:purchaseToken',
   products: '/products',
   mePurchases: '/me/purchases',
+  tip: '/tip',
 };
 
 function canonicalRouteEntries(): RouteEntry[] {

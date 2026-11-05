@@ -112,6 +112,7 @@ function canonicalHelperPath(role: RouteRole): string {
     case 'alertsConfirm':
     case 'products':
     case 'mePurchases':
+    case 'tip':
       return BOARD_PATHS[role];
     default: {
       const _exhaustive: never = role;

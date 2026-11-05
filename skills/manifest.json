@@ -1,5 +1,5 @@
 {
-  "version": "4.61.0",
+  "version": "4.62.0",
   "skills": [
     {
       "name": "cavuno-board-account",
@@ -115,7 +115,7 @@
     },
     {
       "name": "cavuno-board-products",
-      "description": "Digital product storefront with @cavuno/board. Use for product lists and pages, reviews, free claims, embedded paid checkout, the purchase download page with its email confirmation, downloads, buyer reviews, resending the link, or the signed-in buyer's purchases.",
+      "description": "Digital product storefront with @cavuno/board. Use for product lists and pages, reviews, free claims, embedded paid checkout, the purchase download page with its email confirmation, downloads, buyer reviews, resending the link, the signed-in buyer's purchases, or the tip jar's tip page and tip checkout.",
       "path": "skills/cavuno-board-products/SKILL.md",
       "framework": null,
       "category": "core"
