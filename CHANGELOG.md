@@ -3,6 +3,16 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.64.0 — 2026-11-05
+
+- Tip jar: tippers can cover the card fee. `board.tipJar.get` returns
+  `coverFee` (the card rate) or null when the board doesn't offer it,
+  `board.tipJar.checkout` takes `coverFee: true` to add the fee as a
+  separate line, and the checkout status reports `coverFeeCents`.
+- New exported helper `tipCoverFeeCents(amountCents, tipJar.coverFee)`
+  returns the same fee the checkout charges.
+- New error code: `tip_fee_cover_not_allowed`.
+
 ## 4.63.0 — 2026-11-05
 
 - `board.me.profile.listVerifications` returns a row for every item on the
