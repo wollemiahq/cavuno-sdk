@@ -422,6 +422,7 @@ export type {
   ProfileObjectReferenceSelectionWrite,
   ProfileObjectReferences,
   ItemVerification,
+  MyItemVerification,
   ItemVerificationBadge,
   SubmitMyItemVerificationBody,
   ItemEmailDomainVerification,

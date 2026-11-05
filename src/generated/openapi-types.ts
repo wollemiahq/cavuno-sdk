@@ -2575,13 +2575,13 @@ export interface paths {
         };
         /**
          * List the item verifications on my company profile
-         * @description Every item with a verification status and its reason. Items without one are `unverified`. The staff note is never included.
+         * @description Every item verification is switched on for, with its status and reason, the next step the item allows (`nextStep`) and any emailed code still waiting to be typed (`emailCheck`). An item never checked is listed as `unverified`. The staff note is never included.
          */
         get: operations["listMyCompanyItemVerifications"];
         put?: never;
         /**
          * Ask the board to verify an item on my company profile
-         * @description Ask the board team to check one item. Moves it to `pending`; allowed while it is unverified, changed, lapsed, rejected, needs more information or unable to verify. An item verified by email domain can also be confirmed with `…/verifications/email-domain`.
+         * @description Ask the board team to check one item. Moves it to `pending`; allowed while it is unverified, changed, lapsed, needs more information or unable to verify. A rejected item can be sent again once a checked detail is edited, which moves it to `changed`. An item verified by email domain can also be confirmed with `…/verifications/email-domain`.
          */
         post: operations["submitMyCompanyItemVerification"];
         delete?: never;
@@ -3321,13 +3321,13 @@ export interface paths {
         };
         /**
          * List the item verifications on my profile
-         * @description Every item with a verification status and its reason. Items without one are `unverified`. The staff note is never included.
+         * @description Every item verification is switched on for, with its status and reason, the next step the item allows (`nextStep`) and any emailed code still waiting to be typed (`emailCheck`). An item never checked is listed as `unverified`. The staff note is never included.
          */
         get: operations["listMyItemVerifications"];
         put?: never;
         /**
          * Ask the board to verify an item on my profile
-         * @description Ask the board team to check one item. Moves it to `pending`; allowed while it is unverified, changed, lapsed, rejected, needs more information or unable to verify. An item verified by email domain can also be confirmed with `…/verifications/email-domain`.
+         * @description Ask the board team to check one item. Moves it to `pending`; allowed while it is unverified, changed, lapsed, needs more information or unable to verify. A rejected item can be sent again once a checked detail is edited, which moves it to `changed`. An item verified by email domain can also be confirmed with `…/verifications/email-domain`.
          */
         post: operations["submitMyItemVerification"];
         delete?: never;
@@ -5944,7 +5944,7 @@ export interface components {
              * @enum {string}
              */
             remoteOption: "on_site" | "hybrid" | "remote";
-            /** @description Where remote candidates must hold work authorization. Each entry is the smallest relevant scope: `worldwide`, a `world_region` (EMEA / LATAM / NA / APAC), a `continent`, a `region`, a `subregion`, a `custom` group (e.g. `EU`), a `country` (ISO 3166-1 alpha-2), or a `subdivision` (ISO 3166-2). Subdivisions auto-imply their parent country in the derived `remoteWorkPermitCountryCodes` output. Worldwide is mutually exclusive with all other entries. The canonical `{type, value}` set is published at `GET /v1/taxonomies/remote-permits`. Pass `[]` to clear an existing constraint. */
+            /** @description Where remote candidates must hold work authorization. Each entry is the smallest relevant scope: `worldwide`, a `world_region` (EMEA / LATAM / NA / APAC), a `continent`, a `region`, a `subregion`, a `custom` group (e.g. `EU`), a `country` (ISO 3166-1 alpha-2), or a `subdivision` (ISO 3166-2). Subdivisions auto-imply their parent country in the derived `remoteWorkPermitCountryCodes` output. Worldwide is mutually exclusive with all other entries. The canonical `{type, value}` set is published at `GET /v1/taxonomies/remote-permits`. Pass `[]` to clear an existing constraint on an `on_site` or `hybrid` job; a `remote` job always needs at least one entry, so send `[{"type":"worldwide","value":"worldwide"}]` to lift the restriction. */
             remotePermits?: {
                 /** @enum {string} */
                 type: "worldwide" | "world_region" | "continent" | "region" | "subregion" | "subdivision" | "country" | "custom";
@@ -6259,7 +6259,7 @@ export interface components {
              * @enum {string}
              */
             remoteOption?: "on_site" | "hybrid" | "remote";
-            /** @description Where remote candidates must hold work authorization. Each entry is the smallest relevant scope: `worldwide`, a `world_region` (EMEA / LATAM / NA / APAC), a `continent`, a `region`, a `subregion`, a `custom` group (e.g. `EU`), a `country` (ISO 3166-1 alpha-2), or a `subdivision` (ISO 3166-2). Subdivisions auto-imply their parent country in the derived `remoteWorkPermitCountryCodes` output. Worldwide is mutually exclusive with all other entries. The canonical `{type, value}` set is published at `GET /v1/taxonomies/remote-permits`. Pass `[]` to clear an existing constraint. */
+            /** @description Where remote candidates must hold work authorization. Each entry is the smallest relevant scope: `worldwide`, a `world_region` (EMEA / LATAM / NA / APAC), a `continent`, a `region`, a `subregion`, a `custom` group (e.g. `EU`), a `country` (ISO 3166-1 alpha-2), or a `subdivision` (ISO 3166-2). Subdivisions auto-imply their parent country in the derived `remoteWorkPermitCountryCodes` output. Worldwide is mutually exclusive with all other entries. The canonical `{type, value}` set is published at `GET /v1/taxonomies/remote-permits`. Pass `[]` to clear an existing constraint on an `on_site` or `hybrid` job; a `remote` job always needs at least one entry, so send `[{"type":"worldwide","value":"worldwide"}]` to lift the restriction. */
             remotePermits?: {
                 /** @enum {string} */
                 type: "worldwide" | "world_region" | "continent" | "region" | "subregion" | "subdivision" | "country" | "custom";
@@ -6375,7 +6375,7 @@ export interface components {
             object: "item_verification";
             itemKey: string;
             /**
-             * @description `changed`: a checked field was edited after verification. `lapsed`: past its expiry or re-check date (see `lapseReason`).
+             * @description `changed`: a checked field was edited after the item was verified or rejected. `lapsed`: past its expiry or re-check date (see `lapseReason`).
              * @enum {string}
              */
             status: "unverified" | "pending" | "needs_info" | "verified" | "rejected" | "unable_to_verify" | "changed" | "lapsed" | "revoked";
@@ -6836,6 +6836,35 @@ export interface components {
         MoveApplicantStageBody: {
             /** @description The target stage id. */
             stageId: string;
+        };
+        MyItemVerification: components["schemas"]["ItemVerification"] & {
+            /** @description The verification's id. For an item with no verification yet (`unverified`), its `itemKey`. */
+            id?: string;
+            /**
+             * Format: date-time
+             * @description When the verification last changed. For an item with no verification yet, when the profile last saved it.
+             */
+            updatedAt?: string;
+            /**
+             * @description What the worker can do for this item now, from its state on the server. `email`: the item allows an email-domain check (`POST …/verifications/email-domain`); asking the board team is also allowed. A start can still be rate limited (per item, per worker, or within a minute of the last check), and the route then answers `429` with `item_verification_rate_limited`. `team`: the item allows only asking the board team (`POST …/verifications`), for example a past job, an item with no website, a field the team verifies, or a rejected item whose checked details were edited since. `none`: nothing to do now (waiting for review, verified, revoked, or rejected and not edited since). Company profile items are never `email`.
+             * @enum {string}
+             */
+            nextStep: "email" | "team" | "none";
+            /** @description A code emailed for this item that can still be typed (`POST …/verifications/email-domain/confirm`), so a client can return to the code step after a reload. `null` when there is none, it expired, or the item changed since it was sent. Only set while `nextStep` is `email`. */
+            emailCheck: {
+                /** @description The domain the code was sent to. The address itself is never stored. */
+                domain: string;
+                /**
+                 * Format: date-time
+                 * @description When the emailed code stops working.
+                 */
+                codeExpiresAt: string;
+                /**
+                 * Format: date-time
+                 * @description When a new check can send another email for this item; before then a new check sends nothing.
+                 */
+                resendAvailableAt: string;
+            } | null;
         };
         NotificationPreference: {
             /** @enum {string} */
@@ -18285,7 +18314,7 @@ export interface operations {
                         url: string;
                         hasMore: boolean;
                         nextCursor: string | null;
-                        data: components["schemas"]["ItemVerification"][];
+                        data: components["schemas"]["MyItemVerification"][];
                     };
                 };
             };
@@ -18389,7 +18418,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description The item is already verified, already waiting, or revoked (`item_verification_conflict`). */
+            /** @description The item is already verified, already waiting, revoked, or rejected with its checked details unchanged (`item_verification_conflict`). */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -21545,7 +21574,7 @@ export interface operations {
                         url: string;
                         hasMore: boolean;
                         nextCursor: string | null;
-                        data: components["schemas"]["ItemVerification"][];
+                        data: components["schemas"]["MyItemVerification"][];
                     };
                 };
             };
@@ -21648,7 +21677,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description The item is already verified, already waiting, or revoked (`item_verification_conflict`). */
+            /** @description The item is already verified, already waiting, revoked, or rejected with its checked details unchanged (`item_verification_conflict`). */
             409: {
                 headers: {
                     [name: string]: unknown;
