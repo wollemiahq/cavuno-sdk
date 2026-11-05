@@ -172,6 +172,13 @@ export type ProfileObjectReferences = Schemas['ProfileObjectReferencesResult'];
  * never the board team's note.
  */
 export type ItemVerification = Schemas['ItemVerification'];
+/**
+ * One row of my verification list: an item's verification plus `nextStep`
+ * (`email`, `team` or `none`, the step the item allows now; an email
+ * check can still be rate limited) and
+ * `emailCheck` (a code still waiting to be typed, by domain only).
+ */
+export type MyItemVerification = Schemas['MyItemVerification'];
 /** Body for asking the board team to verify one of my items. */
 export type SubmitMyItemVerificationBody =
   Schemas['SubmitMyItemVerificationBody'];

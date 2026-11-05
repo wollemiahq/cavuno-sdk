@@ -69,6 +69,7 @@ import type {
   NotificationPreference,
   ProfileFieldValues,
   ItemVerification,
+  MyItemVerification,
   ProfileObjectReferences,
   ReplaceProfileObjectReferencesBody,
   SubmitMyItemVerificationBody,
@@ -334,14 +335,18 @@ export function meNamespace(client: BoardClient) {
       },
 
       /**
-       * List the verification status of the items on my profile (experience,
-       * education and collection entries). Items not listed are unverified.
+       * List the items on my profile that can be verified (experience,
+       * education and collection entries) with their status. Each row's
+       * `nextStep` says which step the item allows now (an email check
+       * can still be rate limited), and `emailCheck` is set while an
+       * emailed code is waiting to be typed.
        *
        * @example
        * const { data } = await board.me.profile.listVerifications();
+       * const canEmail = data.filter((item) => item.nextStep === 'email');
        */
       listVerifications(options?: FetchOptions) {
-        return client.fetch<ListEnvelope<ItemVerification>>(
+        return client.fetch<ListEnvelope<MyItemVerification>>(
           '/me/profile/verifications',
           options,
         );
@@ -611,9 +616,12 @@ export function meNamespace(client: BoardClient) {
         );
       },
 
-      /** List the verification status of the items on one of my companies. */
+      /**
+       * List the items on one of my companies that can be verified, with
+       * their status and `nextStep`.
+       */
       listVerifications(slug: string, options?: FetchOptions) {
-        return client.fetch<ListEnvelope<ItemVerification>>(
+        return client.fetch<ListEnvelope<MyItemVerification>>(
           `/me/companies/${encodeURIComponent(slug)}/verifications`,
           options,
         );
