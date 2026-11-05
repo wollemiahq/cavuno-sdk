@@ -210,6 +210,13 @@ export const BOARD_API_ERROR_CODES = [
   'purchase_download_limit_reached',
   'purchase_review_invalid',
   'purchase_download_all_unavailable',
+  // Tip jar
+  'tip_jar_not_found',
+  'tip_checkout_not_found',
+  'tip_amount_below_minimum',
+  'tip_amount_invalid',
+  'tip_note_not_allowed',
+  'tip_note_too_long',
 ] as const;
 
 /**

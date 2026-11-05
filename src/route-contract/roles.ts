@@ -74,7 +74,9 @@ export type RouteRole =
   | 'alertsConfirm'
   // Digital products (statics)
   | 'products'
-  | 'mePurchases';
+  | 'mePurchases'
+  /** The tip page (the board's tip jar); optional, never required. */
+  | 'tip';
 
 /**
  * Exact param-name set per role, derived from each helper's signature.
@@ -117,6 +119,7 @@ export const ROLE_PARAM_REGISTRY: Record<RouteRole, readonly string[]> = {
   alertsConfirm: [],
   products: [],
   mePurchases: [],
+  tip: [],
 };
 
 /** Email-emitting roles — a missing one blocks publish. */
@@ -181,5 +184,6 @@ export const CANONICAL_MANIFEST: ManifestV1 = {
     alertsConfirm: '/alerts/confirm',
     products: BOARD_PATHS.products,
     mePurchases: BOARD_PATHS.mePurchases,
+    tip: BOARD_PATHS.tip,
   },
 };

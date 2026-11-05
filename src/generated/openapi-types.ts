@@ -4507,6 +4507,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/tip-jar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieve the tip jar
+         * @description The tip page: name, description, currency, the smallest tip, three suggested amounts, whether a note is allowed, the thank-you message and, when the board shows it, the number of tips. Never another tipper’s email or note.
+         */
+        get: operations["getBoardTipJar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/tip-jar/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start a tip
+         * @description Returns the embedded Stripe Checkout mount kit for a tip of `amountCents`, which expires after 30 minutes. Stripe collects the receipt email; with a board user token, the signed-in user’s email is filled in.
+         */
+        post: operations["createBoardTipJarCheckout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/tip-jar/checkout/{sessionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a tip checkout
+         * @description After Stripe returns the tipper: `processing` until the payment clears (poll briefly), then `paid`, with the amount, the masked receipt email and the thank-you message.
+         */
+        get: operations["getBoardTipJarCheckout"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -8958,6 +9018,71 @@ export interface components {
             canonicalSlug: string;
             /** @description Board-language name with source-name fallback. */
             displayName: string;
+        };
+        TipJar: {
+            /** @enum {string} */
+            object: "tip_jar";
+            name: string;
+            /** @description Plain-text description. When `descriptionHtml` is set, this is its text. */
+            description: string | null;
+            /** @description Formatted description as sanitized HTML (the same tags as a digital product description). `null` when the board wrote none; show `description` instead. */
+            descriptionHtml: string | null;
+            /** @description Lowercase ISO currency code. */
+            currency: string;
+            /** @description The smallest tip, in minor units: the board's minimum, or Stripe's smallest charge in the currency when none is set. */
+            minimumCents: number;
+            /** @description Three suggested amounts in minor units, smallest first. */
+            suggestedCents: number[];
+            /** @description Whether the tipper may leave a note for the board. */
+            allowNote: boolean;
+            /** @description The longest note, in characters (280). */
+            noteMaxLength: number;
+            /** @description Plain text shown after a tip; `null` when unset. */
+            thankYouMessage: string | null;
+            /** @description Tips so far, when the board shows the number of tips; otherwise `null`. */
+            tipCount: number | null;
+            /** @description The tip page path on the board (its route manifest words). */
+            url: string;
+        };
+        TipJarCheckout: {
+            /** @enum {string} */
+            object: "tip_jar_checkout";
+            /**
+             * @description Mount the embedded Stripe Checkout with the mount kit fields. They are `null` only when the request was discarded (the honeypot was filled).
+             * @enum {string}
+             */
+            status: "open";
+            sessionId: string | null;
+            /** @description The Checkout Session client secret. The session expires after 30 minutes. */
+            clientSecret: string | null;
+            /** @description The board’s connected Stripe account. */
+            stripeAccountId: string | null;
+            /** @description The Stripe publishable key for `loadStripe`. */
+            publishableKey: string | null;
+        };
+        TipJarCheckoutBody: {
+            /** @description The tip in minor units of the tip jar currency: at least `minimumCents`. */
+            amountCents: number;
+            /** @description Optional plain-text note for the board, at most 280 characters (longer is refused with `tip_note_too_long`). Only when `allowNote` is true; leave it out otherwise. */
+            note?: string;
+            /** @description The relative path Stripe returns the tipper to (`session_id` is appended). Defaults to the tip page. */
+            returnPath?: string;
+            /** @description Honeypot. Render it hidden and leave it empty; a filled value is answered like a success and nothing is recorded. */
+            website?: string;
+        };
+        TipJarCheckoutStatus: {
+            /** @enum {string} */
+            object: "tip_jar_checkout_status";
+            /**
+             * @description `processing` until the payment clears (a delayed payment method, or the webhook has not landed yet; poll briefly), then `paid`.
+             * @enum {string}
+             */
+            status: "processing" | "paid";
+            amountCents: number;
+            currency: string;
+            /** @description Where the receipt goes, masked (`m•••@gmail.com`): the session id is in a URL that can be shared. `null` until paid, or when Stripe collected none. */
+            receiptEmail: string | null;
+            thankYouMessage: string | null;
         };
         TitleLocationSalary: {
             /** @enum {string} */
@@ -24776,6 +24901,144 @@ export interface operations {
                 };
             };
             /** @description Public board not found, or no profile for that handle visible to the caller. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getBoardTipJar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TipJar"];
+                };
+            };
+            /** @description Board not found, or the board has no tip jar or it is archived (`tip_jar_not_found`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createBoardTipJarCheckout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TipJarCheckoutBody"];
+            };
+        };
+        responses: {
+            /** @description The mount kit. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TipJarCheckout"];
+                };
+            };
+            /** @description The amount is below the smallest tip (`tip_amount_below_minimum`, with `details.minimumCents`, or without it when Stripe refuses the amount as too small after converting it to the board's settlement currency), or is not a whole amount or is above what Stripe can charge in the currency (`tip_amount_invalid`), or the note is not allowed (`tip_note_not_allowed`) or too long (`tip_note_too_long`). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board not found, or the board has no tip jar or it is archived (`tip_jar_not_found`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The board cannot take payments yet (`stripe_not_connected`). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Too many requests (`rate_limited`). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The abuse limiter is unavailable; nothing was recorded (`rate_limit_unavailable`). */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getBoardTipJarCheckout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                /** @description The Stripe Checkout Session id from `POST /tip-jar/checkout` (the `session_id` on the return URL). */
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The tip behind the session. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TipJarCheckoutStatus"];
+                };
+            };
+            /** @description No tip with this session on the board (`tip_checkout_not_found`). */
             404: {
                 headers: {
                     [name: string]: unknown;
