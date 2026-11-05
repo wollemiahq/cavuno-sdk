@@ -1,6 +1,6 @@
 ---
 name: cavuno-board-products
-description: Digital product storefront with @cavuno/board. Use for product lists and pages, reviews, free claims, embedded paid checkout, the purchase download page with its email confirmation, downloads, buyer reviews, resending the link, or the signed-in buyer's purchases.
+description: Digital product storefront with @cavuno/board. Use for product lists and pages, reviews, free claims, embedded paid checkout, the purchase download page with its email confirmation, downloads, buyer reviews, resending the link, the signed-in buyer's purchases, or the tip jar's tip page and tip checkout.
 ---
 
 # Digital product storefront
@@ -122,6 +122,31 @@ const { data: mine } = await board.purchases.mine({ cache: 'no-store' });
 
 `review` replaces the buyer's earlier review; `product_reviews_disabled` (404) when ratings are off, `purchase_refunded` (409), `purchase_review_invalid` (400). `mine` needs a board user session and lists purchases made while signed in plus those made with the user's verified email, each with `downloadUrl`.
 
+## Tip jar
+
+A board can have one tip jar: visitors tip any amount at or above a minimum on the tip page, `BOARD_PATHS.tip` (`/tip`), the `tip` route role. `board.tipJar` reads it and takes tips; the types are `TipJar`, `TipJarCheckoutBody`, `TipJarCheckout` and `TipJarCheckoutStatus`.
+
+```ts snippet
+const jar = await board.tipJar.get(); // tip_jar_not_found (404): hide the tip page and its links
+// jar.suggestedCents: three amounts, smallest first; jar.minimumCents; jar.allowNote
+// jar.tipCount is null unless the board shows the number of tips
+
+const kit = await board.tipJar.checkout({
+  amountCents: 500, // at least jar.minimumCents
+  note: 'Thanks for the weekly roundup!', // only when jar.allowNote; 280 characters max
+  returnPath: '/tip',
+  website: '', // honeypot: render hidden, send empty
+});
+// Mount like a paid product: loadStripe(kit.publishableKey, { stripeAccount: kit.stripeAccountId })
+// then initEmbeddedCheckout({ clientSecret: kit.clientSecret }). Expires after 30 minutes.
+
+const status = await board.tipJar.getCheckout(sessionId, { cache: 'no-store' });
+if (status.status === 'paid') showThanks(status.thankYouMessage, status.receiptEmail);
+// 'processing' until the payment clears: poll briefly
+```
+
+Stripe collects the tipper's email (prefilled for a signed-in board user), so the form asks only for the amount and the note. Render the note as a plain `textarea`. `receiptEmail` is masked (`m•••@gmail.com`) because the session id is in a shareable URL. Link to the tip page with `jar.url`, which follows the board's route manifest. Errors: `tip_amount_below_minimum` (400, `details.minimumCents`), `tip_amount_invalid`, `tip_note_not_allowed`, `tip_note_too_long` (400), `tip_jar_not_found` (404), `stripe_not_connected` (409), `rate_limited` (429), `rate_limit_unavailable` (503); `getCheckout` with an unknown session is `tip_checkout_not_found` (404). The API never returns other tippers' emails or notes.
+
 ## Completion gate
 
 - The list shows listed products only; a link-only product page renders with `noindex`.
@@ -129,6 +154,7 @@ const { data: mine } = await board.purchases.mine({ cache: 'no-store' });
 - A forwarded download link asks for the email, and the confirmation survives a reload through your own cookie.
 - Downloads start from a button; `purchase_download_limit_reached` disables the button instead of retrying.
 - Download pages, checkout status and `mine()` are `no-store`; purchase paths never reach analytics or the sitemap.
+- The tip page hides when `board.tipJar.get()` is `tip_jar_not_found`; a test tip returns with `session_id` and `getCheckout` reaches `paid`.
 
 ## Cavuno SDK reference
 

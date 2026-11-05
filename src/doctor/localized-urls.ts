@@ -53,6 +53,8 @@ const MAY_BE_UNPUBLISHED: ReadonlySet<RouteRole> = new Set([
   'termsOfService',
   'cookiePolicy',
   'impressum',
+  // A board with no tip jar (or an archived one) has no tip page.
+  'tip',
 ]);
 
 /** The board's access gates: a redirect there means the page was not served. */

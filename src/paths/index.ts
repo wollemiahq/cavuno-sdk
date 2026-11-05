@@ -305,6 +305,8 @@ export const BOARD_PATHS = {
   products: '/products',
   /** A signed-in board user's purchased products. */
   mePurchases: '/me/purchases',
+  /** The tip page: visitors tip the board through its tip jar. */
+  tip: '/tip',
 } as const;
 
 /**

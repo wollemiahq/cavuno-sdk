@@ -27,6 +27,7 @@ import { searchNamespace } from './namespaces/search';
 import { sitemapNamespace } from './namespaces/sitemap';
 import { talentNamespace } from './namespaces/talent';
 import { taxonomyNamespace } from './namespaces/taxonomy';
+import { tipJarNamespace } from './namespaces/tip-jar';
 import { type Awaitable, type StorageMode, resolveStorage } from './storage';
 
 import type { PublicBoard } from './types/board';
@@ -128,6 +129,7 @@ export function createBoardClient(options: CreateBoardClientOptions) {
     paywall: paywallNamespace(client),
     products: productsNamespace(client),
     purchases: purchasesNamespace(client),
+    tipJar: tipJarNamespace(client),
     sitemap: sitemapNamespace(client),
   };
 }
@@ -348,6 +350,13 @@ export type {
   PurchaseSummary,
   PurchaseSummaryListEnvelope,
 } from './types/products';
+// Tip jar — `board.tipJar.*` (the tip page and tip checkout).
+export type {
+  TipJar,
+  TipJarCheckout,
+  TipJarCheckoutBody,
+  TipJarCheckoutStatus,
+} from './types/tip-jar';
 export type {
   EducationRequirement,
   EmploymentType,

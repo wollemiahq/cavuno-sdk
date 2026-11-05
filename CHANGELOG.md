@@ -3,6 +3,22 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.62.0 — 2026-11-04
+
+- Tip jar. `board.tipJar.get` reads the board's tip page settings,
+  `board.tipJar.checkout` starts a tip with an embedded Stripe Checkout, and
+  `board.tipJar.getCheckout` reads the tip back after Stripe returns the
+  tipper. New exported types: `TipJar`, `TipJarCheckout`,
+  `TipJarCheckoutBody` and `TipJarCheckoutStatus`.
+- `BOARD_PATHS.tip` (`/tip`) and the `tip` route role. A board without a tip
+  jar may leave the page unpublished.
+- New error codes: `tip_jar_not_found`, `tip_checkout_not_found`,
+  `tip_amount_below_minimum`, `tip_amount_invalid`, `tip_note_not_allowed`
+  and `tip_note_too_long`.
+- New operator operations and events: plan purpose `tip_jar` with a `tipJar`
+  object on the plans operations, `listPlanTips`, and the `tip.received` and
+  `tip.refunded` webhooks.
+
 ## 4.61.0 — 2026-11-04
 
 - `board.context()` carries `verification.experience` and
