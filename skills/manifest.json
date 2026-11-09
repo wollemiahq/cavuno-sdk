@@ -93,6 +93,13 @@
       "category": "core"
     },
     {
+      "name": "cavuno-board-mcp",
+      "description": "Serve the board's public MCP server at /mcp with @cavuno/board/mcp. Use when connecting a self-hosted board to Claude, ChatGPT, Cursor or another MCP client, or when /mcp or /mcp/docs returns 404 on the board's host.",
+      "path": "skills/cavuno-board-mcp/SKILL.md",
+      "framework": null,
+      "category": "core"
+    },
+    {
       "name": "cavuno-board-messaging",
       "description": "Polled messaging contract with @cavuno/board. Use for inboxes, unread badges, threads, read receipts, message moderation, or user blocks.",
       "path": "skills/cavuno-board-messaging/SKILL.md",

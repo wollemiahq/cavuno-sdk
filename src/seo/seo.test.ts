@@ -57,6 +57,7 @@ const BOARD = {
     messaging: true,
     contactPage: true,
     placeSuggestions: false,
+    mcp: false,
   },
   analytics: {
     ga4MeasurementId: null,
@@ -450,6 +451,33 @@ describe('blog JSON-LD', () => {
         url: 'ada.example.com',
       },
     });
+  });
+
+  it("makes the author the profile page's Person when given its URL", () => {
+    const authorProfileUrl = 'https://acme.example.com/blog/author/ada-writer';
+    const article = createBlogArticleJsonLd({
+      post: POST,
+      boardName: 'Acme Jobs',
+      permalink: 'https://acme.example.com/blog/how-robots-hire',
+      authorProfileUrl,
+    });
+    const profile = createAuthorProfileJsonLd({
+      author: AUTHOR,
+      canonical: authorProfileUrl,
+      description: '',
+      origin: null,
+      posts: [],
+      totalPosts: 0,
+    })!;
+    const person = profile.mainEntity as Record<string, unknown>;
+
+    expect(article.author).toEqual({
+      '@type': 'Person',
+      '@id': `${authorProfileUrl}#profile`,
+      name: 'Ada Writer',
+      url: authorProfileUrl,
+    });
+    expect(person['@id']).toBe(`${authorProfileUrl}#profile`);
   });
 
   it('prefers the cover over the OG fallback, and falls back when there is no cover (hosted precedence)', () => {

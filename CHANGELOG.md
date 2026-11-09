@@ -3,6 +3,25 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.65.0 — 2026-11-09
+
+- Board MCP server: every board on a plan with API access serves a public,
+  read-only MCP server that AI assistants can use to search its jobs and
+  companies. The Board API answers it at `POST /boards/{identifier}/mcp`,
+  with a setup page at `GET /boards/{identifier}/mcp/docs`, an MCP Server
+  Card at `GET /boards/{identifier}/mcp/server-card` and an AI Catalog at
+  `GET /boards/{identifier}/mcp/ai-catalog`.
+- New entry point `@cavuno/board/mcp` with `createMcpHandler({ board })`,
+  which serves the board's MCP server on your own domain. Mount it at
+  `/mcp`, `/mcp/*` and `/.well-known/ai-catalog.json`; any other path
+  below `/mcp` answers 404.
+- `board.context()` returns `features.mcp`, true when the board serves its
+  MCP server, so a frontend can link to its setup page.
+- `GET /subscribers/count` returns `subscribers`, the count shown on the
+  dashboard: unique people who currently receive job alerts, job matches
+  or both.
+- A marketing suppression's `reason` can be `spam_report`.
+
 ## 4.64.0 — 2026-11-05
 
 - Tip jar: tippers can cover the card fee. `board.tipJar.get` returns

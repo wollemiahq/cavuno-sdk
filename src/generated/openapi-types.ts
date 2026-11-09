@@ -1385,6 +1385,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/mcp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Call the board's MCP server
+         * @description The board's public Model Context Protocol server, over stateless Streamable HTTP: send JSON-RPC messages (`initialize`, `tools/list`, `tools/call`) as the request body. A board serves it on its own host at `/mcp`; this endpoint is what that route answers with. Its tools are read-only searches and reads of the board's published jobs, companies, categories, places and salary summaries, and return what the board shows any visitor who is not signed in. Requests are rate limited per visitor and per board; a limited request returns `429` with `Retry-After`.
+         */
+        post: operations["queryBoardMcpServer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/mcp/ai-catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieve the board's AI Catalog
+         * @description The AI Catalog a board serves at `/.well-known/ai-catalog.json`, so an assistant that knows only the board's domain can discover its MCP server. Its one entry points to the board's Server Card at `/mcp/server-card`. Readable from any origin. `HEAD` returns the same headers without a body.
+         */
+        get: operations["getBoardAiCatalog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/mcp/docs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieve the board's MCP server documentation page
+         * @description An HTML page describing the board's MCP server: its URL on the board's own host, how to add it to Claude, ChatGPT, Cursor and VS Code, and what each tool does. A board serves it at `/mcp/docs`. `HEAD` returns the same headers without a body.
+         */
+        get: operations["getBoardMcpDocs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/mcp/server-card": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieve the board's MCP Server Card
+         * @description The MCP Server Card (SEP-2127) for the board's MCP server: its reverse-DNS name, version, title, description, icons and the URL to connect to, so an assistant can find and add the server before connecting. A board serves it at `/mcp/server-card`, listed by its AI Catalog. Readable from any origin. `HEAD` returns the same headers without a body.
+         */
+        get: operations["getBoardMcpServerCard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/boards/{identifier}/me": {
         parameters: {
             query?: never;
@@ -4796,6 +4876,26 @@ export interface components {
             /** @description The board-access grant. Send it as the `X-Board-Access` header on subsequent content reads to pass the password wall. */
             token: string;
         };
+        /** @description An AI Catalog listing the board's MCP Server Card, for discovery from the board's domain alone. */
+        BoardAiCatalog: {
+            /**
+             * @description The AI Catalog format version.
+             * @enum {string}
+             */
+            specVersion: "1.0";
+            /** @description One entry: the board's MCP server. */
+            entries: {
+                /** @description The server's catalog identifier, `urn:air:<host>:mcp:jobs`, where `<host>` is the board's public host without a leading `www.`. */
+                identifier: string;
+                /**
+                 * @description The entry is an MCP Server Card.
+                 * @enum {string}
+                 */
+                type: "application/mcp-server-card+json";
+                /** @description Where to fetch the Server Card: `/mcp/server-card` on the board's own host. */
+                url: string;
+            }[];
+        };
         BoardAuthConsumeMagicLinkBody: {
             token: string;
         };
@@ -4979,6 +5079,40 @@ export interface components {
             definition: components["schemas"]["CustomFieldDefinition"];
         };
         BoardJobFormField: components["schemas"]["BoardFormBuiltinField"] | components["schemas"]["BoardJobFormCustomField"] | components["schemas"]["BoardJobFormCollectionField"];
+        /** @description An MCP Server Card (SEP-2127): what an assistant needs to find and connect to the server before it connects. It lists no tools; `tools/list` on the server does. */
+        BoardMcpServerCard: {
+            /** @description The Server Card JSON Schema this document follows: `https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json`. */
+            $schema: string;
+            /** @description The server's name in reverse-DNS form, from the board's public host: `jobs.example.com` is `com.example.jobs/jobs`. A leading `www.` is dropped. */
+            name: string;
+            /** @description The server version, the same one `initialize` reports in `serverInfo`. */
+            version: string;
+            /** @description The board name, cut to 100 characters. */
+            title?: string;
+            /** @description What the server does, in at most 100 characters. */
+            description: string;
+            /** @description The server's setup page on the board's host, `/mcp/docs`. */
+            websiteUrl: string;
+            /** @description The board's square app icons when it has them, otherwise its logo. Absent when the board has neither. */
+            icons?: {
+                /** @description Absolute URL of the icon image. */
+                src: string;
+                /** @description The image type, when known (`image/png`). */
+                mimeType?: string;
+                /** @description The pixel sizes, when known (`512x512`). */
+                sizes?: string[];
+            }[];
+            /** @description Where to connect: one Streamable HTTP endpoint. */
+            remotes: {
+                /**
+                 * @description The transport: stateless Streamable HTTP.
+                 * @enum {string}
+                 */
+                type: "streamable-http";
+                /** @description The server URL, `/mcp` on the board's own host. */
+                url: string;
+            }[];
+        };
         BoardProfileFormCollectionField: {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -6790,7 +6924,7 @@ export interface components {
             status: "granted" | "withdrawn";
             source: string;
             /** @enum {string|null} */
-            reason: "person_request" | "operator_request" | "account_deleted" | null;
+            reason: "person_request" | "operator_request" | "account_deleted" | "spam_report" | null;
             /** Format: date-time */
             grantedAt: string | null;
             /** Format: date-time */
@@ -7397,6 +7531,8 @@ export interface components {
                 contactPage: boolean;
                 /** @description Whether `GET /v1/boards/{identifier}/places/suggest` suggests any place on this board (cities, towns and suburbs beyond the board's own places). When `false` it returns an empty list: offer only the board's places (`GET /places?q=`) and do not call it. */
                 placeSuggestions: boolean;
+                /** @description Whether the board serves its public MCP server, which AI assistants connect to at `/mcp` on the board's own host, with a setup page for job seekers at `/mcp/docs`. `true` on a paid board that is not password-protected and has not turned the server off. Show a link to `/mcp/docs` (for example in the footer) only when `true`. */
+                mcp: boolean;
             };
             /**
              * @description How the operator charges employers for the candidate directory. `paid_messaging` leaves profiles fully visible and spends a credit on a first cold message; `paid_unlocks_and_messaging` also redacts directory cards and gates the opaque `/p/{id}` profile route behind an unlock credit. `null` means the operator has not chosen explicitly, in which case infer it from the published `talent_access` plans: any plan granting profile unlocks means `paid_unlocks_and_messaging`, otherwise `paid_messaging`. The paywall is inert regardless when the board publishes no talent plan. An anonymous viewer has no entitlement read to derive this from, so it ships here rather than only on `me/talent-access`.
@@ -10571,6 +10707,8 @@ export interface operations {
                         hasMore: boolean;
                         nextCursor: string | null;
                         data: components["schemas"]["PublicBlogPostSummary"][];
+                        /** @description Total published posts in the list across every page (the whole blog, one tag, or one author). Absent when the list has no maintained total, such as `featured=true`, `tagSlug` with `authorSlug`, or a tag or author slug that does not exist. */
+                        count?: number;
                     };
                 };
             };
@@ -13338,6 +13476,152 @@ export interface operations {
             };
             /** @description Location search is temporarily unavailable (`locations_unavailable`). */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    queryBoardMcpServer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description The JSON-RPC response, as JSON or as a server-sent event stream. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                    "text/event-stream": string;
+                };
+            };
+            /** @description The board has no MCP server (`board_mcp_not_found`): it is not on a paid plan, it is password-protected, or its server is turned off. An unknown board answers `boards_not_found`. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Too many requests from this visitor or to this board. Retry after the `Retry-After` seconds. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getBoardAiCatalog: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The AI Catalog. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ai-catalog+json": components["schemas"]["BoardAiCatalog"];
+                };
+            };
+            /** @description The board has no MCP server (`board_mcp_not_found`): it is not on a paid plan, it is password-protected, or its server is turned off. An unknown board answers `boards_not_found`. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getBoardMcpDocs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The documentation page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": string;
+                };
+            };
+            /** @description The board has no MCP server (`board_mcp_not_found`): it is not on a paid plan, it is password-protected, or its server is turned off. An unknown board answers `boards_not_found`. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getBoardMcpServerCard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The Server Card. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/mcp-server-card+json": components["schemas"]["BoardMcpServerCard"];
+                };
+            };
+            /** @description The board has no MCP server (`board_mcp_not_found`): it is not on a paid plan, it is password-protected, or its server is turned off. An unknown board answers `boards_not_found`. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
