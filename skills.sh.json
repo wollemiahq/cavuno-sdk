@@ -44,11 +44,12 @@
     },
     {
       "title": "Publishing and discovery",
-      "description": "Publish jobs and expose board content to search engines.",
+      "description": "Publish jobs and expose board content to search engines and AI assistants.",
       "skills": [
         "cavuno-board-post-a-job",
         "cavuno-board-seo",
-        "cavuno-board-sitemap"
+        "cavuno-board-sitemap",
+        "cavuno-board-mcp"
       ]
     }
   ]
