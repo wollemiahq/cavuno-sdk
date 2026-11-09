@@ -27,18 +27,30 @@ export type ArticleJsonLdPost = Pick<
  * first, then `ogImageUrl` — pass your page's OG image URL (hosted passes
  * its generated `/blog/:slug/og` card; OG generation itself is app-owned
  * per ).
+ *
+ * Pass `authorProfileUrl` (the first author's profile page URL) so the
+ * `author` is the same `Person` (`@id` + `url`) that
+ * `createAuthorProfileJsonLd` declares on that page. Without it the author
+ * carries only a name and their website, and nothing links the post to the
+ * profile.
  */
 export function createBlogArticleJsonLd({
   post,
   boardName,
   permalink,
   ogImageUrl,
+  authorProfileUrl,
 }: {
   post: ArticleJsonLdPost;
   boardName: string;
   permalink: string;
   /** Fallback image when the post has no cover, e.g. your generated OG card URL. */
   ogImageUrl?: string | null;
+  /**
+   * Absolute canonical URL of the first author's profile page: the
+   * `canonical` you pass to `createAuthorProfileJsonLd` on that page.
+   */
+  authorProfileUrl?: string | null;
 }): JsonLdObject {
   const article: JsonLdObject = {
     '@context': 'https://schema.org',
@@ -55,11 +67,18 @@ export function createBlogArticleJsonLd({
 
   const author = post.authors[0];
   if (author) {
-    article.author = {
-      '@type': 'Person',
-      name: author.name,
-      ...(author.websiteUrl ? { url: author.websiteUrl } : {}),
-    };
+    article.author = authorProfileUrl
+      ? {
+          '@type': 'Person',
+          '@id': authorProfileId(authorProfileUrl),
+          name: author.name,
+          url: authorProfileUrl,
+        }
+      : {
+          '@type': 'Person',
+          name: author.name,
+          ...(author.websiteUrl ? { url: author.websiteUrl } : {}),
+        };
   }
   return article;
 }
@@ -90,6 +109,10 @@ export function createAuthorProfileJsonLd({
   origin: string | null;
   /** The author's recent posts (newest first) — the builder keeps the first 5. */
   posts: Pick<PublicBlogPostSummary, 'title' | 'slug' | 'publishedAt'>[];
+  /**
+   * The author's total published post count: the posts list `count` for
+   * `authorSlug`, not the length of one page.
+   */
   totalPosts: number;
 }): JsonLdObject | null {
   if (!author.name) {
@@ -103,7 +126,7 @@ export function createAuthorProfileJsonLd({
     normalizeUrl(author.linkedinUrl),
     normalizeUrl(author.githubUrl),
   ].filter((value): value is string => Boolean(value));
-  const authorId = `${canonical}#profile`;
+  const authorId = authorProfileId(canonical);
   const hasPart = posts
     .slice(0, 5)
     .map((post): JsonLdObject | null => {
@@ -156,6 +179,11 @@ export function createAuthorProfileJsonLd({
   }
 
   return profilePage;
+}
+
+/** The `Person` `@id` an author's profile page declares. */
+function authorProfileId(authorCanonical: string): string {
+  return `${authorCanonical}#profile`;
 }
 
 /** Trim + `https://`-prefix + `URL`-normalize; `null` for blank/invalid input. */
