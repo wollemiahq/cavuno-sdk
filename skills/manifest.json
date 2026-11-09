@@ -1,5 +1,5 @@
 {
-  "version": "4.64.0",
+  "version": "4.65.0",
   "skills": [
     {
       "name": "cavuno-board-account",
@@ -89,6 +89,13 @@
       "name": "cavuno-board-jobs",
       "description": "Job catalog reads with @cavuno/board. Use for job browse or search, job detail, similar jobs, candidate gating, or full-catalog iteration.",
       "path": "skills/cavuno-board-jobs/SKILL.md",
+      "framework": null,
+      "category": "core"
+    },
+    {
+      "name": "cavuno-board-mcp",
+      "description": "Serve the board's public MCP server at /mcp with @cavuno/board/mcp. Use when connecting a self-hosted board to Claude, ChatGPT, Cursor or another MCP client, or when /mcp or /mcp/docs returns 404 on the board's host.",
+      "path": "skills/cavuno-board-mcp/SKILL.md",
       "framework": null,
       "category": "core"
     },
