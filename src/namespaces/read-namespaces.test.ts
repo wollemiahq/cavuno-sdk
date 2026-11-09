@@ -78,6 +78,7 @@ describe('board.context()', () => {
         messaging: true,
         contactPage: true,
         placeSuggestions: false,
+        mcp: false,
       },
       analytics: {
         ga4MeasurementId: null,
