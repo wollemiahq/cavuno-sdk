@@ -134,6 +134,16 @@
         "default": "./dist/go.js"
       }
     },
+    "./mcp": {
+      "import": {
+        "types": "./dist/mcp.d.mts",
+        "default": "./dist/mcp.mjs"
+      },
+      "require": {
+        "types": "./dist/mcp.d.ts",
+        "default": "./dist/mcp.js"
+      }
+    },
     "./route-contract": {
       "import": {
         "types": "./dist/route-contract.d.mts",

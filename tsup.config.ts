@@ -9,6 +9,7 @@ const isomorphicEntries = {
   sitemap: 'src/sitemap/index.ts',
   paths: 'src/paths/index.ts',
   go: 'src/go/index.ts',
+  mcp: 'src/mcp/index.ts',
   'route-contract': 'src/route-contract/index.ts',
   'well-known': 'src/well-known/index.ts',
   analytics: 'src/analytics/index.ts',

@@ -1385,6 +1385,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/mcp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Call the board's MCP server
+         * @description The board's public Model Context Protocol server, over stateless Streamable HTTP: send JSON-RPC messages (`initialize`, `tools/list`, `tools/call`) as the request body. A board serves it on its own host at `/mcp`; this endpoint is what that route answers with. Its tools are read-only searches and reads of the board's published jobs, companies, categories, places and salary summaries, and return what the board shows any visitor who is not signed in. Requests are rate limited per visitor and per board; a limited request returns `429` with `Retry-After`.
+         */
+        post: operations["queryBoardMcpServer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/mcp/docs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieve the board's MCP server documentation page
+         * @description An HTML page describing the board's MCP server: its URL on the board's own host, how to add it to Claude, ChatGPT, Cursor and VS Code, and what each tool does. A board serves it at `/mcp/docs`. `HEAD` returns the same headers without a body.
+         */
+        get: operations["getBoardMcpDocs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/boards/{identifier}/me": {
         parameters: {
             query?: never;
@@ -13338,6 +13378,88 @@ export interface operations {
             };
             /** @description Location search is temporarily unavailable (`locations_unavailable`). */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    queryBoardMcpServer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description The JSON-RPC response, as JSON or as a server-sent event stream. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                    "text/event-stream": string;
+                };
+            };
+            /** @description The board has no MCP server (`board_mcp_not_found`): it is not on a paid plan, it is password-protected, or its server is turned off. An unknown board answers `boards_not_found`. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Too many requests from this visitor or to this board. Retry after the `Retry-After` seconds. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getBoardMcpDocs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The documentation page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": string;
+                };
+            };
+            /** @description The board has no MCP server (`board_mcp_not_found`): it is not on a paid plan, it is password-protected, or its server is turned off. An unknown board answers `boards_not_found`. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
