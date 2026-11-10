@@ -552,7 +552,7 @@ export interface paths {
         };
         /**
          * List a public board's active categories
-         * @description Returns localized, canonical taxonomy terms backed by published jobs on this board, each with its live `jobCount`. Canonical slug collisions are returned once. Default order is display name; pass `sort=jobCount` for a busiest-first page. Each category carries its `parentId`; pass `topLevel=true` for top-level categories only.
+         * @description Returns localized, canonical taxonomy terms backed by published jobs on this board, each with its live `jobCount`. Canonical slug collisions are returned once. Default order is display name; pass `sort=jobCount` for a busiest-first page. Each category carries its `parentId` and `totalJobCount`; pass `topLevel=true` for top-level categories only. A parent with no jobs of its own is listed when a descendant has one; `sort=totalJobCount` ranks it by its descendants' jobs.
          */
         get: operations["listBoardCategories"];
         put?: never;
@@ -8213,8 +8213,10 @@ export interface components {
             canonicalSlug: string;
             /** @description Board-language name with source-name fallback. */
             displayName: string;
-            /** @description Live published-job count for this term on the board. Maintained as jobs publish and expire — not a tally of the current list page. */
+            /** @description Live published-job count for this term on the board. Maintained as jobs publish and expire — not a tally of the current list page. For a category, only jobs tagged with the category itself, so a parent whose jobs all sit on its children has `0`; see `totalJobCount`. */
             jobCount: number;
+            /** @description Live jobs on this category or any descendant, each job once. Present on categories; equals `jobCount` for a category with no children. Absent on skills. */
+            totalJobCount?: number;
         };
         PublicVerifyBoardPasswordBody: {
             /** @description The board password. */
@@ -11050,8 +11052,8 @@ export interface operations {
                 /** @description Opaque forward cursor from the previous response. */
                 cursor?: string;
                 limit?: number;
-                /** @description Order of the filtered collection. `name` (default) is locale-aware display-name order. `jobCount` is live published-job count, highest first, with `name` as the tie-break. Bound into the opaque cursor. */
-                sort?: "name" | "jobCount";
+                /** @description Order of the filtered collection. `name` (default) is locale-aware display-name order. `jobCount` is the live published-job count tagged with the category itself, highest first; without `q` or `topLevel` it leaves out a parent with no jobs of its own. `totalJobCount` counts the jobs on each category and its descendants, highest first, and lists such parents. Ties break on `name`. Bound into the opaque cursor. */
+                sort?: "name" | "jobCount" | "totalJobCount";
                 /** @description When `true`, return only top-level categories (those with no parent). Combines with `q` and `sort`; bound into the opaque cursor. */
                 topLevel?: "true" | "false";
             };
