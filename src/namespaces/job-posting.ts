@@ -4,6 +4,7 @@ import type {
   CreateJobPostingInput,
   JobPostingBillingOptions,
   JobPostingBillingVerification,
+  JobPostingCheckoutStatus,
   JobPostingLogoResult,
   JobPostingPlan,
   JobPostingResult,
@@ -15,8 +16,11 @@ import type {
  * `plans()` lists the board's plans; the chosen plan's `id` goes in
  * `create({ submission: { selectedPlan } })`. `create` returns a
  * status-discriminated result — branch on `.status`: `checkout` (redirect the
- * poster to `.checkoutUrl`), `published`/`pending_approval`/`invoice_sent`
- * (done). A rejected submission throws a `BoardApiError`.
+ * poster to `.checkoutUrl`), `embedded_checkout` (mount Stripe Embedded
+ * Checkout with `.clientSecret`; ask for it with `checkoutUiMode:
+ * 'embedded_page'`), `published`/`pending_approval`/`invoice_sent` (done).
+ * After a checkout, `getCheckout(sessionId)` reads the outcome. A rejected
+ * submission throws a `BoardApiError`.
  */
 export function jobPostingNamespace(client: BoardClient) {
   return {
@@ -38,6 +42,24 @@ export function jobPostingNamespace(client: BoardClient) {
         method: 'POST',
         body: input,
       });
+    },
+
+    /**
+     * After a paid posting's checkout (`sessionId` from an `embedded_checkout`
+     * result, or `session_id` on the return URL): `awaiting_payment` until the
+     * payment is confirmed (poll briefly), `processing` while a bank payment
+     * clears, then `paid` or `payment_failed`, or `canceled` if the checkout
+     * expired. `jobStatus` and `jobUrl` say whether the job is live.
+     *
+     * @example
+     * const s = await board.jobPosting.getCheckout(sessionId);
+     * if (s.jobUrl) location.assign(s.jobUrl);
+     */
+    getCheckout(sessionId: string, options?: FetchOptions) {
+      return client.fetch<JobPostingCheckoutStatus>(
+        `/job-postings/checkout/${encodeURIComponent(sessionId)}`,
+        options,
+      );
     },
 
     /**
