@@ -557,6 +557,7 @@ export type {
   CreateJobPostingInput,
   JobPostingBillingOptions,
   JobPostingBillingVerification,
+  JobPostingCheckoutStatus,
   JobPostingLogoResult,
   JobPostingPlan,
   JobPostingResult,
