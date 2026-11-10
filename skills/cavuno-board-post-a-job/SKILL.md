@@ -5,7 +5,7 @@ description: Post a job publicly with @cavuno/board. Use for plan selection, log
 
 # Status-first job posting
 
-The public posting funnel is anonymous and rate-limited. Its invariant is status-first handling: `board.jobPosting.create` returns one of four success states, and the host follows that state. Rejected submissions throw `BoardApiError` instead.
+The public posting funnel is anonymous and rate-limited. Its invariant is status-first handling: `board.jobPosting.create` returns one of its success states, and the host follows that state. Rejected submissions throw `BoardApiError` instead.
 
 Employer dashboard job management belongs to `board.me.companies.jobs.*`. Candidate access payments belong to `cavuno-board-paywall`.
 
@@ -160,11 +160,59 @@ switch (result.status) {
 
 The mapping is:
 
-- paid Stripe plan → `checkout`;
+- paid Stripe plan → `checkout`, or `embedded_checkout` when you send `checkoutUiMode: 'embedded_page'`;
 - free or credited posting → `published`, or `pending_approval` on moderated boards;
 - invoice plan → `invoice_sent`.
 
-The checkout value is a URL for a host-owned full-page redirect. Payment publication happens by webhook; the SDK exposes no Stripe integration or publish-confirm method.
+`checkoutUrl` is a URL for a host-owned full-page redirect. Payment publication happens by webhook; the SDK exposes no Stripe integration or publish-confirm method.
+
+## Embedded checkout
+
+To keep the poster on your page, send `checkoutUiMode: 'embedded_page'`. A paid plan then returns `embedded_checkout` with everything Stripe.js needs. Load Stripe.js from `js.stripe.com` yourself; the SDK never bundles it.
+
+```ts no-check
+const result = await board.jobPosting.create({
+  submission,
+  checkoutUiMode: 'embedded_page',
+});
+
+if (result.status === 'embedded_checkout') {
+  const stripe = await loadStripe(result.publishableKey, {
+    stripeAccount: result.stripeAccountId,
+  });
+  const checkout = await stripe.initEmbeddedCheckout({
+    clientSecret: result.clientSecret,
+    onComplete: () => showPaid(result.sessionId),
+  });
+  checkout.mount('#checkout');
+}
+```
+
+Cards finish in place and fire `onComplete`. Payment methods that need a redirect still return to the board's `/post/success`, so that page must exist in both modes.
+
+## Checkout outcome
+
+After either checkout, read what happened with the session id: `sessionId` from `embedded_checkout`, or `session_id` on the `/post/success` return URL. `awaiting_payment` lasts until the payment webhook lands, so poll briefly. `processing` means a bank payment is still clearing and can take days; `payment_failed` means it failed. `jobStatus` and `jobUrl` say whether the job is live.
+
+```ts snippet
+const outcome = await board.jobPosting.getCheckout(sessionId);
+
+switch (outcome.status) {
+  case 'paid':
+    if (outcome.jobUrl) linkToJob(outcome.jobUrl);
+    break;
+  case 'processing':
+    showPaymentProcessing(outcome.jobTitle);
+    break;
+  case 'awaiting_payment':
+    retrySoon();
+    break;
+  case 'payment_failed':
+  case 'canceled':
+    offerToPostAgain();
+    break;
+}
+```
 
 ## Verified existing credit
 
@@ -200,8 +248,9 @@ Bare-email billing lookup is intentionally absent because it would expose whethe
 ## Completion gate
 
 - The form renders `forms.job` in order: hidden entries are absent, required and locked entries block submit while empty, and an unknown built-in key is skipped.
-- Every `create` call handles all four statuses.
-- Paid checkout redirects through `checkoutUrl`; the job appears only after webhook completion.
+- Every `create` call handles every status it can return (`embedded_checkout` only with `checkoutUiMode: 'embedded_page'`).
+- Paid checkout redirects through `checkoutUrl` or mounts `clientSecret`; the job appears only after webhook completion.
+- The return page reads `getCheckout(sessionId)` and tells `paid` from `processing`.
 - Free unmoderated submission returns a resolving `jobSlug`.
 - Missing domain logos leave submission usable without `logoUrl`.
 - Existing credit is selectable only after token verification.
