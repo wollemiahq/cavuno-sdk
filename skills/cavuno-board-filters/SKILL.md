@@ -112,18 +112,26 @@ const categoryOptions = categories.data.map((term) => ({
 }));
 ```
 
-For homepage "browse by category" tiles, ask for the busiest terms rather
-than the first page of the name-sorted collection:
+Categories also carry `totalJobCount`: published jobs on the category or
+any subcategory, each job once. A parent category page lists its
+subcategories' jobs, so show `totalJobCount` next to category links. A parent
+whose jobs all sit in subcategories has `jobCount` 0 and is still listed.
+
+For homepage "browse by category" tiles, ask for the busiest top-level
+categories rather than the first page of the name-sorted collection:
 
 ```ts snippet
 const top = await board.taxonomy.categories.list({
+  topLevel: true,
   limit: 8,
-  sort: 'jobCount',
+  sort: 'totalJobCount',
 });
 ```
 
 Category and skill lists accept `q`, `limit` (1–100), `sort` (`name` or
-`jobCount`), and opaque `cursor`. Pass `nextCursor` unchanged to the next
+`jobCount`; categories also `totalJobCount`), and opaque `cursor`. With
+`sort: 'jobCount'` and no `q` or `topLevel`, a parent with no jobs of its own
+is left out; `totalJobCount` includes it. Pass `nextCursor` unchanged to the next
 request. The cursor is bound to `q`, `limit`, and `sort`.
 
 ```ts snippet
