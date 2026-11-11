@@ -8377,6 +8377,8 @@ export interface components {
             ancestors?: components["schemas"]["PublicPlaceAncestor"][];
             /** @description The distance in kilometres the jobs search applies around this place when no `radius` is passed: a city or locality with coordinates gets the market default (25 miles, 40.2336 km, in the US, GB, LR and MM; 50 km elsewhere), applied with `defaultRadius=true`; a suggested place gets its own default for its size, with or without `defaultRadius`. Absent for regions, countries, places without coordinates, and categories and skills. Show it as the selected distance when the visitor has not picked one. */
             defaultRadiusKm?: number;
+            /** @description The number of the board's companies tagged with this market. Present on market resolutions only. The board's sitemap lists a market page only when this is at least 5; emit `noindex, follow` on the plain market page below 5 so the two agree. */
+            companyCount?: number;
         };
         PublicTaxonomyTerm: {
             /** @enum {string} */
