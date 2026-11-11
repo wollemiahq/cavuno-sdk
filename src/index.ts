@@ -7,6 +7,7 @@ import {
 import { DEFAULT_CAVUNO_API_URL } from './constants';
 import { authNamespace } from './namespaces/auth';
 import { blogNamespace } from './namespaces/blog';
+import { collectionsNamespace } from './namespaces/collections';
 import { companiesNamespace } from './namespaces/companies';
 import { embedNamespace } from './namespaces/embed';
 import { invitesNamespace } from './namespaces/invites';
@@ -112,6 +113,7 @@ export function createBoardClient(options: CreateBoardClientOptions) {
     embed: embedNamespace(client),
     companies: companiesNamespace(client),
     blog: blogNamespace(client),
+    collections: collectionsNamespace(client),
     auth: authNamespace(client, options.board),
     me: meNamespace(client),
     invites: invitesNamespace(client),
@@ -252,6 +254,11 @@ export type {
 } from './types/invites';
 export type { MarketingConsent } from './types/marketing-consent';
 export type { RedirectResolution } from './types/redirects';
+export type {
+  PublicCollectionEntriesQuery,
+  PublicCollectionEntry,
+  PublicCollectionEntryList,
+} from './types/collections';
 export type { ApplyIntent, CreateApplyIntentBody } from './types/apply-intents';
 export type {
   ApplyApprovalPlan,
@@ -419,6 +426,8 @@ export type {
   Message,
   ModerationReport,
   NotificationPreference,
+  MyCandidateProfileFieldValues,
+  ProfileFieldMedia,
   ProfileFieldValues,
   ProfileObjectReferenceSelectionWrite,
   ProfileObjectReferences,

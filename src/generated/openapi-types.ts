@@ -583,6 +583,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/collections/{key}/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the entries of a public collection
+         * @description Active entries of a collection the operator made public, sorted by name. Only public fields are included. A collection that does not exist, is archived, or is not public returns 404 `collections_not_found`.
+         */
+        get: operations["listPublicCollectionEntries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/boards/{identifier}/companies": {
         parameters: {
             query?: never;
@@ -3229,6 +3249,26 @@ export interface paths {
          * @description Additive update of owner-editable candidate profile values. Omitted and non-editable keys are preserved; null, blank strings, and empty arrays clear a value; false and 0 are preserved.
          */
         patch: operations["updateMyCandidateCustomFieldValues"];
+        trace?: never;
+    };
+    "/boards/{identifier}/me/profile/custom-fields/{fieldKey}/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload a file to one of my profile custom fields
+         * @description Uploads one file (`multipart/form-data`, field `file`, up to 10 MB) to an `image_gallery` or `file` field of the authenticated candidate’s profile. Gallery fields take JPEG, PNG, WebP or GIF images; images are re-encoded. The file is a draft until its `id` is saved to the field with `PATCH /me/profile/custom-fields`, where the value is the ordered list of file IDs (at most 10 images, or one file). Drafts never saved are deleted after 24 hours. Never cached.
+         */
+        post: operations["uploadBoardMeProfileCustomFieldFile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/boards/{identifier}/me/profile/education": {
@@ -7027,6 +7067,12 @@ export interface components {
             /** @description The target stage id. */
             stageId: string;
         };
+        MyCandidateProfileFieldValuesResponse: components["schemas"]["ProfileFieldValuesResponse"] & {
+            /** @description Resolved files for the candidate’s saved `image_gallery` and `file` values, keyed by field key like `values`, in the stored order, including private fields. Each file `id` matches a value in `values`. `url` is a signed link for the profile owner that expires after at least 24 hours, so read it from the response rather than storing it. Unsaved uploads are not listed. Fields with no files are omitted. */
+            customFieldMedia: {
+                [key: string]: components["schemas"]["ProfileFieldMedia"][];
+            };
+        };
         MyItemVerification: components["schemas"]["ItemVerification"] & {
             /** @description The verification's id. For an item with no verification yet (`unverified`), its `itemKey`. */
             id?: string;
@@ -7714,6 +7760,84 @@ export interface components {
                 /** @description YouTube channel URL (`https://www.youtube.com/...`). Null when unset or invalid. */
                 youtubeUrl: string | null;
             };
+        };
+        PublicCollectionEntry: {
+            /** @description The entry's ID. */
+            id: string;
+            /** @description The entry's name. */
+            name: string;
+            /** @description URL-safe identifier, unique within the collection. Changing it keeps the previous value reserved. */
+            slug?: string;
+            /** @description The entry's logo: the image in the collection's logo field when that field is public, or a legacy logo URL on older entries. Absent when the entry has neither. */
+            logoUrl?: string;
+            /** @description The collection's public field definitions in display order. Take labels and select options from here. */
+            fields: {
+                key: string;
+                label: string;
+                /** @enum {string} */
+                type: "short_text" | "long_text" | "rich_text" | "single_select" | "multi_select" | "boolean" | "number" | "date" | "url" | "email" | "phone" | "image" | "image_gallery" | "file" | "reference";
+                helpText?: string;
+                options?: {
+                    key: string;
+                    label: string;
+                }[];
+            }[];
+            /** @description The entry's values, keyed by public field key. Media values are `{ id, name, contentType, sizeBytes, url }` objects (an array for an image gallery). Reference values are in `references` instead. A field with no value is absent. */
+            values: {
+                [key: string]: string | string[] | boolean | number | {
+                    id: string;
+                    name: string;
+                    contentType: string;
+                    sizeBytes: number;
+                    url: string;
+                } | {
+                    id: string;
+                    name: string;
+                    contentType: string;
+                    sizeBytes: number;
+                    url: string;
+                }[];
+            };
+            /** @description Entries that public reference fields point at, keyed by field key. Always an array, even for a single reference. */
+            references?: {
+                [key: string]: {
+                    id: string;
+                    name: string;
+                    /** @description URL-safe identifier, unique within the collection. Changing it keeps the previous value reserved. */
+                    slug?: string;
+                    fields: {
+                        key: string;
+                        label: string;
+                        /** @enum {string} */
+                        type: "short_text" | "long_text" | "rich_text" | "single_select" | "multi_select" | "boolean" | "number" | "date" | "url" | "email" | "phone" | "image" | "image_gallery" | "file" | "reference";
+                        helpText?: string;
+                        options?: {
+                            key: string;
+                            label: string;
+                        }[];
+                    }[];
+                    values: {
+                        [key: string]: string | string[] | boolean | number | {
+                            id: string;
+                            name: string;
+                            contentType: string;
+                            sizeBytes: number;
+                            url: string;
+                        } | {
+                            id: string;
+                            name: string;
+                            contentType: string;
+                            sizeBytes: number;
+                            url: string;
+                        }[];
+                    };
+                }[];
+            };
+        };
+        PublicCollectionEntryList: {
+            data: components["schemas"]["PublicCollectionEntry"][];
+            /** @description Pass as `cursor` for the next page; null on the last page. */
+            nextCursor: string | null;
         };
         PublicCompaniesSearchBody: {
             /** @description Free-text search query matched against company name. Up to 200 characters. */
@@ -9075,6 +9199,10 @@ export interface components {
             customFieldValues: {
                 [key: string]: string | number | boolean | string[];
             };
+            /** @description Resolved files for public `image_gallery` and `file` candidate custom fields, keyed by field key like `customFieldValues`, in the stored order. Each file `id` matches a value in `customFieldValues`. `url` is a signed link that expires after at least 24 hours. Anyone holding it can load the file until then, or until the profile is hidden, the field made private or the board password changed, so read it from the response rather than storing or sharing it. The candidate’s own read returns owner links instead, which also load while the profile is hidden or the field is private. Empty on redacted previews, and on an `employers_only` board for viewers other than approved employers and the candidate. Fields with no files are omitted. */
+            customFieldMedia: {
+                [key: string]: components["schemas"]["ProfileFieldMedia"][];
+            };
             objectReferences: components["schemas"]["ResolvedProfileObjectReference"][];
             /**
              * @description Roughly when the candidate was last active on the board: `today` (within 24 hours), `this_week` (7 days), `this_month` (30 days), `last_3_months` (90 days) or `over_3_months`, counted back from the request. Only returned to a signed-in employer on this board, and only when the candidate’s job search status is `actively_looking` or `open_to_offers`; `null` otherwise. The exact time is never exposed.
@@ -9183,6 +9311,10 @@ export interface components {
             /** @description Values for public candidate custom fields, keyed by field key. Private and unknown fields are omitted. */
             customFieldValues: {
                 [key: string]: string | number | boolean | string[];
+            };
+            /** @description Resolved files for public `image_gallery` and `file` candidate custom fields, keyed by field key like `customFieldValues`, in the stored order. Each file `id` matches a value in `customFieldValues`. `url` is a signed link that expires after at least 24 hours. Anyone holding it can load the file until then, or until the profile is hidden, the field made private or the board password changed, so read it from the response rather than storing or sharing it. The candidate’s own read returns owner links instead, which also load while the profile is hidden or the field is private. Empty on redacted previews, and on an `employers_only` board for viewers other than approved employers and the candidate. Fields with no files are omitted. */
+            customFieldMedia: {
+                [key: string]: components["schemas"]["ProfileFieldMedia"][];
             };
             objectReferences: components["schemas"]["ResolvedProfileObjectReference"][];
             /**
@@ -11174,6 +11306,45 @@ export interface operations {
             };
             /** @description Public board not found, or the taxonomy slug does not resolve. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listPublicCollectionEntries: {
+        parameters: {
+            query?: {
+                /** @description The `nextCursor` from the previous page. */
+                cursor?: string;
+                /** @description Entries per page, 1 to 100. Defaults to 25. */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                /** @description The collection's key, as the operator set it. Only a collection the operator made public is readable. */
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of active entries with their public field values. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicCollectionEntryList"];
+                };
+            };
+            /** @description An error. Every non-2xx response uses the same envelope; see the Errors section of the introduction. */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -20789,13 +20960,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Profile custom-field definitions and current values. */
+            /** @description Profile custom-field definitions, current values, and resolved files. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProfileFieldValuesResponse"];
+                    "application/json": components["schemas"]["MyCandidateProfileFieldValuesResponse"];
                 };
             };
             /** @description A valid board-user access token is required. */
@@ -20852,13 +21023,13 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Profile custom-field definitions and current values. */
+            /** @description Profile custom-field definitions, current values, and resolved files. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProfileFieldValuesResponse"];
+                    "application/json": components["schemas"]["MyCandidateProfileFieldValuesResponse"];
                 };
             };
             /** @description A valid board-user access token is required. */
@@ -20881,6 +21052,101 @@ export interface operations {
             };
             /** @description Board not found. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    uploadBoardMeProfileCustomFieldFile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                /** @description Key of an `image_gallery` or `file` candidate profile field that the profile owner can edit. */
+                fieldKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The uploaded draft file. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileFieldMedia"];
+                };
+            };
+            /** @description Missing, empty or unreadable file (`validation_bad_request`). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A valid board-user access token is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No candidate profile (`candidate_profile_required`), or the field is not owner-editable (`candidate_custom_field_not_editable`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board not found, or no upload field with this key (`candidate_custom_field_not_found`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description File over 10 MB (`media_payload_too_large`, or `validation_payload_too_large` for the whole request). */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Unsupported file type (`media_unsupported_type`). */
+            415: {
                 headers: {
                     [name: string]: unknown;
                 };

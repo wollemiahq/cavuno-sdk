@@ -205,6 +205,18 @@ export type HandleAvailability = Schemas['HandleAvailability'];
 
 /** Profile custom-field definitions and current values. */
 export type ProfileFieldValues = Schemas['ProfileFieldValuesResponse'];
+/**
+ * My candidate profile custom fields: definitions, current values, and the
+ * saved files of upload fields as `customFieldMedia`.
+ */
+export type MyCandidateProfileFieldValues =
+  Schemas['MyCandidateProfileFieldValuesResponse'];
+/**
+ * One profile-field file: the result of
+ * `board.me.profile.uploadCustomFieldFile(fieldKey, file)` and an entry of
+ * `customFieldMedia`.
+ */
+export type ProfileFieldMedia = Schemas['ProfileFieldMedia'];
 /** Additive update body for owner-editable profile custom fields. */
 export type UpdateProfileFieldValuesBody = Schemas['ProfileFieldValuesBody'];
 

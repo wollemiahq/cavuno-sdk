@@ -67,6 +67,8 @@ import type {
   ModerationReport,
   MoveApplicantStageBody,
   NotificationPreference,
+  MyCandidateProfileFieldValues,
+  ProfileFieldMedia,
   ProfileFieldValues,
   ItemVerification,
   MyItemVerification,
@@ -296,11 +298,15 @@ export function meNamespace(client: BoardClient) {
         });
       },
 
-      /** Retrieve my profile custom-field definitions and current values. */
+      /**
+       * Retrieve my profile custom-field definitions, current values, and the
+       * saved files of upload fields (`customFieldMedia`).
+       */
       retrieveCustomFields(options?: FetchOptions) {
-        return client.fetch<ProfileFieldValues>('/me/profile/custom-fields', {
-          ...options,
-        });
+        return client.fetch<MyCandidateProfileFieldValues>(
+          '/me/profile/custom-fields',
+          { ...options },
+        );
       },
 
       /** Additively update my editable candidate profile custom fields. */
@@ -308,11 +314,14 @@ export function meNamespace(client: BoardClient) {
         body: UpdateProfileFieldValuesBody,
         options?: FetchOptions,
       ) {
-        return client.fetch<ProfileFieldValues>('/me/profile/custom-fields', {
-          ...options,
-          method: 'PATCH',
-          body,
-        });
+        return client.fetch<MyCandidateProfileFieldValues>(
+          '/me/profile/custom-fields',
+          {
+            ...options,
+            method: 'PATCH',
+            body,
+          },
+        );
       },
 
       /** Retrieve editable catalog references on my candidate profile. */
@@ -542,6 +551,31 @@ export function meNamespace(client: BoardClient) {
           method: 'POST',
           body: form,
         });
+      },
+
+      /**
+       * Upload one file to an owner-editable `image_gallery` or `file` field
+       * of my profile (up to 10 MB; galleries take JPEG, PNG, WebP or GIF).
+       * The file is a draft until its `id` is saved to the field with
+       * `updateCustomFields`, as the ordered list of file IDs.
+       *
+       * @example
+       * const image = await board.me.profile.uploadCustomFieldFile('portfolio', file);
+       * await board.me.profile.updateCustomFields({
+       *   values: { portfolio: [...savedIds, image.id] },
+       * });
+       */
+      uploadCustomFieldFile(
+        fieldKey: string,
+        file: Blob,
+        options?: FetchOptions,
+      ) {
+        const form = new FormData();
+        form.append('file', file);
+        return client.fetch<ProfileFieldMedia>(
+          `/me/profile/custom-fields/${encodeURIComponent(fieldKey)}/files`,
+          { ...options, method: 'POST', body: form },
+        );
       },
     },
 
