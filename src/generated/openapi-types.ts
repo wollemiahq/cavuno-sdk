@@ -583,6 +583,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/collections/{key}/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the entries of a public collection
+         * @description Active entries of a collection the operator made public, sorted by name. Only public fields are included. A collection that does not exist, is archived, or is not public returns 404 `collections_not_found`.
+         */
+        get: operations["listPublicCollectionEntries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/boards/{identifier}/companies": {
         parameters: {
             query?: never;
@@ -7715,6 +7735,84 @@ export interface components {
                 youtubeUrl: string | null;
             };
         };
+        PublicCollectionEntry: {
+            /** @description The entry's ID. */
+            id: string;
+            /** @description The entry's name. */
+            name: string;
+            /** @description URL-safe identifier, unique within the collection. Changing it keeps the previous value reserved. */
+            slug?: string;
+            /** @description The entry's logo: the image in the collection's logo field when that field is public, or a legacy logo URL on older entries. Absent when the entry has neither. */
+            logoUrl?: string;
+            /** @description The collection's public field definitions in display order. Take labels and select options from here. */
+            fields: {
+                key: string;
+                label: string;
+                /** @enum {string} */
+                type: "short_text" | "long_text" | "rich_text" | "single_select" | "multi_select" | "boolean" | "number" | "date" | "url" | "email" | "phone" | "image" | "image_gallery" | "file" | "reference";
+                helpText?: string;
+                options?: {
+                    key: string;
+                    label: string;
+                }[];
+            }[];
+            /** @description The entry's values, keyed by public field key. Media values are `{ id, name, contentType, sizeBytes, url }` objects (an array for an image gallery). Reference values are in `references` instead. A field with no value is absent. */
+            values: {
+                [key: string]: string | string[] | boolean | number | {
+                    id: string;
+                    name: string;
+                    contentType: string;
+                    sizeBytes: number;
+                    url: string;
+                } | {
+                    id: string;
+                    name: string;
+                    contentType: string;
+                    sizeBytes: number;
+                    url: string;
+                }[];
+            };
+            /** @description Entries that public reference fields point at, keyed by field key. Always an array, even for a single reference. */
+            references?: {
+                [key: string]: {
+                    id: string;
+                    name: string;
+                    /** @description URL-safe identifier, unique within the collection. Changing it keeps the previous value reserved. */
+                    slug?: string;
+                    fields: {
+                        key: string;
+                        label: string;
+                        /** @enum {string} */
+                        type: "short_text" | "long_text" | "rich_text" | "single_select" | "multi_select" | "boolean" | "number" | "date" | "url" | "email" | "phone" | "image" | "image_gallery" | "file" | "reference";
+                        helpText?: string;
+                        options?: {
+                            key: string;
+                            label: string;
+                        }[];
+                    }[];
+                    values: {
+                        [key: string]: string | string[] | boolean | number | {
+                            id: string;
+                            name: string;
+                            contentType: string;
+                            sizeBytes: number;
+                            url: string;
+                        } | {
+                            id: string;
+                            name: string;
+                            contentType: string;
+                            sizeBytes: number;
+                            url: string;
+                        }[];
+                    };
+                }[];
+            };
+        };
+        PublicCollectionEntryList: {
+            data: components["schemas"]["PublicCollectionEntry"][];
+            /** @description Pass as `cursor` for the next page; null on the last page. */
+            nextCursor: string | null;
+        };
         PublicCompaniesSearchBody: {
             /** @description Free-text search query matched against company name. Up to 200 characters. */
             query?: string;
@@ -11174,6 +11272,45 @@ export interface operations {
             };
             /** @description Public board not found, or the taxonomy slug does not resolve. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listPublicCollectionEntries: {
+        parameters: {
+            query?: {
+                /** @description The `nextCursor` from the previous page. */
+                cursor?: string;
+                /** @description Entries per page, 1 to 100. Defaults to 25. */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                /** @description The collection's key, as the operator set it. Only a collection the operator made public is readable. */
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of active entries with their public field values. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicCollectionEntryList"];
+                };
+            };
+            /** @description An error. Every non-2xx response uses the same envelope; see the Errors section of the introduction. */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
