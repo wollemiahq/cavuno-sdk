@@ -11,10 +11,14 @@ export type CreateJobPostingInput = Schemas['CreateJobPostingBody'];
 
 /**
  * The status-discriminated outcome of a submission: `checkout` (a Stripe
- * Checkout URL to redirect to), `published`, `pending_approval`, or
+ * Checkout URL to redirect to), `embedded_checkout` (a client secret for
+ * Stripe Embedded Checkout), `published`, `pending_approval`, or
  * `invoice_sent`. A rejected submission throws a `BoardApiError` instead.
  */
 export type JobPostingResult = Schemas['JobPostingResult'];
+
+/** The result of `getCheckout(sessionId)`: payment and job state after checkout. */
+export type JobPostingCheckoutStatus = Schemas['JobPostingCheckoutStatus'];
 
 /**
  * The result of `uploadLogo()` / `fetchLogoByDomain()`: a stored logo whose

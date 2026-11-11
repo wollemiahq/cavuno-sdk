@@ -30,7 +30,7 @@ function taxonomyResolver(
 }
 
 function taxonomyCollection<
-  Query extends TaxonomyListQuery = TaxonomyListQuery,
+  Query extends Omit<TaxonomyListQuery, 'sort'> = TaxonomyListQuery,
 >(client: BoardClient, kind: 'categories' | 'skills') {
   return {
     ...taxonomyResolver(client, kind),

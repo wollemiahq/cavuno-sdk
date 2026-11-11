@@ -77,6 +77,22 @@ describe('board.jobPosting', () => {
     expect(returned).toEqual(result);
   });
 
+  it('getCheckout() GETs the encoded session id under /job-postings/checkout', async () => {
+    const result = {
+      object: 'job_posting_checkout_status',
+      status: 'processing',
+      jobId: 'jobs_1',
+      jobTitle: 'Robotics Engineer',
+      jobStatus: 'unpublished',
+      jobUrl: null,
+    };
+    const spy = stubFetch(result);
+    const returned = await board().jobPosting.getCheckout('cs_test/a b');
+    expect(url(spy)).toBe(`${BASE}/job-postings/checkout/cs_test%2Fa%20b`);
+    expect(init(spy).method).toBe('GET');
+    expect(returned).toEqual(result);
+  });
+
   it('uploadLogo() POSTs the file as multipart form-data (no JSON content-type)', async () => {
     const result = {
       object: 'job_posting_logo',

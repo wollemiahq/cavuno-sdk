@@ -552,7 +552,7 @@ export interface paths {
         };
         /**
          * List a public board's active categories
-         * @description Returns localized, canonical taxonomy terms backed by published jobs on this board, each with its live `jobCount`. Canonical slug collisions are returned once. Default order is display name; pass `sort=jobCount` for a busiest-first page. Each category carries its `parentId`; pass `topLevel=true` for top-level categories only.
+         * @description Returns localized, canonical taxonomy terms backed by published jobs on this board, each with its live `jobCount`. Canonical slug collisions are returned once. Default order is display name; pass `sort=jobCount` for a busiest-first page. Each category carries its `parentId` and `totalJobCount`; pass `topLevel=true` for top-level categories only. A parent with no jobs of its own is listed when a descendant has one; `sort=totalJobCount` ranks it by its descendants' jobs.
          */
         get: operations["listBoardCategories"];
         put?: never;
@@ -1056,7 +1056,7 @@ export interface paths {
         put?: never;
         /**
          * Submit a job posting
-         * @description Submit a job to the board's public funnel. Billing is chosen server-side from `selectedPlan`/`selectedBilling`, returning a status-discriminated result: `checkout` (a hosted checkout URL), `published`, `pending_approval`, or `invoice_sent`. A rejected submission (board closed, plan/quota, custom-field violation) returns a real HTTP error, not a 200.
+         * @description Submit a job to the board's public funnel. Billing is chosen server-side from `selectedPlan`/`selectedBilling`, returning a status-discriminated result: `checkout` (a hosted checkout URL), `embedded_checkout` (a client secret for Stripe Embedded Checkout, when `checkoutUiMode` is `embedded_page`), `published`, `pending_approval`, or `invoice_sent`. A rejected submission (board closed, plan/quota, custom-field violation) returns a real HTTP error, not a 200. After a checkout, read the outcome with `GET /job-postings/checkout/{sessionId}`.
          */
         post: operations["createBoardJobPosting"];
         delete?: never;
@@ -1079,6 +1079,26 @@ export interface paths {
          * @description List billing/credit options for a verified email through the board's billing workflow.
          */
         post: operations["createBoardJobPostingsBillingOption"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/job-postings/checkout/{sessionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a job-posting checkout
+         * @description The outcome of a paid job posting after Stripe returns the poster: whether the payment went through, is still processing, or expired, and whether the job is live. Only the browser that holds the Checkout Session id can read it. Never cached.
+         */
+        get: operations["getBoardJobPostingsCheckout"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5865,6 +5885,11 @@ export interface components {
                 }[];
             };
             colorMode?: string;
+            /**
+             * @description How a paid plan is checked out. `hosted_page` (the default) returns `status: checkout` with a Stripe-hosted `checkoutUrl`. `embedded_page` returns `status: embedded_checkout` with a client secret to mount Stripe Embedded Checkout on your own page; cards complete in place, and payment methods that need a redirect return to the board origin's `/post/success`.
+             * @enum {string}
+             */
+            checkoutUiMode?: "hosted_page" | "embedded_page";
         };
         CreatePipelineStageBody: {
             /** @description The job whose pipeline gains the stage. */
@@ -6697,6 +6722,24 @@ export interface components {
             object: "job_posting_billing_verification";
             success: boolean;
         };
+        JobPostingCheckoutStatus: {
+            /** @enum {string} */
+            object: "job_posting_checkout_status";
+            /**
+             * @description `awaiting_payment` until Stripe confirms the payment to Cavuno, usually within seconds (poll briefly), `processing` while a delayed payment such as a bank debit clears (days), `paid` once it has, `payment_failed` when that delayed payment failed (the job stays a draft until a new checkout is paid), `canceled` when the checkout expired unpaid.
+             * @enum {string}
+             */
+            status: "awaiting_payment" | "processing" | "paid" | "payment_failed" | "canceled";
+            jobId: string;
+            jobTitle: string;
+            /**
+             * @description `published` once the job is live, `pending_approval` while the board reviews it, `unpublished` otherwise (before payment, or taken down).
+             * @enum {string}
+             */
+            jobStatus: "published" | "pending_approval" | "unpublished";
+            /** @description `published` only: the job's public URL on the board. */
+            jobUrl: string | null;
+        };
         JobPostingLogo: {
             /** @enum {string} */
             object: "job_posting_logo";
@@ -6735,6 +6778,19 @@ export interface components {
             /** @enum {string} */
             status: "checkout";
             checkoutUrl: string;
+            jobId: string;
+        } | {
+            /** @enum {string} */
+            object: "job_posting_result";
+            /** @enum {string} */
+            status: "embedded_checkout";
+            /** @description The Checkout Session client secret for `stripe.initEmbeddedCheckout`. The session expires after 24 hours unless paid. */
+            clientSecret: string;
+            sessionId: string;
+            /** @description The board's connected Stripe account; pass it as `stripeAccount` to `loadStripe`. */
+            stripeAccountId: string;
+            /** @description The Stripe publishable key for `loadStripe`. */
+            publishableKey: string;
             jobId: string;
         } | {
             /** @enum {string} */
@@ -8213,8 +8269,10 @@ export interface components {
             canonicalSlug: string;
             /** @description Board-language name with source-name fallback. */
             displayName: string;
-            /** @description Live published-job count for this term on the board. Maintained as jobs publish and expire — not a tally of the current list page. */
+            /** @description Live published-job count for this term on the board. Maintained as jobs publish and expire — not a tally of the current list page. For a category, only jobs tagged with the category itself, so a parent whose jobs all sit on its children has `0`; see `totalJobCount`. */
             jobCount: number;
+            /** @description Live jobs on this category or any descendant, each job once. Present on categories; equals `jobCount` for a category with no children. Absent on skills. */
+            totalJobCount?: number;
         };
         PublicVerifyBoardPasswordBody: {
             /** @description The board password. */
@@ -11050,8 +11108,8 @@ export interface operations {
                 /** @description Opaque forward cursor from the previous response. */
                 cursor?: string;
                 limit?: number;
-                /** @description Order of the filtered collection. `name` (default) is locale-aware display-name order. `jobCount` is live published-job count, highest first, with `name` as the tie-break. Bound into the opaque cursor. */
-                sort?: "name" | "jobCount";
+                /** @description Order of the filtered collection. `name` (default) is locale-aware display-name order. `jobCount` is the live published-job count tagged with the category itself, highest first; without `q` or `topLevel` it leaves out a parent with no jobs of its own. `totalJobCount` counts the jobs on each category and its descendants, highest first, and lists such parents. Ties break on `name`. Bound into the opaque cursor. */
+                sort?: "name" | "jobCount" | "totalJobCount";
                 /** @description When `true`, return only top-level categories (those with no parent). Combines with `q` and `sort`; bound into the opaque cursor. */
                 topLevel?: "true" | "false";
             };
@@ -12517,6 +12575,49 @@ export interface operations {
                 };
             };
             /** @description Rate limited (the board_auth bucket; send-verification also has a tighter per-IP email throttle). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getBoardJobPostingsCheckout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                /** @description The Stripe Checkout Session id: `sessionId` from an `embedded_checkout` result, or `session_id` on the return URL. */
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobPostingCheckoutStatus"];
+                };
+            };
+            /** @description Public board not found, or the session is not one of this board's job checkouts (`job_posting_checkout_not_found`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Per-IP throttle exceeded. */
             429: {
                 headers: {
                     [name: string]: unknown;
