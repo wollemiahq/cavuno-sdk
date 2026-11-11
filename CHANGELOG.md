@@ -3,6 +3,23 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.67.0 — 2026-11-11
+
+- Job seekers can fill their own image gallery and file profile fields: new
+  `board.me.profile.uploadCustomFieldFile(fieldKey, file)` uploads one file
+  (up to 10 MB; galleries take JPEG, PNG, WebP or GIF) to a field the profile
+  owner can edit and returns it as a draft. Save its `id` with
+  `board.me.profile.updateCustomFields` to attach it; drafts never saved are
+  deleted after 24 hours. New error codes `candidate_custom_field_not_found`
+  (404) and `candidate_custom_field_not_editable` (403).
+- Talent profile and directory reads, and the job seeker's own custom-field
+  reads, return `customFieldMedia`: the files of public image gallery and file
+  fields with signed links that expire after at least 24 hours. Redacted
+  previews return none.
+- New `board.collections.entries(key)` lists the active entries of a
+  collection the operator made public, with only its public fields. A
+  collection that is not public returns `collections_not_found`.
+
 ## 4.66.0 — 2026-11-11
 
 - Embedded checkout for paid job postings: send `checkoutUiMode:
