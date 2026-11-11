@@ -3,6 +3,37 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.66.0 — 2026-11-11
+
+- Embedded checkout for paid job postings: send `checkoutUiMode:
+  'embedded_page'` to `board.jobPosting.submit` and a paid plan returns
+  `status: 'embedded_checkout'` with the `clientSecret`, publishable key and
+  connected account to mount Stripe Embedded Checkout. `hosted_page` stays
+  the default.
+- New `board.jobPosting.getCheckout(sessionId)` reads a posting's checkout
+  outcome: `awaiting_payment`, `processing`, `paid`, `payment_failed` or
+  `canceled`, with `jobStatus` and, once live, `jobUrl`. It answers
+  `GET /boards/{identifier}/job-postings/checkout/{sessionId}`, and an unknown
+  session returns `job_posting_checkout_not_found`.
+- Categories carry `totalJobCount`, the published jobs on the category or any
+  subcategory, each job once. `board.taxonomy.categories.list` accepts
+  `sort: 'totalJobCount'`, which also lists a parent with no jobs of its own.
+  A parent category is listed while any subcategory has published jobs.
+- `GET`, `PUT` and `DELETE /sdk-frontend` register the URL your own frontend
+  serves the board on, so board links, auth emails, OAuth completion and
+  checkout returns point at it.
+- `GET /contacts`, `GET /contacts/{id}`, `GET /contacts/{id}/emails` and
+  `GET /contacts/{id}/activity` read the board's contacts, their emails and
+  their activity.
+- `GET /domains/{id}/dns` checks a domain's live DNS records.
+- `GET /settings` and `PATCH /settings` take `mcpEnabled` and
+  `mcpDisabledTools`, to switch the board's MCP server off or leave out
+  individual tools.
+- `GET /taxonomies/retag` and `POST /taxonomies/retag` re-tag live jobs (or,
+  for markets, companies with live jobs) against a list the board manages,
+  once every 24 hours per list. `/taxonomies/settings` takes
+  `listDescription`, one sentence on what each list means.
+
 ## 4.65.0 — 2026-11-09
 
 - Board MCP server: every board on a plan with API access serves a public,

@@ -24,7 +24,13 @@ export type TaxonomyListQuery = {
 };
 
 /** Query for `taxonomy.categories.list()`. */
-export type CategoryListQuery = TaxonomyListQuery & {
+export type CategoryListQuery = Omit<TaxonomyListQuery, 'sort'> & {
+  /**
+   * `name` (default), `jobCount` (jobs tagged with the category itself), or
+   * `totalJobCount` (jobs on the category and its subcategories, which also
+   * lists a parent with no jobs of its own). Highest count first.
+   */
+  sort?: 'name' | 'jobCount' | 'totalJobCount';
   /** `true` returns only top-level categories (those with no parent). */
   topLevel?: boolean;
 };
