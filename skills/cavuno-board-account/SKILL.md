@@ -206,6 +206,17 @@ The SDK builds multipart `FormData` with field `file` from a `Blob` or `File`. A
 const { avatarUrl } = await board.me.profile.uploadAvatar(file);
 ```
 
+Image gallery and file custom fields take one upload per call, up to 10 MB; galleries accept JPEG, PNG, WebP or GIF and hold at most 10 images. Only fields with `editableByOwner: true` accept uploads. An upload is a draft until you save its `id` to the field: the field's value is the ordered list of file IDs, so append, remove or reorder IDs and send the whole list. Drafts never saved are deleted after a day. Show previews from the returned `url` and from `customFieldMedia` on `retrieveCustomFields`; both are signed links that expire, so read them fresh rather than storing them.
+
+```ts snippet
+const { values } = await board.me.profile.retrieveCustomFields();
+const saved = Array.isArray(values.portfolio) ? values.portfolio : [];
+const image = await board.me.profile.uploadCustomFieldFile('portfolio', file);
+await board.me.profile.updateCustomFields({
+  values: { portfolio: [...saved, image.id] },
+});
+```
+
 Resume upload starts an asynchronous parse that may populate the profile. Poll within a fixed budget, surface failure, and keep manual editing available if parsing runs long.
 
 ```ts snippet

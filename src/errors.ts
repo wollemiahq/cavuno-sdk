@@ -80,6 +80,8 @@ export const BOARD_API_ERROR_CODES = [
   'blog_post_not_found',
   'blog_author_not_found',
   'blog_tag_not_found',
+  // Public collections
+  'collections_not_found',
   // Job aggregator feeds
   'feeds_not_found',
   'feed_not_ready',
@@ -100,6 +102,8 @@ export const BOARD_API_ERROR_CODES = [
   'candidate_job_not_found',
   'candidate_notification_preference_paused',
   'candidate_profile_required',
+  'candidate_custom_field_not_found',
+  'candidate_custom_field_not_editable',
   'resume_invalid_file',
   'resume_upload_forbidden',
   // Applications

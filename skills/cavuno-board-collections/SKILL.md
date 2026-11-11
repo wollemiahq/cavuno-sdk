@@ -1,13 +1,13 @@
 ---
 name: cavuno-board-collections
-description: Custom profile fields and collection references with @cavuno/board. Use for rendering company, talent or job custom fields, collection entries, benefits/technologies/certification sections, or collection-backed filters.
+description: Custom profile fields, collection references and public collections with @cavuno/board. Use for rendering company, talent or job custom fields, collection entries, a page that lists a collection's entries (resources, partners, communities), benefits/technologies/certification sections, or collection-backed filters.
 ---
 
 # Custom fields and collections
 
 An operator defines two kinds of extra data. A **custom field** stores one typed value directly on a company, talent profile, or job. A **collection reference** points that record at reusable entries — benefits, technologies, certifications, learning resources — that the operator maintains once and every record shares.
 
-Hosted Cavuno boards do not render either one. The API resolves them and your frontend decides the layout, so this surface is read-heavy: definitions tell you what to draw, resolved selections tell you what to draw it with.
+Your site renders both. The API resolves them and your frontend decides the layout, so this surface is read-heavy: definitions tell you what to draw, resolved selections tell you what to draw it with. A collection the operator made public can also be listed on its own page with `board.collections.entries` (see below).
 
 ## The read model
 
@@ -76,6 +76,34 @@ for (const field of job.resolvedCollectionFields) {
 }
 ```
 
+## Public collections
+
+A collection the operator turned **Public** on (Settings, Collections) can be listed on its own page, such as a Resources or Partners page. Ask the operator for the collection's key; a collection that is not public, archived, or unknown throws `BoardApiError` with code `collections_not_found`.
+
+```ts snippet
+const entries = [];
+let cursor: string | undefined;
+do {
+  const page = await board.collections.entries('trade_communities', {
+    limit: 100,
+    cursor,
+  });
+  entries.push(...page.data);
+  cursor = page.nextCursor ?? undefined;
+} while (cursor);
+
+for (const entry of entries) {
+  renderResource({
+    heading: entry.name,
+    logoUrl: entry.logoUrl,
+    website: entry.values.website,
+    href: entry.slug ? `/resources/${entry.slug}` : undefined,
+  });
+}
+```
+
+Each entry is `{ id, name, slug?, logoUrl?, fields, values, references? }`, sorted by name: the same `fields` / `values` / `references` shape as a job collection entry, without the per-job `title` and `description`. Take labels from `fields`.
+
 Visibility is enforced server-side. Public reads return only public scalar fields, public collection fields, and active entries; private definitions and archived entries are omitted entirely, not nulled. Do not render a placeholder for a key that is absent — the operator meant it to be invisible. An owner read returns the private owner-editable fields too, so the same component can receive either payload; branch on what is present.
 
 ## Owner writes
@@ -140,6 +168,7 @@ Finish only after every applicable check passes:
 - Rich text renders as formatted HTML, not escaped tags.
 - A private field and an archived entry are absent from the public render, with no empty placeholder left behind.
 - Job pages read `resolvedCollectionFields`, and company or talent pages read `objectReferences` — neither shape is assumed for the other.
+- A page that lists a collection reads `board.collections.entries`, follows `nextCursor` to the end, and handles `collections_not_found` without a broken page.
 - Filter requests carry record IDs from a choices call, and the filter control's options come from the public definition list.
 - A multi-select picker stops at the definition's `maxSelections`, or at 100 when the definition omits it.
 

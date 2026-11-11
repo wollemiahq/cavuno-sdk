@@ -226,6 +226,32 @@ describe('board.me', () => {
     expect(spy.mock.calls[0]![1]!.body).toBeInstanceOf(FormData);
   });
 
+  it('profile.uploadCustomFieldFile POSTs one multipart file to the field and returns the body unchanged', async () => {
+    const wire = {
+      id: 'pff_1',
+      name: 'work.png',
+      contentType: 'image/png',
+      sizeBytes: 3,
+      url: 'https://cavuno.com/api/profile-field-files/pff_1?exp=1&sig=s&scope=owner',
+    };
+    const spy = stubFetch(jsonResponse(wire));
+    const board = await makeAuthedBoard();
+    const file = new Blob(['x'], { type: 'image/png' });
+    const result = await board.me.profile.uploadCustomFieldFile(
+      'my gallery',
+      file,
+    );
+    expect(spy.mock.calls[0]![0]).toBe(
+      `${BASE}/me/profile/custom-fields/my%20gallery/files`,
+    );
+    const init = spy.mock.calls[0]![1]!;
+    expect(init.method).toBe('POST');
+    expect(init.body).toBeInstanceOf(FormData);
+    expect([...(init.body as FormData).keys()]).toEqual(['file']);
+    expect((init.body as FormData).get('file')).toBeInstanceOf(Blob);
+    expect(result).toEqual(wire);
+  });
+
   it('notificationPreferences.retrieve GETs the list', async () => {
     const spy = stubFetch(jsonResponse({ object: 'list', data: [] }));
     const board = await makeAuthedBoard();
