@@ -524,6 +524,18 @@ export type EmployerPipelineQuery = {
 // ── Employer checkout / billing ───────
 /** A reusable billing option (active subscription / pre-purchased bundle slot). */
 export type EmployerBillingOption = Schemas['EmployerBillingOption'];
+/**
+ * Whether the company can post a job on this board right now, and the
+ * allowance its membership grants. `canPost` is false with `reason:
+ * 'membership_required'` on a members-only board when the company isn't a
+ * member, so a posting form can say so before anything is written.
+ */
+export type EmployerPostingCapabilities =
+  Schemas['EmployerPostingCapabilities'];
+/** The result of `board.me.companies.billingOptions.list`. */
+export type EmployerBillingOptionsList = ListEnvelope<EmployerBillingOption> & {
+  capabilities: EmployerPostingCapabilities;
+};
 /** The result of `board.me.companies.jobs.checkout`. */
 export type EmployerCheckout = Schemas['EmployerCheckout'];
 export type EmployerCheckoutBody = Schemas['EmployerCheckoutBody'];
