@@ -885,11 +885,17 @@ export function meNamespace(client: BoardClient) {
        * membership on this board; 409 `membership_seat_taken` when the company
        * already holds one (or has an invoice pending).
        *
+       * By default every completed checkout redirects to `returnPath`. Pass
+       * `redirectOnCompletion: 'if_required'` to keep a card buyer on the page:
+       * Stripe.js calls `onComplete` instead, and only a payment method that
+       * needs a redirect returns to `returnPath`.
+       *
        * @example
        * const kit = await board.me.companies.startMembershipCheckout('acme', {
        *   planId,
        *   returnPath: '/memberships',
        *   colorMode: 'light',
+       *   redirectOnCompletion: 'if_required',
        * });
        */
       startMembershipCheckout(
