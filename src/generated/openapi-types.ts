@@ -9909,7 +9909,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Rate limited (`rate_limited`): 10 requests per minute per IP. */
+            /** @description Rate limited (`rate_limited`): 10 requests per minute per refresh token, and 1,000 per minute per IP. A malformed token is limited to 10 requests per minute per IP. */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -10212,7 +10212,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Rate limited (`rate_limited`): 10 requests per minute per IP. */
+            /** @description Rate limited (`rate_limited`): 10 requests per minute per refresh token, and 1,000 per minute per IP. A malformed token is limited to 10 requests per minute per IP. */
             429: {
                 headers: {
                     [name: string]: unknown;
