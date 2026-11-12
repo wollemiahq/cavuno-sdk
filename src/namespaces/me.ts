@@ -68,8 +68,8 @@ import type {
   MoveApplicantStageBody,
   NotificationPreference,
   MyCandidateProfileFieldValues,
+  MyCompanyProfileFieldValues,
   ProfileFieldMedia,
-  ProfileFieldValues,
   ItemVerification,
   MyItemVerification,
   ProfileObjectReferences,
@@ -773,9 +773,12 @@ export function meNamespace(client: BoardClient) {
         );
       },
 
-      /** Retrieve profile custom fields for a company I belong to. */
+      /**
+       * Retrieve profile custom fields for a company I belong to, with the
+       * saved files of upload fields (`customFieldMedia`).
+       */
       retrieveCustomFields(slug: string, options?: FetchOptions) {
-        return client.fetch<ProfileFieldValues>(
+        return client.fetch<MyCompanyProfileFieldValues>(
           `/me/companies/${encodeURIComponent(slug)}/custom-fields`,
           options,
         );
@@ -787,9 +790,35 @@ export function meNamespace(client: BoardClient) {
         body: UpdateProfileFieldValuesBody,
         options?: FetchOptions,
       ) {
-        return client.fetch<ProfileFieldValues>(
+        return client.fetch<MyCompanyProfileFieldValues>(
           `/me/companies/${encodeURIComponent(slug)}/custom-fields`,
           { ...options, method: 'PATCH', body },
+        );
+      },
+
+      /**
+       * Upload one file to an owner-editable `image_gallery` or `file` field
+       * of a company I belong to (up to 10 MB; galleries take JPEG, PNG, WebP
+       * or GIF). The file is a draft until its `id` is saved to the field with
+       * `updateCustomFields`, as the ordered list of file IDs.
+       *
+       * @example
+       * const image = await board.me.companies.uploadCustomFieldFile('acme', 'office_photos', file);
+       * await board.me.companies.updateCustomFields('acme', {
+       *   values: { office_photos: [...savedIds, image.id] },
+       * });
+       */
+      uploadCustomFieldFile(
+        slug: string,
+        fieldKey: string,
+        file: Blob,
+        options?: FetchOptions,
+      ) {
+        const form = new FormData();
+        form.append('file', file);
+        return client.fetch<ProfileFieldMedia>(
+          `/me/companies/${encodeURIComponent(slug)}/custom-fields/${encodeURIComponent(fieldKey)}/files`,
+          { ...options, method: 'POST', body: form },
         );
       },
 

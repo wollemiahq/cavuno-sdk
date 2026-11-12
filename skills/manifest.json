@@ -1,5 +1,5 @@
 {
-  "version": "4.69.0",
+  "version": "4.70.0",
   "skills": [
     {
       "name": "cavuno-board-account",
@@ -38,7 +38,7 @@
     },
     {
       "name": "cavuno-board-collections",
-      "description": "Custom profile fields and collection references with @cavuno/board. Use for rendering company, talent or job custom fields, collection entries, benefits/technologies/certification sections, or collection-backed filters.",
+      "description": "Custom profile fields, collection references and public collections with @cavuno/board. Use for rendering company, talent or job custom fields, collection entries, a page that lists a collection's entries (resources, partners, communities), benefits/technologies/certification sections, or collection-backed filters.",
       "path": "skills/cavuno-board-collections/SKILL.md",
       "framework": null,
       "category": "core"
@@ -103,6 +103,13 @@
       "name": "cavuno-board-messaging",
       "description": "Polled messaging contract with @cavuno/board. Use for inboxes, unread badges, threads, read receipts, message moderation, or user blocks.",
       "path": "skills/cavuno-board-messaging/SKILL.md",
+      "framework": null,
+      "category": "core"
+    },
+    {
+      "name": "cavuno-board-newsletter",
+      "description": "Newsletter sign-up forms with @cavuno/board. Use for an email sign-up for the board's news (footer, blog, landing page), its consent checkbox, the confirmation email, and sendingPaused.",
+      "path": "skills/cavuno-board-newsletter/SKILL.md",
       "framework": null,
       "category": "core"
     },
