@@ -3,6 +3,35 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.69.0 — 2026-11-12
+
+- Members-only boards: on a board whose context has
+  `posting.requiresMembership`, `board.plans.list()` leaves out job-posting
+  plans, except those priced by quote, because visitors cannot buy them.
+  `board.jobPosting.plans()` still returns them for members. An anonymous
+  `board.jobPosting.create(...)` on such a board is refused with
+  `membership_required`, whatever company website it names.
+- `board.jobPosting.plans()` returns each feature's `name`, `dataType` and
+  `displayOrder`, as `board.plans.list()` does, so a posting form can label a
+  plan's custom attributes from that one read.
+- `board.me.companies.billingOptions.list(slug)` is typed as
+  `EmployerBillingOptionsList`, which includes the `capabilities` the
+  endpoint returns: `canPost`, the `reason` when posting is refused, and the
+  membership allowance. `EmployerPostingCapabilities` is exported. Read
+  `canPost` to show a membership offer before the employer writes a job.
+- `board.me.companies.startMembershipCheckout(slug, body)` takes an optional
+  `redirectOnCompletion`: `'always'` (the default, unchanged) or
+  `'if_required'`, which keeps a card payment on the embedding page and fires
+  Stripe.js `onComplete`. Payment methods that need a redirect still return
+  to `returnPath`.
+- The board context carries `features.tipJar` (the board has an active tip
+  jar) and `features.products` (it lists at least one product), so a frontend
+  can show those links without probing `/tip-jar` and `/products`.
+- `auth.refresh()` and `auth.logout()` are rate limited per refresh token (10
+  a minute) instead of per client IP, with a ceiling of 1,000 a minute per IP.
+  A server-rendered frontend refreshing many visitors' sessions from one IP no
+  longer gets `rate_limited`.
+
 ## 4.68.0 — 2026-11-11
 
 - Company market resolutions return `companyCount`: the number of companies
