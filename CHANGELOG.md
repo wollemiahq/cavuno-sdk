@@ -3,6 +3,18 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.68.0 — 2026-11-11
+
+- Company market resolutions return `companyCount`: the number of companies
+  tagged with the market. Use it to tell whether a market page has enough
+  companies to index. The hosted sitemap lists a market page once at least
+  5 companies carry it.
+- Work arrangement pages: the place slugs `remote`, `hybrid` and `on-site`
+  name a work arrangement. Job list filters return that arrangement's jobs,
+  and place resolve returns its board-language label with `geo: null`. The
+  `jobs-locations` sitemap bucket lists the Remote page once the board has
+  enough remote jobs.
+
 ## 4.67.0 — 2026-11-11
 
 - Job seekers can fill their own image gallery and file profile fields: new

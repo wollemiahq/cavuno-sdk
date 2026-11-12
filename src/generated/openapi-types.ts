@@ -4516,7 +4516,7 @@ export interface paths {
         };
         /**
          * List a public board's sitemap buckets
-         * @description The buckets the board's sitemap is split into, with an entry count and last-modified stamp each. Together with `GET /boards/:identifier/sitemap/{bucket}` this is the complete slug source for a headless frontend's sitemap: mirroring it reproduces the hosted sitemap exactly, with no per-family enumeration. A password-protected board requires the same `X-Board-Access` grant as every other board read (401 `board_password_required` without it); the platform sandbox board returns an empty `buckets` array.
+         * @description The buckets the board's sitemap is split into, with an entry count and last-modified stamp each. Together with `GET /boards/:identifier/sitemap/{bucket}` this is the complete slug source for a headless frontend's sitemap: mirroring it gives the board's complete sitemap, with no per-family enumeration. A password-protected board requires the same `X-Board-Access` grant as every other board read (401 `board_password_required` without it); the platform sandbox board returns an empty `buckets` array.
          */
         get: operations["getBoardSitemap"];
         put?: never;
@@ -5250,7 +5250,7 @@ export interface components {
         BoardSitemap: {
             /** @enum {string} */
             object: "board_sitemap";
-            /** @description The buckets the board publishes, in the canonical bucket order. Empty buckets are omitted — exactly the set the hosted `/sitemap.xml` index lists. */
+            /** @description The buckets the board publishes, in the canonical bucket order. Empty buckets are omitted. This is the set the hosted `/sitemap.xml` index lists, plus the Remote work arrangement page (`/jobs/locations/remote`) in `jobs-locations` once the board has enough remote jobs. */
             buckets: components["schemas"]["BoardSitemapBucketSummary"][];
         };
         BoardSitemapBucketSummary: {
@@ -8301,7 +8301,7 @@ export interface components {
                      */
                     lte?: string;
                 };
-                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). The slug can also name a country or region remote jobs on the board are open to, as `GET /places?q=` suggests. Pass `radius` to widen a city or locality to nearby jobs. A place slug from `GET /places/suggest` returns jobs within `radius` km of that place, by default a distance that suits its size. Unresolvable slugs are ignored. */
+                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). The slug can also name a country or region remote jobs on the board are open to, as `GET /places?q=` suggests. Pass `radius` to widen a city or locality to nearby jobs. A place slug from `GET /places/suggest` returns jobs within `radius` km of that place, by default a distance that suits its size. Unresolvable slugs are ignored. The reserved slugs `remote`, `hybrid` and `on-site` name a work arrangement, not a place: they return the jobs `remoteOption` `remote`, `hybrid` or `on_site` returns, ignore `radius`, and combined with a `remoteOption` that leaves that arrangement out return no jobs. */
                 location?: string;
                 /** @description Widen a city or locality `location` to also return jobs placed in a city or locality within this many kilometres of the place (1–250; decimals allowed, e.g. `8.05` for 5 miles). Omit for jobs in the place itself. Ignored for region and country places, and without `location`. For a place from `GET /places/suggest`, an omitted `radius` uses the place's own default distance: 15 km for a neighbourhood, 25 km for a town, 50 km for a city. */
                 radius?: number;
@@ -8377,6 +8377,8 @@ export interface components {
             ancestors?: components["schemas"]["PublicPlaceAncestor"][];
             /** @description The distance in kilometres the jobs search applies around this place when no `radius` is passed: a city or locality with coordinates gets the market default (25 miles, 40.2336 km, in the US, GB, LR and MM; 50 km elsewhere), applied with `defaultRadius=true`; a suggested place gets its own default for its size, with or without `defaultRadius`. Absent for regions, countries, places without coordinates, and categories and skills. Show it as the selected distance when the visitor has not picked one. */
             defaultRadiusKm?: number;
+            /** @description The number of the board's companies tagged with this market. Present on market resolutions only. The board's sitemap lists a market page only when this is at least 5; emit `noindex, follow` on the plain market page below 5 so the two agree. */
+            companyCount?: number;
         };
         PublicTaxonomyTerm: {
             /** @enum {string} */
@@ -11998,7 +12000,7 @@ export interface operations {
                 customEmploymentType?: string[];
                 /** @description Only return jobs at any of the given seniority levels. Repeat the param for multiple values (up to 10). */
                 seniority?: ("entry_level" | "associate" | "mid_level" | "senior" | "lead" | "principal" | "director" | "executive")[];
-                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). The slug can also name a country or region remote jobs on the board are open to, as `GET /places?q=` suggests. Pass `radius` to widen a city or locality to nearby jobs. A place slug from `GET /places/suggest` returns jobs within `radius` km of that place, by default a distance that suits its size. Unresolvable slugs are ignored. */
+                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). The slug can also name a country or region remote jobs on the board are open to, as `GET /places?q=` suggests. Pass `radius` to widen a city or locality to nearby jobs. A place slug from `GET /places/suggest` returns jobs within `radius` km of that place, by default a distance that suits its size. Unresolvable slugs are ignored. The reserved slugs `remote`, `hybrid` and `on-site` name a work arrangement, not a place: they return the jobs `remoteOption` `remote`, `hybrid` or `on_site` returns, ignore `radius`, and combined with a `remoteOption` that leaves that arrangement out return no jobs. */
                 location?: string;
                 /**
                  * @description Widen a city or locality `location` to also return jobs placed in a city or locality within this many kilometres of the place (1–250; decimals allowed, e.g. `8.05` for 5 miles). Omit for jobs in the place itself. Ignored for region and country places, and without `location`. For a place from `GET /places/suggest`, an omitted `radius` uses the place's own default distance: 15 km for a neighbourhood, 25 km for a town, 50 km for a city.
@@ -13051,7 +13053,7 @@ export interface operations {
                 seniority?: ("entry_level" | "associate" | "mid_level" | "senior" | "lead" | "principal" | "director" | "executive")[];
                 /** @description Result ordering. `relevance` (default) is the featured-ranked browse; `newest` orders by publish date, `salary_high` by salary (no-salary jobs last), and `distance` nearest-first from the selected `location` (jobs without a point last). `distance` requires a `location` that resolves to coordinates (`sort_distance_requires_location` otherwise). Any explicit sort unpins featured jobs. */
                 sort?: "relevance" | "newest" | "salary_high" | "distance";
-                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). The slug can also name a country or region remote jobs on the board are open to, as `GET /places?q=` suggests. Pass `radius` to widen a city or locality to nearby jobs. A place slug from `GET /places/suggest` returns jobs within `radius` km of that place, by default a distance that suits its size. Unresolvable slugs are ignored. */
+                /** @description Only return jobs in the place with this slug, including the places inside it (a region includes its cities). The slug can also name a country or region remote jobs on the board are open to, as `GET /places?q=` suggests. Pass `radius` to widen a city or locality to nearby jobs. A place slug from `GET /places/suggest` returns jobs within `radius` km of that place, by default a distance that suits its size. Unresolvable slugs are ignored. The reserved slugs `remote`, `hybrid` and `on-site` name a work arrangement, not a place: they return the jobs `remoteOption` `remote`, `hybrid` or `on_site` returns, ignore `radius`, and combined with a `remoteOption` that leaves that arrangement out return no jobs. */
                 location?: string;
                 /**
                  * @description Widen a city or locality `location` to also return jobs placed in a city or locality within this many kilometres of the place (1–250; decimals allowed, e.g. `8.05` for 5 miles). Omit for jobs in the place itself. Ignored for region and country places, and without `location`. For a place from `GET /places/suggest`, an omitted `radius` uses the place's own default distance: 15 km for a neighbourhood, 25 km for a town, 50 km for a city.
@@ -23739,7 +23741,7 @@ export interface operations {
             path: {
                 /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
                 identifier: string;
-                /** @description The taxonomy slug to resolve (board-language or English source). */
+                /** @description The place slug to resolve (board-language or English source). The reserved slugs `remote`, `hybrid` and `on-site` resolve to that work arrangement instead of a place: `geo` is `null`, and `displayName` is its label in the board language. */
                 slug: string;
             };
             cookie?: never;
