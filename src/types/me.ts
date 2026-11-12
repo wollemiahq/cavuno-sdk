@@ -217,6 +217,12 @@ export type MyCandidateProfileFieldValues =
  * `customFieldMedia`.
  */
 export type ProfileFieldMedia = Schemas['ProfileFieldMedia'];
+/**
+ * My company's profile custom fields: definitions, current values, and the
+ * saved files of upload fields as `customFieldMedia`.
+ */
+export type MyCompanyProfileFieldValues =
+  Schemas['MyCompanyProfileFieldValuesResponse'];
 /** Additive update body for owner-editable profile custom fields. */
 export type UpdateProfileFieldValuesBody = Schemas['ProfileFieldValuesBody'];
 
