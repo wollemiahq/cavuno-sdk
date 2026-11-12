@@ -79,6 +79,8 @@ describe('board.context()', () => {
         contactPage: true,
         placeSuggestions: false,
         mcp: false,
+        tipJar: false,
+        products: false,
       },
       analytics: {
         ga4MeasurementId: null,
