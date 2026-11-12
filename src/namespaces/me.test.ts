@@ -997,13 +997,22 @@ describe('board.me', () => {
     );
   });
 
-  it('companies.billingOptions.list GETs /me/companies/:slug/billing-options', async () => {
-    const spy = stubFetch(jsonResponse({ object: 'list', data: [] }));
+  it('companies.billingOptions.list GETs /me/companies/:slug/billing-options with the posting capabilities', async () => {
+    const capabilities = {
+      canPost: false,
+      reason: 'membership_required' as const,
+      discountPercent: 0,
+      freePostsRemaining: 0,
+    };
+    const spy = stubFetch(
+      jsonResponse({ object: 'list', data: [], capabilities }),
+    );
     const board = await makeAuthedBoard();
-    await board.me.companies.billingOptions.list('acme');
+    const result = await board.me.companies.billingOptions.list('acme');
     expect(spy.mock.calls[0]![0]).toBe(
       `${BASE}/me/companies/acme/billing-options`,
     );
+    expect(result.capabilities).toEqual(capabilities);
   });
 
   it('companies.billingPortal.create POSTs /me/companies/:slug/billing-portal', async () => {

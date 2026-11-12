@@ -44,7 +44,7 @@ import type {
   CreateEmployerJobBody,
   CreateExperienceBody,
   CreatePipelineStageBody,
-  EmployerBillingOption,
+  EmployerBillingOptionsList,
   EmployerCheckout,
   EmployerCheckoutBody,
   EmployerCompany,
@@ -885,11 +885,17 @@ export function meNamespace(client: BoardClient) {
        * membership on this board; 409 `membership_seat_taken` when the company
        * already holds one (or has an invoice pending).
        *
+       * By default every completed checkout redirects to `returnPath`. Pass
+       * `redirectOnCompletion: 'if_required'` to keep a card buyer on the page:
+       * Stripe.js calls `onComplete` instead, and only a payment method that
+       * needs a redirect returns to `returnPath`.
+       *
        * @example
        * const kit = await board.me.companies.startMembershipCheckout('acme', {
        *   planId,
        *   returnPath: '/memberships',
        *   colorMode: 'light',
+       *   redirectOnCompletion: 'if_required',
        * });
        */
       startMembershipCheckout(
@@ -1224,7 +1230,9 @@ export function meNamespace(client: BoardClient) {
        * My reusable billing options for a company — active subscription slots +
        * remaining pre-purchased (bundle) order slots, the options a held draft
        * can be published with at no new charge (the checkout `billing.type:
-       * 'order' | 'subscription'`).
+       * 'order' | 'subscription'`). `capabilities` says whether the company
+       * can post at all (`canPost`), so a form can show a members-only gate
+       * before the job is written.
        */
       billingOptions: {
         /**
@@ -1234,7 +1242,7 @@ export function meNamespace(client: BoardClient) {
          * const { data } = await board.me.companies.billingOptions.list('acme');
          */
         list(slug: string, options?: FetchOptions) {
-          return client.fetch<ListEnvelope<EmployerBillingOption>>(
+          return client.fetch<EmployerBillingOptionsList>(
             `/me/companies/${encodeURIComponent(slug)}/billing-options`,
             options,
           );
