@@ -149,6 +149,8 @@ export const BOARD_API_ERROR_CODES = [
   'employer_not_member',
   'employer_payment_required',
   'employer_pipeline_stage_not_found',
+  'company_custom_field_not_found',
+  'company_custom_field_not_editable',
   'employer_member_not_found',
   'employer_invite_not_found',
   'not_company_admin',

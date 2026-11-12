@@ -3,6 +3,31 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.70.0 — 2026-11-12
+
+- Company members can add gallery images and files to their company's
+  custom fields. `board.me.companies.uploadCustomFieldFile(slug, fieldKey,
+  file)` uploads one file (up to 10 MB; galleries take JPEG, PNG, WebP or
+  GIF) and returns a `ProfileFieldMedia` draft. Save its `id` with
+  `board.me.companies.updateCustomFields` to attach it. The caller must be
+  an approved member of the company. A key that is not an upload field is
+  refused with `company_custom_field_not_found`, and a field company
+  members cannot edit with `company_custom_field_not_editable`.
+- `board.me.companies.retrieveCustomFields(slug)` and `updateCustomFields`
+  are typed `MyCompanyProfileFieldValues`, which adds `customFieldMedia`:
+  the saved files of upload fields, keyed by field, with links that also
+  load drafts for the company's members. `MyCompanyProfileFieldValues` is
+  exported.
+- `board.subscribe({ email, consent, consentText, source })` signs an
+  address up for the board's email from a newsletter form. The person gets
+  a confirmation email and nothing is granted until they click it. It
+  always resolves `{ status: 'submitted', sendingPaused }`.
+  `BoardSubscribeInput` and `SubscriptionRequest` are exported.
+- `board.auth.register(...)` and `board.auth.resendVerification()` answer
+  422 `board_auth_email_undeliverable` when the address cannot receive
+  email, such as a temporary or disposable inbox. On register nothing is
+  created, so ask for a different address.
+
 ## 4.69.0 — 2026-11-12
 
 - Members-only boards: on a board whose context has
