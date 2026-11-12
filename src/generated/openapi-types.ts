@@ -1425,6 +1425,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/marketing-topics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List marketing topics
+         * @description The kinds of marketing email the board offers, such as a weekly newsletter, oldest first, for a checkbox per topic on a sign-up form. At most 20, so the list is never paginated. Empty when the board has none: it then has a single marketing list.
+         */
+        get: operations["listBoardMarketingTopics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/boards/{identifier}/mcp": {
         parameters: {
             query?: never;
@@ -4587,6 +4607,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/subscribe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign up for the board's email
+         * @description Sign an address up for the board's marketing email, from a newsletter form on the board's site. Anonymous (no auth). Nothing is granted until the person clicks the confirmation email, which the board's job alert confirmation page completes (`POST /boards/{identifier}/job-alerts/confirm`). Always returns a uniform `status: submitted`. Limited to 3 sign-ups a minute per address across all boards and 10 requests a minute per IP. On a builder site Cavuno hosts, the IP limit counts each visitor separately, plus 6 sign-ups a minute per visitor. Over a limit is a 429 with `retryAfterSeconds`.
+         */
+        post: operations["createBoardSubscriptionRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/boards/{identifier}/talent": {
         parameters: {
             query?: never;
@@ -5139,6 +5179,17 @@ export interface components {
             definition: components["schemas"]["CustomFieldDefinition"];
         };
         BoardJobFormField: components["schemas"]["BoardFormBuiltinField"] | components["schemas"]["BoardJobFormCustomField"] | components["schemas"]["BoardJobFormCollectionField"];
+        BoardMarketingTopic: {
+            /**
+             * @description String representing the object's type. Objects of the same type share the same value.
+             * @enum {string}
+             */
+            object: "marketing_topic";
+            /** @description The topic’s key, which a sign-up sends in `topics` when the person ticks it. */
+            key: string;
+            /** @description The topic’s name, to label its checkbox. */
+            name: string;
+        };
         /** @description An MCP Server Card (SEP-2127): what an assistant needs to find and connect to the server before it connects. It lists no tools; `tools/list` on the server does. */
         BoardMcpServerCard: {
             /** @description The Server Card JSON Schema this document follows: `https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json`. */
@@ -5260,6 +5311,29 @@ export interface components {
             count: number;
             /** @description ISO 8601 timestamp of the newest content in the bucket, when the board tracks one. */
             lastModified?: string;
+        };
+        BoardSubscribeBody: {
+            /**
+             * Format: email
+             * @description The address to sign up. It gets a confirmation email.
+             */
+            email: string;
+            /**
+             * @description Must be `true`: the person ticked an unticked checkbox agreeing to `consentText`.
+             * @enum {boolean}
+             */
+            consent: true;
+            /** @description The checkbox wording the person agreed to, exactly as shown, such as "Send me news and offers from Acme Jobs." It must contain the board's name (any letter case), or the request is refused with 400. Kept with the consent once the person confirms. */
+            consentText: string;
+            /** @description A label for the form, such as `blog-footer`: lowercase letters, digits and hyphens, up to 64 characters. It shows as the contact's Source. */
+            source: string;
+            /**
+             * Format: uri
+             * @description The page the form was on. Defaults to the request's `Referer`.
+             */
+            pageUrl?: string;
+            /** @description Honeypot. Render it as a hidden field that people leave empty; when it is filled in, the request answers `submitted` and does nothing. */
+            website?: string;
         };
         BoardUser: {
             /** @description Board user ID. */
@@ -8063,6 +8137,11 @@ export interface components {
              * @enum {string}
              */
             status: "confirmed" | "already_confirmed" | "expired" | "not_found";
+            /**
+             * @description What the link confirms: `marketing` for a link from a newsletter sign-up (`POST /boards/{identifier}/subscribe`), which signs the person up for the board's email and never turns job alerts on, or `job_alerts`. Word the outcome by it. Absent when the token isn't a confirmation link, such as an unknown or expired one.
+             * @enum {string}
+             */
+            subscription?: "job_alerts" | "marketing";
         };
         PublicJobAlertManageResult: {
             /** @enum {string} */
@@ -8345,6 +8424,17 @@ export interface components {
              * @example 0
              */
             offset?: number;
+        };
+        PublicSubscriptionRequest: {
+            /** @enum {string} */
+            object: "subscription_request";
+            /**
+             * @description Always `submitted`, whether the address is new, waiting to confirm or already subscribed, so the response can't be used to find out who is subscribed. Unless the person already gets the board's email, a confirmation email has been sent; nothing is sent to them until they click it.
+             * @enum {string}
+             */
+            status: "submitted";
+            /** @description The board's marketing email is paused (too many bounces or spam reports). Sign-ups are still recorded; tell the person emails may be delayed. */
+            sendingPaused: boolean;
         };
         PublicTalentPlace: {
             /** @enum {string} */
@@ -12315,6 +12405,24 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description Rate limited (`rate_limited`): 3 sign-ups a minute per address across all boards (job alerts and newsletter together), 10 requests a minute per IP (shared with every anonymous sign-in and sign-up call from that IP, on any board), and on a builder site 6 sign-ups a minute per visitor. `details.retryAfterSeconds` says when to retry. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The sign-up limiter is unavailable (`rate_limit_unavailable`); retry shortly. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     createBoardJobAlertsClick: {
@@ -13783,6 +13891,45 @@ export interface operations {
             };
             /** @description Location search is temporarily unavailable (`locations_unavailable`). */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listBoardMarketingTopics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        object: "list";
+                        url: string;
+                        hasMore: boolean;
+                        nextCursor: string | null;
+                        data: components["schemas"]["BoardMarketingTopic"][];
+                    };
+                };
+            };
+            /** @description Board not found. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -25411,6 +25558,60 @@ export interface operations {
             };
             /** @description Public board not found, or the taxonomy slug does not resolve. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createBoardSubscriptionRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["BoardSubscribeBody"];
+            };
+        };
+        responses: {
+            /** @description Request accepted. Uniform body: does not reveal whether the address was new or already subscribed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicSubscriptionRequest"];
+                };
+            };
+            /** @description Invalid body (`validation_bad_request`), including a `consentText` that doesn't name the board. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited (`rate_limited`): 3 sign-ups a minute per address across all boards (newsletter and job alerts together), 10 requests a minute per IP (shared with every anonymous sign-in and sign-up call from that IP, on any board), and on a builder site 6 sign-ups a minute per visitor. `details.retryAfterSeconds` says when to retry. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The sign-up limiter is unavailable (`rate_limit_unavailable`); retry shortly. */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

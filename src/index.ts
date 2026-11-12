@@ -32,6 +32,10 @@ import { tipJarNamespace } from './namespaces/tip-jar';
 import { type Awaitable, type StorageMode, resolveStorage } from './storage';
 
 import type { PublicBoard } from './types/board';
+import type {
+  BoardSubscribeInput,
+  SubscriptionRequest,
+} from './types/marketing-consent';
 import type { BoardSeo } from './types/seo';
 
 export interface CreateBoardClientOptions {
@@ -107,6 +111,30 @@ export function createBoardClient(options: CreateBoardClientOptions) {
      */
     seo(options?: FetchOptions) {
       return client.fetch<BoardSeo>('/seo', options);
+    },
+
+    /**
+     * Sign an address up for the board's email from a newsletter form. Sends
+     * a confirmation email; nothing is granted until the person clicks it.
+     * Always resolves `{ status: 'submitted', sendingPaused }`. Limited to 3
+     * a minute per address and 10 requests a minute per IP; on a builder
+     * site Cavuno hosts the IP limit counts each visitor, plus 6 sign-ups a
+     * minute per visitor (429 `rate_limited`).
+     *
+     * @example
+     * await board.subscribe({
+     *   email,
+     *   consent: true,
+     *   consentText: 'Send me news and offers from Acme Jobs.',
+     *   source: 'blog-footer',
+     * });
+     */
+    subscribe(input: BoardSubscribeInput, options?: FetchOptions) {
+      return client.fetch<SubscriptionRequest>('/subscribe', {
+        ...options,
+        method: 'POST',
+        body: input,
+      });
     },
 
     jobs: jobsNamespace(client),
@@ -252,7 +280,11 @@ export type {
   CompanyMemberInvitePreview,
   PreviewCompanyMemberInviteBody,
 } from './types/invites';
-export type { MarketingConsent } from './types/marketing-consent';
+export type {
+  BoardSubscribeInput,
+  MarketingConsent,
+  SubscriptionRequest,
+} from './types/marketing-consent';
 export type { RedirectResolution } from './types/redirects';
 export type {
   PublicCollectionEntriesQuery,
