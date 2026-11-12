@@ -3881,7 +3881,7 @@ export interface paths {
         };
         /**
          * List a public board's plans
-         * @description The board's public plans as a flat catalogue: job-posting, talent-access, membership, job-seeker, and the two service purposes (`employer_service`, `job_seeker_service`), each with its `purpose`, `pricingMode`, price, and a feature summary (talent-access plans add a `talent` allowance block). Filter with `?purpose=`. A `pricingMode: contact` plan is quote-only — render `priceText` and the CTA fields instead of a price. The deprecated sales-led resource (`GET …/sales-led-plans`) remains for compatibility only.
+         * @description The board's public plans as a flat catalogue: job-posting, talent-access, membership, job-seeker, and the two service purposes (`employer_service`, `job_seeker_service`), each with its `purpose`, `pricingMode`, price, and a feature summary (talent-access plans add a `talent` allowance block). Filter with `?purpose=`. A `pricingMode: contact` plan is quote-only — render `priceText` and the CTA fields instead of a price. When the board context has `posting.requiresMembership: true`, priced job-posting plans are left out because visitors cannot buy them; `GET …/job-postings/plans` still lists them for the posting flow. The deprecated sales-led resource (`GET …/sales-led-plans`) remains for compatibility only.
          */
         get: operations["listBoardPlans"];
         put?: never;
@@ -9909,7 +9909,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Rate limited (`rate_limited`): 10 requests per minute per IP. */
+            /** @description Rate limited (`rate_limited`): 10 requests per minute per refresh token, and 1,000 per minute per IP. A malformed token is limited to 10 requests per minute per IP. */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -10212,7 +10212,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Rate limited (`rate_limited`): 10 requests per minute per IP. */
+            /** @description Rate limited (`rate_limited`): 10 requests per minute per refresh token, and 1,000 per minute per IP. A malformed token is limited to 10 requests per minute per IP. */
             429: {
                 headers: {
                     [name: string]: unknown;
