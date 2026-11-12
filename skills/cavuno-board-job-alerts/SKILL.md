@@ -32,13 +32,20 @@ const result = await board.jobAlerts.confirm({ token });
 switch (result.status) {
   case 'confirmed':
   case 'already_confirmed':
+  case 'waitlisted':
   case 'not_found':
+    break;
+  case 'unsubscribed':
+    // Show the manage page's resume option; the subscribe form sends this
+    // address no confirmation email.
     break;
   case 'expired':
     await board.jobAlerts.resendConfirmation({ email });
     break;
 }
 ```
+
+`waitlisted` means the alert is confirmed but the board can't send to more people yet; it starts once a spot opens. `unsubscribed` means the link was sent before the alerts were turned off, so it doesn't turn them back on. Subscribing again with the form sends no confirmation email to that address; the person resumes alerts from the manage link in an alert email (`board.jobAlerts.resubscribe`) or by signing in and creating an alert.
 
 Only `jobFunctions`, `placeSlugs`, and `remoteOptions` filter digest delivery. Seniority and salary fields are stored but do not scope delivery. The supported cadence is `weekly`.
 
