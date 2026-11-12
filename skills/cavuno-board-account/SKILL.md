@@ -217,6 +217,22 @@ await board.me.profile.updateCustomFields({
 });
 ```
 
+Company members upload to the company's upload fields the same way, with the company slug first. `customFieldMedia` on `board.me.companies.retrieveCustomFields` lists the saved files.
+
+```ts snippet
+const company = await board.me.companies.retrieveCustomFields('acme');
+const photos = Array.isArray(company.values.office_photos)
+  ? company.values.office_photos
+  : [];
+const photo = await board.me.companies.uploadCustomFieldFile(
+  'acme',
+  'office_photos',
+  file);
+await board.me.companies.updateCustomFields('acme', {
+  values: { office_photos: [...photos, photo.id] },
+});
+```
+
 Resume upload starts an asynchronous parse that may populate the profile. Poll within a fixed budget, surface failure, and keep manual editing available if parsing runs long.
 
 ```ts snippet
