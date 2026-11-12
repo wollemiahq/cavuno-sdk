@@ -3881,7 +3881,7 @@ export interface paths {
         };
         /**
          * List a public board's plans
-         * @description The board's public plans as a flat catalogue: job-posting, talent-access, membership, job-seeker, and the two service purposes (`employer_service`, `job_seeker_service`), each with its `purpose`, `pricingMode`, price, and a feature summary (talent-access plans add a `talent` allowance block). Filter with `?purpose=`. A `pricingMode: contact` plan is quote-only — render `priceText` and the CTA fields instead of a price. The deprecated sales-led resource (`GET …/sales-led-plans`) remains for compatibility only.
+         * @description The board's public plans as a flat catalogue: job-posting, talent-access, membership, job-seeker, and the two service purposes (`employer_service`, `job_seeker_service`), each with its `purpose`, `pricingMode`, price, and a feature summary (talent-access plans add a `talent` allowance block). Filter with `?purpose=`. A `pricingMode: contact` plan is quote-only — render `priceText` and the CTA fields instead of a price. When the board context has `posting.requiresMembership: true`, priced job-posting plans are left out because visitors cannot buy them; `GET …/job-postings/plans` still lists them for the posting flow. The deprecated sales-led resource (`GET …/sales-led-plans`) remains for compatibility only.
          */
         get: operations["listBoardPlans"];
         put?: never;
@@ -6810,6 +6810,12 @@ export interface components {
             features: {
                 key: string | null;
                 value: string | null;
+                /** @description The feature's display name, including an operator-defined custom attribute's name. */
+                name: string;
+                /** @description How to read `value`, such as `integer`, `boolean` or `string`. */
+                dataType: string;
+                /** @description The operator-set order among the plan features; null when unset. */
+                displayOrder: number | null;
             }[];
         };
         JobPostingResult: {
@@ -7033,6 +7039,11 @@ export interface components {
             returnPath: string;
             /** @enum {string} */
             colorMode: "light" | "dark";
+            /**
+             * @description When the buyer leaves for `returnPath`. `always` (default): every completed checkout redirects there. `if_required`: a card payment completes in place and the embedding page reacts to Stripe.js `onComplete` (then reads `GET …/membership/checkout/{sessionId}`); only a payment method that needs a redirect returns to `returnPath`.
+             * @enum {string}
+             */
+            redirectOnCompletion?: "always" | "if_required";
         };
         Message: {
             id: string;
@@ -9909,7 +9920,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Rate limited (`rate_limited`): 10 requests per minute per IP. */
+            /** @description Rate limited (`rate_limited`): 10 requests per minute per refresh token, and 1,000 per minute per IP. A malformed token is limited to 10 requests per minute per IP. */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -10212,7 +10223,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Rate limited (`rate_limited`): 10 requests per minute per IP. */
+            /** @description Rate limited (`rate_limited`): 10 requests per minute per refresh token, and 1,000 per minute per IP. A malformed token is limited to 10 requests per minute per IP. */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -10268,6 +10279,15 @@ export interface operations {
             };
             /** @description Email already registered (`board_auth_email_taken`). Nothing is mutated. The existing account is untouched. */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The email provider cannot deliver to this address, such as a temporary or disposable inbox (`board_auth_email_undeliverable`). Nothing is created; ask for a different address. */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10627,6 +10647,15 @@ export interface operations {
             };
             /** @description Board not found. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The email provider cannot deliver to this address, such as a temporary or disposable inbox (`board_auth_email_undeliverable`). Sign the user out so they can register with a different address. */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

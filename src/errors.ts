@@ -31,6 +31,7 @@ export const BOARD_API_ERROR_CODES = [
   // Board-user auth
   'board_auth_account_not_found',
   'board_auth_email_taken',
+  'board_auth_email_undeliverable',
   'board_auth_invalid_credentials',
   'board_auth_invalid_token',
   'board_auth_registration_disabled',
