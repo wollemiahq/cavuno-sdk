@@ -51,6 +51,8 @@ function listingRoot(value: string | null | undefined, fallback: string) {
 
 const LISTING_GROUPS = ['jobs', 'companies', 'talent'] as const;
 
+const CONTENT_SIGNAL = 'Content-Signal: search=yes, ai-input=yes, ai-train=yes';
+
 function paginationRules(root: string): string[] {
   return [
     `Disallow: ${root}?page=`,
@@ -93,6 +95,11 @@ export function robotsBody(input: {
   }
   return [
     'User-Agent: *',
+    // Content Signals (contentsignals.org): how crawlers may use the board's
+    // content once fetched. Boards opt in to every use. The line sits inside
+    // the `User-Agent: *` group so it applies to all agents. The sandbox body
+    // above leaves it out because it allows no crawling at all.
+    CONTENT_SIGNAL,
     'Allow: /',
     'Disallow: /go/',
     'Disallow: /t/',

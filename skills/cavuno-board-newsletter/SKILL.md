@@ -14,6 +14,7 @@ Every sign-up is double opt-in. The person gets a confirmation email, and nothin
 - An **unticked** checkbox the person must tick. Its wording must name the board, for example "Send me news and offers from Acme Jobs." Send that exact wording as `consentText`; it is kept as the record of what they agreed to, and a `consentText` without the board's name is refused with a 400.
 - A `source` label for the form, such as `blog-footer` or `homepage-hero` (lowercase letters, digits and hyphens). It shows as the person's Source in the board's dashboard, so give each form its own.
 - A hidden `website` field people leave empty. Bots fill it in; the API then answers as usual and does nothing.
+- The person's time zone as `timeZone`: read `Intl.DateTimeFormat().resolvedOptions().timeZone` in their browser (such as `Europe/Berlin`) and send it with the form. On your server it returns the server's zone, so never fill it in there. The board keeps the first value it gets for a person and ignores an invalid one.
 
 Read the board's name from `board.context()` rather than typing it.
 
@@ -27,6 +28,7 @@ const result = await board.subscribe({
   consentText,
   source: 'blog-footer',
   website: honeypotValue,
+  timeZone: browserTimeZone, // read in the browser, sent with the form
 });
 
 if (result.sendingPaused) {

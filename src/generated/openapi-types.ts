@@ -895,7 +895,7 @@ export interface paths {
         put?: never;
         /**
          * Subscribe to job alerts
-         * @description Create a job-alert subscription for an email. Anonymous (no auth); the board must have job alerts enabled. Always returns a uniform `status: submitted` (no email enumeration). If this email isn't already subscribed, a confirmation email has been sent. `consent` must be `true`. Filters scope the digest (only jobFunctions/placeSlugs/remoteOptions affect matching); `filters.query` records the search keywords. A `context` with `source` `job_detail` or `job_apply_dialog` and a `jobId` subscribes to jobs similar to that job; such an alert takes no `filters.query` (400).
+         * @description Create a job-alert subscription for an email. Anonymous (no auth); the board must have job alerts enabled. Always returns a uniform `status: submitted` (no email enumeration). If this email isn't already subscribed, a confirmation email has been sent; an address that unsubscribed is sent a fresh confirmation email at most once every 12 hours (none while the address is suppressed, or when the board's team unsubscribed the address), and clicking it re-subscribes. `consent` must be `true`. Filters scope the digest (only jobFunctions/placeSlugs/remoteOptions affect matching); `filters.query` records the search keywords. A `context` with `source` `job_detail` or `job_apply_dialog` and a `jobId` subscribes to jobs similar to that job; such an alert takes no `filters.query` (400).
          */
         post: operations["createBoardJobAlert"];
         delete?: never;
@@ -1019,7 +1019,7 @@ export interface paths {
         put?: never;
         /**
          * Re-activate a job-alert subscription via a manage link
-         * @description Re-activate a previously-unsubscribed subscription via the HMAC manage token.
+         * @description Re-activate a previously-unsubscribed subscription via the HMAC manage token. Read `status`: an address that never confirmed is sent a confirmation email (`confirmation_sent`) instead of resuming. 404 when the subscription is gone; 429 (`rate_limited`) when a confirmation email was requested in the last two minutes, in which case nothing is sent; 409 (`job_alert_email_suppressed`) when the address never confirmed and cannot receive email (a hard bounce or spam report), in which case nothing is sent; 502 (`job_alert_confirmation_send_failed`) when the confirmation email could not be sent.
          */
         post: operations["resubscribeBoardJobAlerts"];
         delete?: never;
@@ -5018,6 +5018,8 @@ export interface components {
         };
         BoardAuthConsumeMagicLinkBody: {
             token: string;
+            /** @description The person's IANA time zone from their browser (`Intl.DateTimeFormat().resolvedOptions().timeZone`), such as `Europe/Berlin`. Stored the first time only; an invalid value is ignored. */
+            timeZone?: string;
         };
         BoardAuthForgotPasswordBody: {
             /** Format: email */
@@ -5074,6 +5076,8 @@ export interface components {
             returnTo?: string;
             /** @description The company member invite token, when the person is signing up from an invite link. When `role` is `employer` and it is a pending invite on this board sent to this same email, no verification email is sent: accepting the invite (`POST /boards/{identifier}/me/invites/accept`) verifies the address. Registration never accepts the invite itself. Any other token is ignored and the verification email is sent as usual. */
             inviteToken?: string;
+            /** @description The person's IANA time zone from their browser (`Intl.DateTimeFormat().resolvedOptions().timeZone`), such as `Europe/Berlin`. Stored the first time only; an invalid value is ignored. */
+            timeZone?: string;
         };
         BoardAuthRequestMagicLinkBody: {
             audienceAttribution?: components["schemas"]["AudienceAttribution"];
@@ -5354,6 +5358,8 @@ export interface components {
             pageUrl?: string;
             /** @description Honeypot. Render it as a hidden field that people leave empty; when it is filled in, the request answers `submitted` and does nothing. */
             website?: string;
+            /** @description The person's IANA time zone from their browser (`Intl.DateTimeFormat().resolvedOptions().timeZone`), such as `Europe/Berlin`. Stored the first time only; an invalid value is ignored. */
+            timeZone?: string;
         };
         BoardUser: {
             /** @description Board user ID. */
@@ -8159,7 +8165,7 @@ export interface components {
             /** @enum {string} */
             object: "job_alert_confirmation";
             /**
-             * @description Outcome of the confirmation. Always returned with HTTP 200 so the consumer renders by status (the token may be valid, stale, or unknown). `waitlisted`: the job alert is confirmed, but the board can't send to more people yet, so it starts once a spot opens. `unsubscribed`: a job-alert link sent before the alerts were turned off, which doesn't turn them back on. The subscription form sends an address that unsubscribed no confirmation email; resume alerts with the manage token (`POST /boards/{identifier}/job-alerts/resubscribe`) or a signed-in alert create.
+             * @description Outcome of the confirmation. Always returned with HTTP 200 so the consumer renders by status (the token may be valid, stale, or unknown). `waitlisted`: the job alert is confirmed, but the board can't send to more people yet, so it starts once a spot opens. `unsubscribed`: a job-alert link sent before the alerts were turned off, which doesn't turn them back on. To get them again, subscribe again (`POST /boards/{identifier}/job-alerts`): an address that unsubscribed is sent a fresh confirmation email at most once every 12 hours (none while the address is suppressed, or when the board's team unsubscribed the address), and clicking it re-subscribes. The manage token (`POST /boards/{identifier}/job-alerts/resubscribe`) or a signed-in alert create also resumes them.
              * @enum {string}
              */
             status: "confirmed" | "already_confirmed" | "expired" | "not_found" | "waitlisted" | "unsubscribed";
@@ -8219,6 +8225,13 @@ export interface components {
              * @enum {string}
              */
             status: "submitted";
+        };
+        PublicJobAlertResubscribeResult: components["schemas"]["PublicJobAlertManageResult"] & {
+            /**
+             * @description `resubscribed`: the subscription is resumed; its alerts start again, or wait for a spot when the board can't send to more people yet. `confirmation_sent`: the address never confirmed, so nothing is on yet; a confirmation email went out, and the alerts start when the person clicks its link. Tell them to check their inbox, and don't show the alerts as on.
+             * @enum {string}
+             */
+            status: "resubscribed" | "confirmation_sent";
         };
         PublicJobAlertSubscription: {
             /** @enum {string} */
@@ -9056,6 +9069,8 @@ export interface components {
                 avgSalaryMin: number;
                 avgSalaryMax: number;
                 jobCount: number;
+                /** @description Whether the salary page this item links to is worth indexing. When `false`, that page renders `<meta name="robots" content="noindex, follow">` and is left out of the board sitemap. */
+                indexable: boolean;
             }[];
             childLocationsByRegion: {
                 regionName: string;
@@ -9068,6 +9083,8 @@ export interface components {
                     avgSalaryMin: number;
                     avgSalaryMax: number;
                     jobCount: number;
+                    /** @description Whether the salary page this item links to is worth indexing. When `false`, that page renders `<meta name="robots" content="noindex, follow">` and is left out of the board sitemap. */
+                    indexable: boolean;
                 }[];
             }[];
             otherLocations: {
@@ -9078,6 +9095,8 @@ export interface components {
                 avgSalaryMin: number;
                 avgSalaryMax: number;
                 jobCount: number;
+                /** @description Whether the salary page this item links to is worth indexing. When `false`, that page renders `<meta name="robots" content="noindex, follow">` and is left out of the board sitemap. */
+                indexable: boolean;
             }[];
             topSkills: {
                 avgSalaryMin: number;
@@ -9616,6 +9635,8 @@ export interface components {
                 avgSalaryMin: number;
                 avgSalaryMax: number;
                 jobCount: number;
+                /** @description Whether the salary page this item links to is worth indexing. When `false`, that page renders `<meta name="robots" content="noindex, follow">` and is left out of the board sitemap. */
+                indexable: boolean;
             }[];
             childLocationsByRegion: {
                 regionName: string;
@@ -9628,6 +9649,8 @@ export interface components {
                     avgSalaryMin: number;
                     avgSalaryMax: number;
                     jobCount: number;
+                    /** @description Whether the salary page this item links to is worth indexing. When `false`, that page renders `<meta name="robots" content="noindex, follow">` and is left out of the board sitemap. */
+                    indexable: boolean;
                 }[];
             }[];
             otherLocations: {
@@ -9638,6 +9661,8 @@ export interface components {
                 avgSalaryMin: number;
                 avgSalaryMax: number;
                 jobCount: number;
+                /** @description Whether the salary page this item links to is worth indexing. When `false`, that page renders `<meta name="robots" content="noindex, follow">` and is left out of the board sitemap. */
+                indexable: boolean;
             }[];
             topSkills: {
                 avgSalaryMin: number;
@@ -12400,6 +12425,8 @@ export interface operations {
                         jobId?: string;
                         jobSlug?: string;
                     };
+                    /** @description The person's IANA time zone from their browser (`Intl.DateTimeFormat().resolvedOptions().timeZone`), such as `Europe/Berlin`. Stored the first time only; an invalid value is ignored. */
+                    timeZone?: string;
                 };
             };
         };
@@ -12731,7 +12758,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PublicJobAlertManageResult"];
+                    "application/json": components["schemas"]["PublicJobAlertResubscribeResult"];
                 };
             };
             /** @description An error. Every non-2xx response uses the same envelope; see the Errors section of the introduction. */

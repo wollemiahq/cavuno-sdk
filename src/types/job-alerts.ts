@@ -41,12 +41,23 @@ export type JobAlertSubscribeInput = {
   filters?: JobAlertFiltersInput;
   /** Scopes the alert to the originating job/search (for the digest + analytics). */
   context?: { source?: string; jobId?: string; jobSlug?: string };
+  /**
+   * The person's IANA time zone from their browser
+   * (`Intl.DateTimeFormat().resolvedOptions().timeZone`), such as
+   * `Europe/Berlin`. Read it in the browser and pass it through: on a server
+   * it is the server's zone. Stored the first time only; an invalid value is
+   * ignored.
+   */
+  timeZone?: string;
 };
 
 export type JobAlertSubscription = Schemas['PublicJobAlertSubscription'];
 export type JobAlertConfirmation = Schemas['PublicJobAlertConfirmation'];
 export type JobAlertResendResult = Schemas['PublicJobAlertResend'];
 export type JobAlertManageResult = Schemas['PublicJobAlertManageResult'];
+/** `jobAlerts.resubscribe`'s result: what the resume did (`status`). */
+export type JobAlertResubscribeResult =
+  Schemas['PublicJobAlertResubscribeResult'];
 export type JobAlertManageState = Schemas['PublicJobAlertManageState'];
 
 /** One stored alert preference on the manage page. */

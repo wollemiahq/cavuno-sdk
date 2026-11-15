@@ -95,6 +95,8 @@ export const BOARD_API_ERROR_CODES = [
   // Job alerts (anonymous + authenticated)
   'job_alert_not_found',
   'job_alerts_disabled',
+  'job_alert_confirmation_send_failed',
+  'job_alert_email_suppressed',
   'candidate_alert_limit_reached',
   'candidate_alert_not_found',
   // Candidate account

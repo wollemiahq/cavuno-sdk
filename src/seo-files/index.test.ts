@@ -13,6 +13,7 @@ import {
 } from './index';
 
 const GOLDEN_ROBOTS = `User-Agent: *
+Content-Signal: search=yes, ai-input=yes, ai-train=yes
 Allow: /
 Disallow: /go/
 Disallow: /t/
@@ -47,13 +48,14 @@ describe('robotsBody', () => {
     );
   });
 
-  it('emits the sandbox body with no Sitemap', () => {
-    expect(
-      robotsBody({ canonicalBase: 'https://jobs.example.com', sandbox: true }),
-    ).toBe(SANDBOX_ROBOTS);
-    expect(
-      robotsBody({ canonicalBase: 'https://jobs.example.com', sandbox: true }),
-    ).not.toContain('Sitemap:');
+  it('emits the sandbox body with no Sitemap or Content-Signal', () => {
+    const body = robotsBody({
+      canonicalBase: 'https://jobs.example.com',
+      sandbox: true,
+    });
+    expect(body).toBe(SANDBOX_ROBOTS);
+    expect(body).not.toContain('Sitemap:');
+    expect(body).not.toContain('Content-Signal:');
   });
 });
 
@@ -69,6 +71,7 @@ describe('robotsBody listingPaths', () => {
         },
       }),
     ).toBe(`User-Agent: *
+Content-Signal: search=yes, ai-input=yes, ai-train=yes
 Allow: /
 Disallow: /go/
 Disallow: /t/
@@ -137,6 +140,7 @@ describe('robotsBody localeListingPaths', () => {
         ],
       }),
     ).toBe(`User-Agent: *
+Content-Signal: search=yes, ai-input=yes, ai-train=yes
 Allow: /
 Disallow: /go/
 Disallow: /t/
