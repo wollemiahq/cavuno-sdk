@@ -16,6 +16,8 @@ Both lanes are available only when `board.context()` reports `features.jobAlerts
 
 `subscribe` requires consent and deliberately returns the same submitted response for new and existing addresses. `confirm` always resolves; its status owns the landing-page branch.
 
+Send the person's time zone as `timeZone`: read `Intl.DateTimeFormat().resolvedOptions().timeZone` in their browser (such as `Europe/Berlin`) and pass it with the form. On your server it returns the server's zone, so never fill it in there. The board keeps the first value it gets for a person and ignores an invalid one.
+
 ```ts snippet
 const submitted = await board.jobAlerts.subscribe({
   email: 'ada@example.com',
@@ -26,6 +28,7 @@ const submitted = await board.jobAlerts.subscribe({
     remoteOptions: ['remote'],
     placeSlugs: ['berlin'],
   },
+  timeZone: browserTimeZone, // read in the browser, sent with the form
 });
 
 const result = await board.jobAlerts.confirm({ token });
@@ -36,8 +39,8 @@ switch (result.status) {
   case 'not_found':
     break;
   case 'unsubscribed':
-    // Show the manage page's resume option; the subscribe form sends this
-    // address no confirmation email.
+    // Offer the subscribe form again (it emails a fresh confirmation link)
+    // or the manage page's resume option.
     break;
   case 'expired':
     await board.jobAlerts.resendConfirmation({ email });
@@ -45,7 +48,7 @@ switch (result.status) {
 }
 ```
 
-`waitlisted` means the alert is confirmed but the board can't send to more people yet; it starts once a spot opens. `unsubscribed` means the link was sent before the alerts were turned off, so it doesn't turn them back on. Subscribing again with the form sends no confirmation email to that address; the person resumes alerts from the manage link in an alert email (`board.jobAlerts.resubscribe`) or by signing in and creating an alert.
+`waitlisted` means the alert is confirmed but the board can't send to more people yet; it starts once a spot opens. `unsubscribed` means the link was sent before the alerts were turned off, so it doesn't turn them back on. Subscribing again with the form sends that address a fresh confirmation email, at most once every 12 hours and never while it is suppressed or when the board's team unsubscribed the address; clicking it resumes the alerts. The manage link in an alert email (`board.jobAlerts.resubscribe`) and signing in to create an alert resume them too.
 
 Only `jobFunctions`, `placeSlugs`, and `remoteOptions` filter digest delivery. Seniority and salary fields are stored but do not scope delivery. The supported cadence is `weekly`.
 
@@ -101,6 +104,8 @@ await board.jobAlerts.deletePreference({
 ```
 
 `unsubscribe` and `resubscribe` accept an optional `preferenceId`. Each managed preference also includes its own `manageToken`.
+
+`resubscribe` returns `status`: `resubscribed` means the subscription is resumed. `confirmation_sent` means the address never confirmed, so a confirmation email went out instead; keep showing the alerts as off and tell the person to check their inbox. A 429 means rate limiting or a confirmation email requested in the last two minutes; nothing new was sent. A 409 (`job_alert_email_suppressed`) means the address never confirmed and can't receive email, so nothing was sent; keep the alerts off and don't retry. A 502 (`job_alert_confirmation_send_failed`) means the email could not be sent.
 
 `updatePreference` is a full replacement. Round-trip every retained value and always send `frequency`.
 

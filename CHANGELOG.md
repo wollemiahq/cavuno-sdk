@@ -21,6 +21,16 @@ types, runtime behavior, or supported integration patterns.
   with Cavuno's AI Builder. A frontend that calls the API from the browser
   or its own server records neither, since the address and user agent the
   API sees are not the visitor's.
+- The place rows of the title-by-location and skill-by-location salary
+  pages (`childLocations`, `childLocationsByRegion[].cities` and
+  `otherLocations`) carry `indexable` for the page each row links to, as
+  the other salary list items already do. Link only rows where it is
+  `true` from an indexable page. Skill-by-location rows are never
+  indexable.
+- `robotsBody()` and `robotsResponse()` from `@cavuno/board/seo-files`
+  add `Content-Signal: search=yes, ai-input=yes, ai-train=yes` under
+  `User-Agent: *`, so the board says how its content may be used by search
+  and AI. Sandbox boards, which are not indexed, leave it out.
 
 ## 4.70.0 — 2026-11-12
 

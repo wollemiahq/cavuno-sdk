@@ -9,6 +9,7 @@ import type {
   JobAlertManageState,
   JobAlertManageTokenInput,
   JobAlertResendResult,
+  JobAlertResubscribeResult,
   JobAlertSubscribeInput,
   JobAlertSubscription,
   JobAlertUnsubscribeInput,
@@ -87,13 +88,21 @@ export function jobAlertsNamespace(client: BoardClient) {
       });
     },
 
-    /** Re-activate a previously unsubscribed subscription via the manage token. */
+    /**
+     * Resume a previously unsubscribed subscription via the manage token.
+     * `status` is `resubscribed`, or `confirmation_sent` when the address
+     * never confirmed: a confirmation email went out and the alerts start
+     * once it is clicked.
+     */
     resubscribe(input: JobAlertManageTokenInput, options?: FetchOptions) {
-      return client.fetch<JobAlertManageResult>('/job-alerts/resubscribe', {
-        ...options,
-        method: 'POST',
-        body: input,
-      });
+      return client.fetch<JobAlertResubscribeResult>(
+        '/job-alerts/resubscribe',
+        {
+          ...options,
+          method: 'POST',
+          body: input,
+        },
+      );
     },
 
     /** Edit a preference's filters/frequency via the manage token. */

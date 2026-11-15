@@ -591,6 +591,7 @@ export type {
   JobAlertPreference,
   JobAlertRemoteOption,
   JobAlertResendResult,
+  JobAlertResubscribeResult,
   JobAlertStoredFilters,
   JobAlertSubscribeInput,
   JobAlertSubscription,
