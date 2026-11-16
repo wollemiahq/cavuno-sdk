@@ -98,6 +98,11 @@ export const BOARD_API_ERROR_CODES = [
   'job_alert_confirmation_send_failed',
   'job_alert_email_suppressed',
   'candidate_alert_limit_reached',
+  // Newsletter sign-up: a topic key that names no live topic
+  'subscribe_unknown_topic',
+  // Email preferences: a bad link, or a topic on while marketing is off
+  'email_preferences_token_invalid',
+  'email_preferences_marketing_required',
   'candidate_alert_not_found',
   // Candidate account
   'candidate_entry_not_found',
