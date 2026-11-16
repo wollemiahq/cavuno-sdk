@@ -1,6 +1,6 @@
 ---
 name: cavuno-board-newsletter
-description: Newsletter sign-up forms with @cavuno/board. Use for an email sign-up for the board's news (footer, blog, landing page), its consent checkbox, the confirmation email, and sendingPaused.
+description: Newsletter sign-up forms with @cavuno/board. Use for an email sign-up for the board's news (footer, blog, landing page), its consent checkbox, topic checkboxes and tags, the confirmation email, and sendingPaused.
 ---
 
 # Newsletter sign-up
@@ -38,6 +38,32 @@ if (result.sendingPaused) {
 
 `pageUrl` is optional; it defaults to the request's `Referer`. Pass it when the call is made from your server, where the `Referer` is not the visitor's page.
 
+## Topics
+
+A board can split its email into topics, such as a weekly newsletter and employer updates. List them with `board.marketingTopics.list()` and send the keys the person ticked as `topics`. The list is empty when the board has a single list; then leave `topics` out.
+
+```ts snippet
+const { data: topics } = await board.marketingTopics.list();
+// Render one unticked checkbox per topic, labelled with topic.name.
+
+await board.subscribe({
+  email,
+  consent: true,
+  consentText: `Send me the weekly newsletter from ${name}.`,
+  source: 'newsletter-page',
+  topics: ['weekly-newsletter'], // the keys the person ticked
+});
+```
+
+- A form for one topic sends that one key, and its wording names the topic as well as the board.
+- Without `topics`, the person gets every topic the board adds to new sign-ups. With `topics`, they get only those.
+- A key that isn't one of the board's live topics is refused with 400 `subscribe_unknown_topic` (`details.key` names it). A topic must exist before a form uses it: create it in Settings › Email or with `POST /v1/marketing-topics` (operator API), never by guessing a key.
+- Topics wait for the confirmation click like the sign-up itself. Someone who already gets the board's email gets a new topic at once; a topic they removed themselves comes back only through the confirmation email.
+
+## Tags
+
+`tags` labels the person for the board's team, such as `audience:employer` (up to 10: lowercase letters, digits, `_` and `-`, with one optional `namespace:` part). An unknown tag is created. Tags are added with the confirmation click, or at once for someone who already gets the board's email. A board holds 500 tags; past that, `result.tagsSkipped` lists the ones that won't be added, and the sign-up still goes through.
+
 ## After submitting
 
 Always show the same message: "Check your inbox to confirm your subscription." Never show "you're already subscribed"; the API deliberately doesn't say.
@@ -64,6 +90,7 @@ const message = !subscribed
 ## Errors
 
 - `validation_bad_request` (400): a field is missing or malformed, `consent` isn't `true`, or `consentText` doesn't name the board.
+- `subscribe_unknown_topic` (400): a key in `topics` isn't one of the board's live topics.
 - `rate_limited` (429): 3 sign-ups a minute per address across all boards, or 10 requests a minute per IP. A self-hosted site calls from its own server, so all its visitors share that IP limit with every other sign-in and sign-up call from that server; on a builder site Cavuno hosts it counts each visitor separately, plus 6 sign-ups a minute per visitor. `details.retryAfterSeconds` says when to try again.
 - `rate_limit_unavailable` (503): retry shortly.
 

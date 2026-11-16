@@ -4,6 +4,9 @@
  * Mirrors the hosted-app contract:
  * - `/go/job/<id>` → 302 to jobDetailPath(companySlug, jobSlug)
  * - `/go/alerts-manage` / `/go/alerts-confirm` → 302 carrying query
+ * - `/go/email-preferences` → 302 with only `token`, to the site's
+ *   preferences page (`emailPreferencesPath`), or to the Cavuno-hosted page
+ *   when the site declares none
  * - unknown / unresolvable → 302 to BOARD_PATHS.jobs
  * - every response: `X-Robots-Tag: noindex, nofollow`
  *
@@ -48,7 +51,18 @@ export interface CreateGoHandlerConfig {
    * correct for same-host mounts.
    */
   origin?: string;
+  /**
+   * The path of the site's email preferences page, such as
+   * `/email-preferences`. Omit it while the site has no such page:
+   * `/go/email-preferences` then sends the person to the Cavuno-hosted
+   * preferences page, with only their `token`, instead of a page that
+   * would answer 404.
+   */
+  emailPreferencesPath?: string;
 }
+
+/** Where people manage their email when the site has no page of its own. */
+const CAVUNO_EMAIL_PREFERENCES_URL = 'https://cavuno.com/email/preferences';
 
 const NOINDEX_ROBOTS = 'noindex, nofollow';
 
@@ -62,11 +76,16 @@ export function goResponseHeaders(): Record<string, string> {
 /**
  * Pure role → location resolver. Shared by the handler so unit tests can
  * assert the contract without spinning a Request.
+ *
+ * `email-preferences` carries only `token`, to `emailPreferencesPath` when
+ * the site has that page, else to the Cavuno-hosted page. Its response
+ * should also send `Referrer-Policy: no-referrer`, as `createGoHandler` does.
  */
 export function resolveGoRedirect(
   parts: readonly string[] | undefined,
   search: string,
   resolvedJob: ResolvedJobSlugs | null,
+  options: { emailPreferencesPath?: string } = {},
 ): GoRedirectResult {
   const role = parts?.[0];
   const id = parts?.[1];
@@ -93,6 +112,15 @@ export function resolveGoRedirect(
   if (role === 'alerts-confirm') {
     return {
       location: `${BOARD_PATHS.alertsConfirm}${query}`,
+      status: 302,
+    };
+  }
+
+  if (role === 'email-preferences') {
+    const token = new URLSearchParams(query).get('token');
+    const tokenQuery = token ? `?${new URLSearchParams({ token })}` : '';
+    return {
+      location: `${options.emailPreferencesPath ?? CAVUNO_EMAIL_PREFERENCES_URL}${tokenQuery}`,
       status: 302,
     };
   }
@@ -129,13 +157,18 @@ function partsFromRequest(request: Request): string[] {
  * import { createGoHandler } from '@cavuno/board/go';
  * export const GET = createGoHandler({});
  *
+ * // Once the site serves its own email preferences page:
+ * export const GET = createGoHandler({
+ *   emailPreferencesPath: '/email-preferences',
+ * });
+ *
  * // With a future id-lookup:
  * export const GET = createGoHandler({
  *   lookupJob: async (id) => board.jobs.retrieveById?.(id) ?? null,
  * });
  */
 export function createGoHandler(config: CreateGoHandlerConfig = {}) {
-  const { lookupJob, origin } = config;
+  const { lookupJob, origin, emailPreferencesPath } = config;
 
   return async function goHandler(request: Request): Promise<Response> {
     const url = new URL(request.url);
@@ -159,12 +192,18 @@ export function createGoHandler(config: CreateGoHandlerConfig = {}) {
       }
     }
 
-    const result = resolveGoRedirect(parts, url.search, resolvedJob);
+    const result = resolveGoRedirect(parts, url.search, resolvedJob, {
+      emailPreferencesPath,
+    });
     const locationBase = origin ?? url.origin;
     return new Response(null, {
       status: result.status,
       headers: {
         ...goResponseHeaders(),
+        // A preferences token is in the URL: the next page must not leak it.
+        ...(parts[0] === 'email-preferences'
+          ? { 'Referrer-Policy': 'no-referrer' }
+          : {}),
         Location: new URL(result.location, locationBase).toString(),
       },
     });

@@ -166,6 +166,20 @@ The mapping is:
 
 `checkoutUrl` is a URL for a host-owned full-page redirect. Payment publication happens by webhook; the SDK exposes no Stripe integration or publish-confirm method.
 
+### Marketing checkbox, only when asked
+
+Leave it off: the post form doesn't carry a marketing checkbox unless the board's operator asks for one. When they do, add an **unticked** checkbox asking for the board's own email (news and offers), worded with the board's name, such as "Send me news and offers from Acme Jobs.", and only when the poster ticks it send `marketingConsent: { granted: true, text }` with that exact wording. It is recorded at `submission.contactEmail` once the post goes through (a paid post when its payment arrives) and confirmed by its own email; nothing is granted until the poster clicks it, and the result is the same either way. Wording without the board's name is refused with `validation_bad_request` (400).
+
+```ts snippet
+await board.jobPosting.create({
+  submission,
+  marketingConsent: {
+    granted: true,
+    text: 'Send me news and offers from Acme Jobs.',
+  },
+});
+```
+
 ## Embedded checkout
 
 To keep the poster on your page, send `checkoutUiMode: 'embedded_page'`. A paid plan then returns `embedded_checkout` with everything Stripe.js needs. Load Stripe.js from `js.stripe.com` yourself; the SDK never bundles it.

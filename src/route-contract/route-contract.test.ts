@@ -55,6 +55,7 @@ const HARDCODED_CANONICAL_ROLES: Record<RouteRole, string> = {
   products: '/products',
   mePurchases: '/me/purchases',
   tip: '/tip',
+  emailPreferences: '/email-preferences',
 };
 
 /** Starter fixture: one RouteEntry per hardcoded canonical role. */

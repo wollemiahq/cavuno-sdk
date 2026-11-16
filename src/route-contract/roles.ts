@@ -76,7 +76,12 @@ export type RouteRole =
   | 'products'
   | 'mePurchases'
   /** The tip page (the board's tip jar); optional, never required. */
-  | 'tip';
+  | 'tip'
+  /**
+   * The email preferences page every email footer links to; optional, never
+   * required. A board that does not declare it gets a Cavuno-hosted page.
+   */
+  | 'emailPreferences';
 
 /**
  * Exact param-name set per role, derived from each helper's signature.
@@ -120,6 +125,7 @@ export const ROLE_PARAM_REGISTRY: Record<RouteRole, readonly string[]> = {
   products: [],
   mePurchases: [],
   tip: [],
+  emailPreferences: [],
 };
 
 /** Email-emitting roles — a missing one blocks publish. */
@@ -185,5 +191,6 @@ export const CANONICAL_MANIFEST: ManifestV1 = {
     products: BOARD_PATHS.products,
     mePurchases: BOARD_PATHS.mePurchases,
     tip: BOARD_PATHS.tip,
+    emailPreferences: BOARD_PATHS.emailPreferences,
   },
 };
