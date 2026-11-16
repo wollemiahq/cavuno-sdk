@@ -58,6 +58,21 @@ if (status.status === 'paid') redirect(status.downloadUrl);
 // still 'awaiting_payment' after ~10 s: "We have emailed your download link"
 ```
 
+### Marketing checkbox, only when asked
+
+Leave it off: a checkout doesn't carry a marketing checkbox unless the board's operator asks for one. When they do, add an **unticked** checkbox asking for the board's own email (news and offers), worded with the board's name, such as "Send me news and offers from Acme Jobs.", and only when the buyer ticks it send `marketingConsent: { granted: true, text }` with that exact wording, on `board.products.checkout` or `board.tipJar.checkout`. It is recorded once the purchase completes (a free claim at once, a paid one when the payment arrives, a tip at the address Stripe collected) and confirmed by its own email; nothing is granted until the buyer clicks it, and the response is the same either way. Wording without the board's name is refused with `validation_bad_request` (400).
+
+```ts snippet
+await board.products.checkout('salary-guide', {
+  email: 'ada@example.com',
+  answers: [],
+  marketingConsent: {
+    granted: true,
+    text: 'Send me news and offers from Acme Jobs.',
+  },
+});
+```
+
 Checkout errors: `product_sold_out` (409), `product_email_invalid` (400), `product_email_blocked` (403), `product_amount_below_minimum` (400, `details.minimumCents`), `product_amount_invalid` (400), `product_answers_invalid` (400, `details.questionId`), `stripe_not_connected` (409), `rate_limited` (429), `rate_limit_unavailable` (503); `getCheckout` with an unknown session is `product_checkout_not_found`.
 
 ## Download page and the shared-link check
