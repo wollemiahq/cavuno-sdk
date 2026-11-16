@@ -48,11 +48,29 @@ switch (result.status) {
 }
 ```
 
-`waitlisted` means the alert is confirmed but the board can't send to more people yet; it starts once a spot opens. `unsubscribed` means the link was sent before the alerts were turned off, so it doesn't turn them back on. Subscribing again with the form sends that address a fresh confirmation email, at most once every 12 hours and never while it is suppressed or when the board's team unsubscribed the address; clicking it resumes the alerts. The manage link in an alert email (`board.jobAlerts.resubscribe`) and signing in to create an alert resume them too.
+`waitlisted` means the alert is confirmed but the board can't send to more people yet; it starts once a spot opens. `unsubscribed` means the link was sent before the alerts were turned off, so it doesn't turn them back on. Subscribing again with the form sends that address a fresh confirmation email, at most once every 12 hours and never when the board's team unsubscribed the address (the form and `resendConfirmation` never email a suppressed address); clicking it resumes the alerts. The manage link in an alert email (`board.jobAlerts.resubscribe`) and signing in to create an alert resume them too.
 
 Only `jobFunctions`, `placeSlugs`, and `remoteOptions` filter digest delivery. Seniority and salary fields are stored but do not scope delivery. The supported cadence is `weekly`.
 
 `jobFunctions` are category and skill slugs (the `slug` of a category or skill, such as `engineering` or `media-and-communication`). A digest matches a job when any entry equals one of the job's category or skill slugs. Prefer sending slugs. If you send display names or free-text keywords instead, the server slugifies each one when the alert is saved and matches it against the board's category and skill slugs, their aliases, and their board-language slugs. A display name that does not slugify to one of those (for example, a renamed category) is stored slugified and will not match, so send slugs whenever you have them. Alerts read back from the API therefore always carry slugs, so compare and display them as slugs.
+
+## Optional marketing checkbox
+
+A job alert form can also ask for the board's own email (news and offers). Show an **unticked** checkbox under the email field, worded with the board's name, such as "Send me news and offers from Acme Jobs.". Only when the person ticks it, send `marketingConsent` with that exact wording; leave it out otherwise. Wording without the board's name is refused with `validation_bad_request` (400).
+
+```ts snippet
+await board.jobAlerts.subscribe({
+  email: 'ada@example.com',
+  consent: true,
+  filters: { jobFunctions: ['engineering'] },
+  marketingConsent: {
+    granted: true,
+    text: 'Send me news and offers from Acme Jobs.',
+  },
+});
+```
+
+Nothing is granted until the person clicks a confirmation email. An address that still has to confirm the alert gets one email that confirms the alert and the marketing email together; an address that already gets alerts gets a separate confirmation for the marketing email. The response is the same either way. For a form that only offers news, use `board.subscribe` (the `cavuno-board-newsletter` skill).
 
 ## Alert kinds, keywords, and anchor jobs
 
