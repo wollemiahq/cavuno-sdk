@@ -38,6 +38,7 @@ const REDIRECT_OK: ReadonlySet<RouteRole> = new Set([
   'alertsManage',
   'alertsConfirm',
   'mePurchases',
+  'emailPreferences',
 ]);
 
 /**

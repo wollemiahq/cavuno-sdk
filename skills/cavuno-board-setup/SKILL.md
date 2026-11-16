@@ -60,6 +60,7 @@ Route each enabled capability to its focused skill:
 | Blog | `cavuno-board-blog` |
 | Salary pages | `cavuno-board-salaries` |
 | Job alerts | `cavuno-board-job-alerts` |
+| Email preferences page | `cavuno-board-email-preferences` |
 | Candidate account | `cavuno-board-account` |
 | Saved jobs and applications | `cavuno-board-applications` |
 | Messaging | `cavuno-board-messaging` |

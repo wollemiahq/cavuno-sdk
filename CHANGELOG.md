@@ -3,6 +3,245 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.72.0 — 2026-11-16
+
+- `board.emailPreferences` builds the page that the board's job alert, job
+  match and sign-up confirmation emails link to. Their footer link carries
+  a `token` query parameter that names the person on this board, so the
+  page needs no sign-in. Pass the token to
+  `get(token)`, `update(token, changes)` or `unsubscribeAll(token)`; the SDK
+  sends it in the `X-Email-Preferences-Token` header, never in an API URL.
+  All three resolve `EmailPreferences`: `email`, `jobAlerts` (`confirmed`,
+  `unsubscribed` and `alerts`, where each alert has `awaitingConfirmation`
+  while it waits for its confirmation link), `jobMatches` (`subscribed` and
+  `waitlisted`, or `null` when the board sends this person none),
+  `marketing.subscribed`, and `topics`, every live marketing topic with
+  `key`, `name` and `subscribed`. Reading changes nothing, so a mail scanner
+  opening the link does no harm. The methods work on every plan and behind
+  a board password. `EmailPreferences` and `EmailPreferencesUpdate` are
+  exported.
+- `board.emailPreferences.update` applies its changes together, as the
+  person: `alerts` (up to 10, `{ id, delete: true }` or
+  `{ id, frequency: 'weekly' }`),
+  `jobMatches`, `marketing` and `topics` (up to 20 `{ key, subscribed }`).
+  Turning marketing or a topic on needs `consentText`, the wording shown
+  next to the switch, which must name the board (400
+  `validation_bad_request` otherwise); it is recorded as the person's
+  consent and confirmed at once. Optional `source` and `pageUrl`
+  are kept with it. Turning marketing on again brings back the topics that
+  went off with it; someone who has never had a topic gets the topics the
+  board adds to new sign-ups instead. Topics the person or the board's team
+  removed one by one stay off. A token that is missing, changed or from
+  another board fails with 403 `email_preferences_token_invalid`, a topic
+  turned on while marketing is off with 409
+  `email_preferences_marketing_required`, an alert that is not the
+  person's with 404 `job_alert_not_found`, job matches turned on for
+  someone with no job seeker account on the board (an email-only
+  subscriber or an employer) with 422
+  `candidate_notification_preference_paused`, and an unknown topic key with
+  400 `subscribe_unknown_topic`. `email_preferences_token_invalid` and
+  `email_preferences_marketing_required` are new in
+  `BOARD_API_ERROR_CODES`.
+- The `cavuno-board-email-preferences` skill teaches the email preferences
+  page: the route role, the token, what to show and how to save a change.
+- `board.emailPreferences.unsubscribeAll(token)` turns off job alerts, job
+  matches, marketing and every topic at once. Only what the person has is
+  changed, so a repeat changes nothing, and the address can still sign up
+  again later.
+- The new optional `emailPreferences` route role, and
+  `BOARD_PATHS.emailPreferences` (`/email-preferences`) and
+  `goEmailPreferencesPath()` in `@cavuno/board/paths`. Declare the role so
+  the board's emails link to your page; a board that does not declare it
+  gets a page Cavuno hosts. `createGoHandler` answers `/go/email-preferences`
+  with a 302 that keeps only the `token` query parameter, sent with
+  `Referrer-Policy: no-referrer`: to the new optional
+  `emailPreferencesPath`, such as `/email-preferences`, when set, otherwise
+  to the Cavuno-hosted page at `https://cavuno.com/email/preferences`.
+  `resolveGoRedirect` in `@cavuno/board/go` takes the same optional
+  `{ emailPreferencesPath }`. `RouteRole`
+  lists the new role, so an exhaustive `Record<RouteRole, …>` needs the new
+  key.
+- `board.marketingTopics.list()` returns the board's marketing topics, such
+  as a weekly newsletter, oldest first: at most 20, never paginated, and
+  empty when the board has a single list. Each `MarketingTopic` has `key`
+  and `name`. `MarketingTopic` and `MarketingTopicListEnvelope` are
+  exported.
+- `board.subscribe(...)` takes optional `topics` and `tags`. `topics` is up
+  to 20 keys from `board.marketingTopics.list()`, the ones the person
+  ticked; they get only those. Without it they get every topic the board
+  adds to new sign-ups. A key that names no live topic fails with 400
+  `subscribe_unknown_topic`, with the key in `details.key`; the code is in
+  `BOARD_API_ERROR_CODES`. `tags` is up to 10 labels such as
+  `audience:employer` (lowercase letters, digits, `_` and `-`, with one
+  optional `namespace:` part, each part up to 32 characters); an unknown tag
+  is created. Topics and tags are added with the confirmation click, or at
+  once for someone who already gets the board's marketing email. A board
+  holds 500 tags and a person 50; a tag past either limit is skipped and
+  the sign-up still goes through. `SubscriptionRequest` gains `tagsSkipped`,
+  the requested tags left out because the board already holds 500.
+- `board.jobAlerts.subscribe(...)`, `board.products.checkout(...)`,
+  `board.tipJar.checkout(...)` and `board.jobPosting.create(...)` take an
+  optional `marketingConsent: { granted: true, text }` for a form's
+  marketing checkbox. Offer the checkbox only when the board's operator asks
+  for one, leave it unticked, and send the object only when the person
+  ticks it, with the exact wording in `text` (10 to 1,000 characters). The
+  wording must contain the board's name, such as
+  `Send me news and offers from Acme Jobs.`, or the request fails with 400
+  `validation_bad_request`. Nothing is granted until the person clicks a
+  confirmation email, and the response is the same either way.
+  `JobAlertSubscribeInput['marketingConsent']` is typed.
+- When marketing consent is recorded: on a job alert form, an address that
+  still has to confirm its alert gets one email that confirms both, and any
+  other address gets a separate confirmation for the marketing email. At
+  checkout it is recorded once the purchase completes: a free claim at once,
+  a paid one when its payment arrives, and a tip at the address Stripe
+  collected. On a job post it is recorded at `submission.contactEmail` when
+  the post is submitted, including one held for approval or invoiced, and
+  for a paid post when its payment arrives.
+- Salary responses carry an optional `payType`: `salaried` (the figures
+  count salaried jobs only; internships and hourly-paid jobs are left out)
+  or `internship` (the board has no salaried jobs, so every figure is
+  internship pay; label it as such). It is the same on every salary page of
+  a board, and absent means `salaried`. It is on `TitleSalaryDetail`,
+  `SkillSalaryDetail`, `LocationSalaryDetail`, `TitleLocationSalary`,
+  `SkillLocationSalary`, `CompanySalary`, `CompanySalarySummary` and
+  `CompanyCategorySalary`.
+- The board's MCP server offers job seeker account tools while job seekers
+  can sign in to the board, and only on the board's own domains, where the
+  person signs in to use them. New tools: `get_saved_jobs`, `save_job`,
+  `remove_saved_job`, `list_job_alerts`, `create_job_alert`,
+  `delete_job_alert`, `list_my_applications`, `withdraw_application`,
+  `get_recommended_jobs`, `get_apply_link`, `get_my_access`,
+  `get_job_access_link`, `get_billing_portal_link`, `update_profile`,
+  `add_experience`, `add_education` and `update_skills`. The three alert
+  tools also need job alerts on, `list_my_applications` and
+  `withdraw_application` applications on the board, `get_recommended_jobs`
+  job recommendations, `get_billing_portal_link` a public job seeker plan,
+  and `get_my_access` and `get_job_access_link` a job access paywall that
+  sells access to job listings. Operators leave any of them out with
+  `mcpDisabledTools` on `PATCH /settings`, which now takes up to 29 names.
+- New operator operations for email templates: `GET /email-layouts` and
+  `POST /email-layouts` list and create templates (a copy of `system` or
+  another template, up to 50), `GET`, `PATCH` and `DELETE
+  /email-layouts/{id}` read, rename and delete one (`system` names the
+  board's System template, which can't be deleted), and `POST
+  /email-layouts/{id}/duplicate` copies one. `PUT /email-layouts/{id}/draft`
+  replaces the draft's React Email source files (at most 10 files and 64 KB,
+  with `baseRevision`) and starts an `email_layouts.compile` operation; `POST
+  /email-layouts/{id}/publish` starts an `email_layouts.publish` operation,
+  which publishes only when every email that can use the template renders,
+  keeps its footer and required links, and stays under 100 KB, and otherwise
+  fails with `email_layouts_publish_refused`. `GET
+  /email-layouts/{id}/versions`, `GET .../versions/{versionId}` and `POST
+  .../versions/{versionId}/restore` read and restore published versions
+  (the newest 50 are kept), and `POST /email-layouts/{id}/test` sends one
+  test email to the requesting member, 20 an hour per board. Operations
+  gain the `email_layout` resource type.
+- `GET /campaign-readiness` says what a board needs before it can send email
+  campaigns: `ready`, `blocking_item` (the first item left, or `null`) and
+  `items` in setup order, `plan`, `sending_domain`, `bulk_domain` and
+  `mailing_address`, each with a `status` of `complete`, `pending`, `failed`
+  or `missing`.
+- `GET`, `POST` and `DELETE /email-domains/bulk` and `POST
+  /email-domains/bulk/verify` manage the board's bulk sending domain, a
+  subdomain of its verified sending domain (`updates.<domain>` by default)
+  that marketing email sends from. Once it is verified, job alert digests,
+  job match emails and import confirmations send from
+  `alerts@<bulk domain>`, a growing share each day while the domain warms
+  up and the rest from the board's usual sender. `BulkEmailDomain` carries
+  `status`
+  (`pending`, `verified` or `failed`), `nextStep` (`dns`, `dmarc` or
+  `domain_test`), `senderAddress`, `dnsRecords`, `dmarcFound` and
+  `domainTest`. A DMARC record is required on a bulk sending domain. Adding
+  one needs a verified sending domain (409
+  `email_domains_sending_domain_required`) and a plan that includes custom
+  sender domains (403 `email_domains_plan_required`).
+- Contacts carry `tags` and `isBuyer` (the person paid for a product or
+  tipped on the board, recorded only from checkouts completed after the
+  field shipped: for the signed-in buyer, or for the checkout address when
+  that person was already on the board or ticked the marketing checkbox).
+  `GET /contacts` takes `buyer=true|false`, and `source.kind` can be
+  `checkout`. A contact's `marketing` subscription
+  lists its `topics`, each with `key`, `name`, `status` (`subscribed`,
+  `pending` or `unsubscribed`), `since`, `consentText` and `source`
+  (`signup`, `preference_page` or `operator`).
+- `POST /contacts/{id}/topics` with `{ key }` puts a contact on a marketing
+  topic without a new confirmation, `GET /contacts/{id}/topics/{key}` reads
+  one back, and `DELETE /contacts/{id}/topics/{key}` takes the contact off
+  it. Adding fails with 409 `contacts_topic_consent_required` unless the
+  contact's marketing consent is granted and confirmed, and with 409
+  `contacts_topic_removed_by_person` for a topic the contact removed
+  themselves.
+- Marketing topics carry `addNewSignups`: a sign-up that names no topic
+  also gets the topic. It defaults to `true` on `POST /marketing-topics`,
+  reads as off on topics created before it existed, and `PATCH
+  /marketing-topics/{key}` changes it or the name, each unchanged when
+  omitted.
+- `GET /taxonomies/{categories,skills,markets}/{id}/translations` lists a
+  term's name and slug in each board language other than its own, and
+  `GET`, `PUT` and `DELETE
+  .../translations/{locale}` read, edit and reset one. An edit is marked
+  `source: edited` and kept when the board is translated again; a changed
+  slug keeps the old one redirecting, for the 10 most recently replaced
+  slugs per language, and a slug used by another term fails with 409.
+  Reset brings back the machine translation, and the edited slug keeps
+  redirecting.
+- `GET /taxonomies/rules/{id}?kind=` reads back one taxonomy rule, as `GET
+  /taxonomies/rules` lists it.
+- `GET /companies/count` returns `{ object: 'company_count', companies }`,
+  or `companies: null` while the count is still being built. Company list
+  rows from `GET /companies` carry `jobCount` and `publishedJobCount`.
+- JSON exports (`format=json`) of jobs, companies, employers, candidates,
+  blog posts, blog authors and blog tags take `limit` (1 to 1,000; job pages
+  hold at most 50 rows) and `cursor`, and return one page with `hasMore` and
+  `nextCursor`. The job export also takes `status` and `updatedSince` in
+  both formats.
+- Job list items from `GET /jobs` and `POST /jobs/search` carry
+  `applicationUrl`.
+- Promotion codes carry `restrictions`: `firstTimeTransaction`,
+  `minimumAmount` (in the currency's major unit) and
+  `minimumAmountCurrency`, the last two `null` when there is no minimum.
+- `POST /oauth/token` and `POST /oauth/revoke` accept `private_key_jwt`
+  client authentication (RFC 7523) through `client_assertion_type` and
+  `client_assertion`, a JWT signed with ES256 or PS384 by a key at the
+  client's `jwks_uri`, so Personal Agent Protocol agents can use the
+  operator API. `client_id` may then be omitted.
+- The API reference's Retrying section says which failed calls are safe to
+  repeat with the same `Idempotency-Key` after `details.retryAfterSeconds`:
+  429 `rate_limited`, 409 `concurrency_conflict` and 503
+  `backfill_upstream_error`. `backfill_upstream_error` is now 503 (was
+  502), a write conflict now returns 409 `concurrency_conflict` (was 500
+  `internal_error`), and 409 `concurrency_conflict`,
+  `company_removal_in_progress` and `inbox_not_ready` free the
+  `Idempotency-Key` instead of being replayed, so they can be retried with
+  the same key. A free-form job location with no
+  high-confidence match fails with 400 `jobs_unresolvable_location`. The
+  failed lookup is cached, so the same string fails the same way again;
+  resend the location as `{ city, region, country }`.
+- `board.jobAlerts.subscribe` and `board.jobAlerts.resendConfirmation` never
+  email a suppressed address (after a hard bounce, a spam report or a
+  refused send). The response is still `status: submitted`.
+- `POST /subscribers/{id}/resend-confirmation` sends nothing to a suppressed
+  address and fails with 409 `subscribers_email_suppressed`, and `POST
+  /subscribers/import` with `sendConfirmation` skips suppressed addresses.
+- `POST /backfill/rules` with conditions and filters identical to an
+  existing rule returns that rule unchanged, with its own `jobLimit`. Change
+  the limit with `PATCH /backfill/rules/{id}`.
+- Operator API `WWW-Authenticate` challenges follow RFC 6750: a request
+  without credentials gets no error code (and the scope, on routes that
+  take OAuth tokens), a rejected OAuth
+  access token gets `invalid_token` (a rejected API key gets a challenge
+  with no error code), and a token without the scope gets a 403
+  `insufficient_scope` challenge. JSON error codes are unchanged. `POST
+  /oauth/token` and the authorize endpoint answer an unsupported `resource`
+  with `invalid_target` (RFC 8707).
+- `rich_text` custom field answers on jobs from the operator and employer
+  APIs are sanitized HTML, as on the Board API; an answer with nothing left
+  after sanitizing is left out.
+- `/v1/openapi.json` is served compacted: parameters and responses shared
+  by several operations are `$ref`s to `components`. It describes the same
+  API.
+
 ## 4.71.0 — 2026-11-12
 
 - `board.jobAlerts.confirm({ token })` can resolve two more statuses,
@@ -21,6 +260,28 @@ types, runtime behavior, or supported integration patterns.
   with Cavuno's AI Builder. A frontend that calls the API from the browser
   or its own server records neither, since the address and user agent the
   API sees are not the visitor's.
+- `board.subscribe(...)`, `board.jobAlerts.subscribe(...)`,
+  `board.auth.register(...)` and `board.auth.consumeMagicLink(...)` take an
+  optional `timeZone`: the person's IANA time zone from their browser
+  (`Intl.DateTimeFormat().resolvedOptions().timeZone`), such as
+  `Europe/Berlin`. Read it in the browser and pass it through; on a server
+  it is the server's zone. It is stored the first time only, and an invalid
+  value is ignored rather than failing the request.
+- `board.jobAlerts.resubscribe(...)` returns a `status`, typed as
+  `JobAlertResubscribeResult`: `resubscribed`, or `confirmation_sent` when
+  the address never confirmed. In that case a confirmation email is sent
+  and the alerts start once it is clicked. It fails with 404 when the
+  subscription is gone, 429 `rate_limited` when a confirmation email was
+  requested in the last two minutes, 409 `job_alert_email_suppressed` when
+  the address never confirmed and can't receive email, and 502
+  `job_alert_confirmation_send_failed` when the email could not be sent.
+  Nothing is sent in the 404, 429 and 409 cases. Both new codes are in
+  `BOARD_API_ERROR_CODES`.
+- `board.jobAlerts.subscribe(...)` with an address that unsubscribed now
+  emails a fresh confirmation link, at most once every 12 hours, and never
+  to an address that can't receive email or that the board's team
+  unsubscribed. Clicking it turns the alerts back on. The response is still
+  `status: submitted` either way.
 - The place rows of the title-by-location and skill-by-location salary
   pages (`childLocations`, `childLocationsByRegion[].cities` and
   `otherLocations`) carry `indexable` for the page each row links to, as
