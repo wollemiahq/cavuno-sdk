@@ -1,5 +1,6 @@
 // Generated from the Board API OpenAPI contract. Wire keys are preserved.
 import type { Schemas } from './_spec';
+import type { ListEnvelope } from './common';
 
 /**
  * A board user's marketing-email consent, or `null` when no decision exists.
@@ -20,3 +21,7 @@ export type BoardSubscribeInput = Schemas['BoardSubscribeBody'];
  * address's state. `sendingPaused` says the board's email is paused.
  */
 export type SubscriptionRequest = Schemas['PublicSubscriptionRequest'];
+
+/** A kind of marketing email the board offers, for a sign-up checkbox. */
+export type MarketingTopic = Schemas['BoardMarketingTopic'];
+export type MarketingTopicListEnvelope = ListEnvelope<MarketingTopic>;

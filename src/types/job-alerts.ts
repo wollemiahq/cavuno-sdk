@@ -49,6 +49,16 @@ export type JobAlertSubscribeInput = {
    * ignored.
    */
   timeZone?: string;
+  /**
+   * The form's optional marketing checkbox: send it only when the person
+   * ticked the box, and leave the box unticked by default. `text` is the
+   * wording they agreed to (10 to 1,000 characters) and must contain the
+   * board's name, such as `Send me news and offers from Acme Jobs.`.
+   * Nothing is granted until they click a confirmation email: an address
+   * that still has to confirm the alert gets one email that confirms both,
+   * any other a separate one for the marketing email.
+   */
+  marketingConsent?: { granted: true; text: string };
 };
 
 export type JobAlertSubscription = Schemas['PublicJobAlertSubscription'];
