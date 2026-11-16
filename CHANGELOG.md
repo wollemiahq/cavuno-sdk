@@ -21,6 +21,28 @@ types, runtime behavior, or supported integration patterns.
   with Cavuno's AI Builder. A frontend that calls the API from the browser
   or its own server records neither, since the address and user agent the
   API sees are not the visitor's.
+- `board.subscribe(...)`, `board.jobAlerts.subscribe(...)`,
+  `board.auth.register(...)` and `board.auth.consumeMagicLink(...)` take an
+  optional `timeZone`: the person's IANA time zone from their browser
+  (`Intl.DateTimeFormat().resolvedOptions().timeZone`), such as
+  `Europe/Berlin`. Read it in the browser and pass it through; on a server
+  it is the server's zone. It is stored the first time only, and an invalid
+  value is ignored rather than failing the request.
+- `board.jobAlerts.resubscribe(...)` returns a `status`, typed as
+  `JobAlertResubscribeResult`: `resubscribed`, or `confirmation_sent` when
+  the address never confirmed. In that case a confirmation email is sent
+  and the alerts start once it is clicked. It fails with 404 when the
+  subscription is gone, 429 `rate_limited` when a confirmation email was
+  requested in the last two minutes, 409 `job_alert_email_suppressed` when
+  the address never confirmed and can't receive email, and 502
+  `job_alert_confirmation_send_failed` when the email could not be sent.
+  Nothing is sent in the 404, 429 and 409 cases. Both new codes are in
+  `BOARD_API_ERROR_CODES`.
+- `board.jobAlerts.subscribe(...)` with an address that unsubscribed now
+  emails a fresh confirmation link, at most once every 12 hours, and never
+  to an address that can't receive email or that the board's team
+  unsubscribed. Clicking it turns the alerts back on. The response is still
+  `status: submitted` either way.
 - The place rows of the title-by-location and skill-by-location salary
   pages (`childLocations`, `childLocationsByRegion[].cities` and
   `otherLocations`) carry `indexable` for the page each row links to, as

@@ -895,7 +895,7 @@ export interface paths {
         put?: never;
         /**
          * Subscribe to job alerts
-         * @description Create a job-alert subscription for an email. Anonymous (no auth); the board must have job alerts enabled. Always returns a uniform `status: submitted` (no email enumeration). If this email isn't already subscribed, a confirmation email has been sent; an address that unsubscribed is sent a fresh confirmation email at most once every 12 hours (none while the address is suppressed, or when the board's team unsubscribed the address), and clicking it re-subscribes. `consent` must be `true`. Filters scope the digest (only jobFunctions/placeSlugs/remoteOptions affect matching); `filters.query` records the search keywords. A `context` with `source` `job_detail` or `job_apply_dialog` and a `jobId` subscribes to jobs similar to that job; such an alert takes no `filters.query` (400).
+         * @description Create a job-alert subscription for an email. Anonymous (no auth); the board must have job alerts enabled. Always returns a uniform `status: submitted` (no email enumeration). If this email isn't already subscribed, a confirmation email has been sent, unless the address is suppressed (a hard bounce or spam report); an address that unsubscribed is sent a fresh confirmation email at most once every 12 hours (none when the board's team unsubscribed the address), and clicking it re-subscribes. `consent` must be `true`. Filters scope the digest (only jobFunctions/placeSlugs/remoteOptions affect matching); `filters.query` records the search keywords. A `context` with `source` `job_detail` or `job_apply_dialog` and a `jobId` subscribes to jobs similar to that job; such an alert takes no `filters.query` (400).
          */
         post: operations["createBoardJobAlert"];
         delete?: never;
@@ -999,7 +999,7 @@ export interface paths {
         put?: never;
         /**
          * Resend the job-alert confirmation email
-         * @description Request a re-send of the double opt-in email. Throttled server-side. Always 200 with uniform `status: submitted` (no email enumeration). If a pending confirmation exists, a confirmation email has been sent (subject to throttle).
+         * @description Request a re-send of the double opt-in email. Throttled server-side. Always 200 with uniform `status: submitted` (no email enumeration). If a pending confirmation exists, a confirmation email has been sent (subject to throttle), unless the address is suppressed.
          */
         post: operations["createBoardJobAlertsResendConfirmation"];
         delete?: never;
@@ -5360,6 +5360,10 @@ export interface components {
             website?: string;
             /** @description The person's IANA time zone from their browser (`Intl.DateTimeFormat().resolvedOptions().timeZone`), such as `Europe/Berlin`. Stored the first time only; an invalid value is ignored. */
             timeZone?: string;
+            /** @description Keys of the board's marketing topics the person chose (`GET /v1/boards/{identifier}/marketing-topics`), up to 20. They get only these. Omitted, they get every topic with Add new marketing sign-ups on. An unknown or removed key is refused with 400 `subscribe_unknown_topic`. Topics wait for the confirmation click like marketing itself, except for someone who already gets the board's marketing, who gets them at once. */
+            topics?: string[];
+            /** @description Labels for the person, such as `audience:employer`, up to 10: lowercase letters, digits, `_` and `-`, with one optional `namespace:` part, each part up to 32 characters. An unknown tag is created. Applied with the confirmation click (at once for someone who already gets the board's marketing). A board holds 500 tags and a person 50; past either, the tag is skipped and the sign-up still goes through. */
+            tags?: string[];
         };
         BoardUser: {
             /** @description Board user ID. */
@@ -5531,6 +5535,11 @@ export interface components {
             boardCategoryP25Min: number | null;
             boardCategoryP75Max: number | null;
             currency: string;
+            /**
+             * @description What the board's salary figures count. `salaried`: salaried jobs only (internships and hourly-paid jobs are left out). `internship`: the board has no salaried jobs, so every salary figure on it is internship pay; label the figures as internship pay (e.g. "Internship"). The same on every salary page of a board. Absent means `salaried`.
+             * @enum {string}
+             */
+            payType?: "salaried" | "internship";
             /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
             indexable: boolean;
         };
@@ -5735,6 +5744,11 @@ export interface components {
             boardP25Max: number | null;
             boardP75Max: number | null;
             currency: string;
+            /**
+             * @description What the board's salary figures count. `salaried`: salaried jobs only (internships and hourly-paid jobs are left out). `internship`: the board has no salaried jobs, so every salary figure on it is internship pay; label the figures as internship pay (e.g. "Internship"). The same on every salary page of a board. Absent means `salaried`.
+             * @enum {string}
+             */
+            payType?: "salaried" | "internship";
             /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
             indexable: boolean;
         };
@@ -5759,6 +5773,11 @@ export interface components {
             /** @description Jobs contributing to this company's salary aggregates (same meaning as CompanyPublic.salarySampleCount / overallSalary.jobCount). */
             sampleCount: number;
             currency: string;
+            /**
+             * @description What the board's salary figures count. `salaried`: salaried jobs only (internships and hourly-paid jobs are left out). `internship`: the board has no salaried jobs, so every salary figure on it is internship pay; label the figures as internship pay (e.g. "Internship"). The same on every salary page of a board. Absent means `salaried`.
+             * @enum {string}
+             */
+            payType?: "salaried" | "internship";
         };
         CompanySuggestion: {
             /** @enum {string} */
@@ -6030,6 +6049,16 @@ export interface components {
              * @enum {string}
              */
             checkoutUiMode?: "hosted_page" | "embedded_page";
+            /** @description The form's optional marketing checkbox, when ticked: the poster also asks for the board's marketing email at `submission.contactEmail`. Recorded when the post is submitted, including one held for approval or invoiced (a paid post when its payment arrives), then confirmed by a separate email; nothing is granted until they click it. The response is the same either way. */
+            marketingConsent?: {
+                /**
+                 * @description Always `true`: send this object only when the person ticked the box. Leave the box unticked, and offer it only when the operator asks for one.
+                 * @enum {boolean}
+                 */
+                granted: true;
+                /** @description The checkbox wording the person agreed to, such as `Send me news and offers from Acme Jobs.` It must contain the board's name (case-insensitive), so they know whose email it is. */
+                text: string;
+            };
         };
         CreatePipelineStageBody: {
             /** @description The job whose pipeline gains the stage. */
@@ -6376,7 +6405,7 @@ export interface components {
             /** @description Display text for the location. Defaults to the location's full name (locality, city, region, country), e.g. `Lyon, Auvergne-Rhône-Alpes, France`. */
             displayName?: string;
         } | {
-            /** @description Free-form location string (e.g. `"Berlin, Germany"`, `"Utrecht, Netherlands"`, `"Mountain View, California, USA"`). Resolved server-side; rejected when no high-confidence match is found. */
+            /** @description Free-form location string (e.g. `"Berlin, Germany"`, `"Utrecht, Netherlands"`, `"Mountain View, California, USA"`). Resolved server-side; rejected with `400 jobs_unresolvable_location` when no high-confidence match is found. A failed lookup is cached, so sending the same string again fails the same way: resend the location as `{city, region, country}` instead. */
             query: string;
         } | {
             /** @description Neighborhood or sub-locality. */
@@ -7054,6 +7083,11 @@ export interface components {
             boardOverallAvgMin: number | null;
             boardOverallAvgMax: number | null;
             currency: string;
+            /**
+             * @description What the board's salary figures count. `salaried`: salaried jobs only (internships and hourly-paid jobs are left out). `internship`: the board has no salaried jobs, so every salary figure on it is internship pay; label the figures as internship pay (e.g. "Internship"). The same on every salary page of a board. Absent means `salaried`.
+             * @enum {string}
+             */
+            payType?: "salaried" | "internship";
             /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
             indexable: boolean;
         };
@@ -7414,6 +7448,16 @@ export interface components {
             amountCents?: number;
             /** @description Free products: also subscribe the email to the board’s job alerts. Show it unticked. */
             jobAlertOptIn?: boolean;
+            /** @description The checkout's optional marketing checkbox, when ticked: the buyer also asks for the board's marketing email. Recorded once the purchase completes (a free claim at once, a paid one when its payment arrives, for a tip at the address Stripe collected), then confirmed by a separate email; nothing is granted until they click it. The response is the same either way. */
+            marketingConsent?: {
+                /**
+                 * @description Always `true`: send this object only when the person ticked the box. Leave the box unticked, and offer it only when the operator asks for one.
+                 * @enum {boolean}
+                 */
+                granted: true;
+                /** @description The checkbox wording the person agreed to, such as `Send me news and offers from Acme Jobs.` It must contain the board's name (case-insensitive), so they know whose email it is. */
+                text: string;
+            };
             /** @description Paid products: the relative path Stripe returns the buyer to (`session_id` is appended). Defaults to the product page. */
             returnPath?: string;
             /** @description Honeypot. Render it hidden and leave it empty; a filled value is answered like a success and nothing is recorded or sent. */
@@ -8221,7 +8265,7 @@ export interface components {
             /** @enum {string} */
             object: "job_alert_confirmation_resend";
             /**
-             * @description Always `submitted`. The response is intentionally uniform to prevent email enumeration. If a pending confirmation exists for this email, a confirmation email has been sent (subject to server-side throttle).
+             * @description Always `submitted`. The response is intentionally uniform to prevent email enumeration. If a pending confirmation exists for this email, a confirmation email has been sent (subject to server-side throttle), unless the address is suppressed.
              * @enum {string}
              */
             status: "submitted";
@@ -8474,6 +8518,8 @@ export interface components {
             status: "submitted";
             /** @description The board's marketing email is paused (too many bounces or spam reports). Sign-ups are still recorded; tell the person emails may be delayed. */
             sendingPaused: boolean;
+            /** @description The requested tags that will not be added because the board already has 500 tags. Empty when every tag fits. It depends only on the board, never on the address. */
+            tagsSkipped: string[];
         };
         PublicTalentPlace: {
             /** @enum {string} */
@@ -9115,6 +9161,11 @@ export interface components {
             boardSkillAvgMin: number | null;
             boardSkillAvgMax: number | null;
             currency: string;
+            /**
+             * @description What the board's salary figures count. `salaried`: salaried jobs only (internships and hourly-paid jobs are left out). `internship`: the board has no salaried jobs, so every salary figure on it is internship pay; label the figures as internship pay (e.g. "Internship"). The same on every salary page of a board. Absent means `salaried`.
+             * @enum {string}
+             */
+            payType?: "salaried" | "internship";
             /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
             indexable: boolean;
         };
@@ -9193,6 +9244,11 @@ export interface components {
             boardMedianMin: number | null;
             boardMedianMax: number | null;
             currency: string;
+            /**
+             * @description What the board's salary figures count. `salaried`: salaried jobs only (internships and hourly-paid jobs are left out). `internship`: the board has no salaried jobs, so every salary figure on it is internship pay; label the figures as internship pay (e.g. "Internship"). The same on every salary page of a board. Absent means `salaried`.
+             * @enum {string}
+             */
+            payType?: "salaried" | "internship";
             /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
             indexable: boolean;
         };
@@ -9581,6 +9637,16 @@ export interface components {
             note?: string;
             /** @description Add the card fee on top of the tip, so the board keeps the whole tip. Default false. Only when the tip jar `coverFee` is not `null` (otherwise refused with `tip_fee_cover_not_allowed`); the checkout then charges `amountCents` plus the fee worked out from it. */
             coverFee?: boolean;
+            /** @description The checkout's optional marketing checkbox, when ticked: the buyer also asks for the board's marketing email. Recorded once the purchase completes (a free claim at once, a paid one when its payment arrives, for a tip at the address Stripe collected), then confirmed by a separate email; nothing is granted until they click it. The response is the same either way. */
+            marketingConsent?: {
+                /**
+                 * @description Always `true`: send this object only when the person ticked the box. Leave the box unticked, and offer it only when the operator asks for one.
+                 * @enum {boolean}
+                 */
+                granted: true;
+                /** @description The checkbox wording the person agreed to, such as `Send me news and offers from Acme Jobs.` It must contain the board's name (case-insensitive), so they know whose email it is. */
+                text: string;
+            };
             /** @description The relative path Stripe returns the tipper to (`session_id` is appended). Defaults to the tip page. */
             returnPath?: string;
             /** @description Honeypot. Render it hidden and leave it empty; a filled value is answered like a success and nothing is recorded. */
@@ -9681,6 +9747,11 @@ export interface components {
             boardCategoryAvgMin: number | null;
             boardCategoryAvgMax: number | null;
             currency: string;
+            /**
+             * @description What the board's salary figures count. `salaried`: salaried jobs only (internships and hourly-paid jobs are left out). `internship`: the board has no salaried jobs, so every salary figure on it is internship pay; label the figures as internship pay (e.g. "Internship"). The same on every salary page of a board. Absent means `salaried`.
+             * @enum {string}
+             */
+            payType?: "salaried" | "internship";
             /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
             indexable: boolean;
         };
@@ -9765,6 +9836,11 @@ export interface components {
             boardP25Min: number | null;
             boardP75Max: number | null;
             currency: string;
+            /**
+             * @description What the board's salary figures count. `salaried`: salaried jobs only (internships and hourly-paid jobs are left out). `internship`: the board has no salaried jobs, so every salary figure on it is internship pay; label the figures as internship pay (e.g. "Internship"). The same on every salary page of a board. Absent means `salaried`.
+             * @enum {string}
+             */
+            payType?: "salaried" | "internship";
             /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
             indexable: boolean;
         };
@@ -12427,6 +12503,16 @@ export interface operations {
                     };
                     /** @description The person's IANA time zone from their browser (`Intl.DateTimeFormat().resolvedOptions().timeZone`), such as `Europe/Berlin`. Stored the first time only; an invalid value is ignored. */
                     timeZone?: string;
+                    /** @description The form's optional marketing checkbox, when ticked: the person also asks for the board's marketing email. Nothing is granted until they click a confirmation email. An address that still has to confirm the alert gets one email that confirms both; any other address gets a separate confirmation for the marketing email. The response stays the same either way. */
+                    marketingConsent?: {
+                        /**
+                         * @description Always `true`: send this object only when the person ticked the box. Leave the box unticked by default.
+                         * @enum {boolean}
+                         */
+                        granted: true;
+                        /** @description The checkbox wording the person agreed to, such as `Send me news and offers from Acme Jobs.` It must contain the board's name (case-insensitive), so they know whose email it is. */
+                        text: string;
+                    };
                 };
             };
         };
@@ -12440,7 +12526,7 @@ export interface operations {
                     "application/json": components["schemas"]["PublicJobAlertSubscription"];
                 };
             };
-            /** @description Invalid body (`validation_bad_request`), including `filters.query` sent with a job-page `context`. */
+            /** @description Invalid body (`validation_bad_request`), including `filters.query` sent with a job-page `context`, or a `marketingConsent.text` that doesn't name the board. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -25744,7 +25830,7 @@ export interface operations {
                     "application/json": components["schemas"]["PublicSubscriptionRequest"];
                 };
             };
-            /** @description Invalid body (`validation_bad_request`), including a `consentText` that doesn't name the board. */
+            /** @description Invalid body (`validation_bad_request`), including a `consentText` that doesn't name the board, or a topic key that names no live topic (`subscribe_unknown_topic`, with the key in `details.key`). */
             400: {
                 headers: {
                     [name: string]: unknown;
