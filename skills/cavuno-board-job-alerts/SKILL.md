@@ -48,7 +48,7 @@ switch (result.status) {
 }
 ```
 
-`waitlisted` means the alert is confirmed but the board can't send to more people yet; it starts once a spot opens. `unsubscribed` means the link was sent before the alerts were turned off, so it doesn't turn them back on. Subscribing again with the form sends that address a fresh confirmation email, at most once every 12 hours and never while it is suppressed or when the board's team unsubscribed the address; clicking it resumes the alerts. The manage link in an alert email (`board.jobAlerts.resubscribe`) and signing in to create an alert resume them too.
+`waitlisted` means the alert is confirmed but the board can't send to more people yet; it starts once a spot opens. `unsubscribed` means the link was sent before the alerts were turned off, so it doesn't turn them back on. Subscribing again with the form sends that address a fresh confirmation email, at most once every 12 hours and never when the board's team unsubscribed the address (the form and `resendConfirmation` never email a suppressed address); clicking it resumes the alerts. The manage link in an alert email (`board.jobAlerts.resubscribe`) and signing in to create an alert resume them too.
 
 Only `jobFunctions`, `placeSlugs`, and `remoteOptions` filter digest delivery. Seniority and salary fields are stored but do not scope delivery. The supported cadence is `weekly`.
 
