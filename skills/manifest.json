@@ -108,7 +108,7 @@
     },
     {
       "name": "cavuno-board-newsletter",
-      "description": "Newsletter sign-up forms with @cavuno/board. Use for an email sign-up for the board's news (footer, blog, landing page), its consent checkbox, the confirmation email, and sendingPaused.",
+      "description": "Newsletter sign-up forms with @cavuno/board. Use for an email sign-up for the board's news (footer, blog, landing page), its consent checkbox, topic checkboxes and tags, the confirmation email, and sendingPaused.",
       "path": "skills/cavuno-board-newsletter/SKILL.md",
       "framework": null,
       "category": "core"
