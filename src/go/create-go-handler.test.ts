@@ -41,6 +41,9 @@ describe('resolveGoRedirect (SDK)', () => {
       location: '/alerts/confirm?token=z',
       status: 302,
     });
+    expect(
+      resolveGoRedirect(['email-preferences'], '?token=u.f00', null),
+    ).toEqual({ location: '/email-preferences?token=u.f00', status: 302 });
   });
 
   it('unknown role → jobs index', () => {

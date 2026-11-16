@@ -3,7 +3,8 @@
  *
  * Mirrors the hosted-app contract:
  * - `/go/job/<id>` → 302 to jobDetailPath(companySlug, jobSlug)
- * - `/go/alerts-manage` / `/go/alerts-confirm` → 302 carrying query
+ * - `/go/alerts-manage` / `/go/alerts-confirm` / `/go/email-preferences` →
+ *   302 carrying query
  * - unknown / unresolvable → 302 to BOARD_PATHS.jobs
  * - every response: `X-Robots-Tag: noindex, nofollow`
  *
@@ -93,6 +94,13 @@ export function resolveGoRedirect(
   if (role === 'alerts-confirm') {
     return {
       location: `${BOARD_PATHS.alertsConfirm}${query}`,
+      status: 302,
+    };
+  }
+
+  if (role === 'email-preferences') {
+    return {
+      location: `${BOARD_PATHS.emailPreferences}${query}`,
       status: 302,
     };
   }
