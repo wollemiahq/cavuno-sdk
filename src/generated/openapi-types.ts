@@ -5531,6 +5531,11 @@ export interface components {
             boardCategoryP25Min: number | null;
             boardCategoryP75Max: number | null;
             currency: string;
+            /**
+             * @description What the board's salary figures count. `salaried`: salaried jobs only (internships and hourly-paid jobs are left out). `internship`: the board has no salaried jobs, so every salary figure on it is internship pay; label the figures as internship pay (e.g. "Internship"). The same on every salary page of a board. Absent means `salaried`.
+             * @enum {string}
+             */
+            payType?: "salaried" | "internship";
             /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
             indexable: boolean;
         };
@@ -5735,6 +5740,11 @@ export interface components {
             boardP25Max: number | null;
             boardP75Max: number | null;
             currency: string;
+            /**
+             * @description What the board's salary figures count. `salaried`: salaried jobs only (internships and hourly-paid jobs are left out). `internship`: the board has no salaried jobs, so every salary figure on it is internship pay; label the figures as internship pay (e.g. "Internship"). The same on every salary page of a board. Absent means `salaried`.
+             * @enum {string}
+             */
+            payType?: "salaried" | "internship";
             /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
             indexable: boolean;
         };
@@ -5759,6 +5769,11 @@ export interface components {
             /** @description Jobs contributing to this company's salary aggregates (same meaning as CompanyPublic.salarySampleCount / overallSalary.jobCount). */
             sampleCount: number;
             currency: string;
+            /**
+             * @description What the board's salary figures count. `salaried`: salaried jobs only (internships and hourly-paid jobs are left out). `internship`: the board has no salaried jobs, so every salary figure on it is internship pay; label the figures as internship pay (e.g. "Internship"). The same on every salary page of a board. Absent means `salaried`.
+             * @enum {string}
+             */
+            payType?: "salaried" | "internship";
         };
         CompanySuggestion: {
             /** @enum {string} */
@@ -6376,7 +6391,7 @@ export interface components {
             /** @description Display text for the location. Defaults to the location's full name (locality, city, region, country), e.g. `Lyon, Auvergne-Rhône-Alpes, France`. */
             displayName?: string;
         } | {
-            /** @description Free-form location string (e.g. `"Berlin, Germany"`, `"Utrecht, Netherlands"`, `"Mountain View, California, USA"`). Resolved server-side; rejected when no high-confidence match is found. */
+            /** @description Free-form location string (e.g. `"Berlin, Germany"`, `"Utrecht, Netherlands"`, `"Mountain View, California, USA"`). Resolved server-side; rejected with `400 jobs_unresolvable_location` when no high-confidence match is found. A failed lookup is cached, so sending the same string again fails the same way: resend the location as `{city, region, country}` instead. */
             query: string;
         } | {
             /** @description Neighborhood or sub-locality. */
@@ -7054,6 +7069,11 @@ export interface components {
             boardOverallAvgMin: number | null;
             boardOverallAvgMax: number | null;
             currency: string;
+            /**
+             * @description What the board's salary figures count. `salaried`: salaried jobs only (internships and hourly-paid jobs are left out). `internship`: the board has no salaried jobs, so every salary figure on it is internship pay; label the figures as internship pay (e.g. "Internship"). The same on every salary page of a board. Absent means `salaried`.
+             * @enum {string}
+             */
+            payType?: "salaried" | "internship";
             /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
             indexable: boolean;
         };
@@ -9115,6 +9135,11 @@ export interface components {
             boardSkillAvgMin: number | null;
             boardSkillAvgMax: number | null;
             currency: string;
+            /**
+             * @description What the board's salary figures count. `salaried`: salaried jobs only (internships and hourly-paid jobs are left out). `internship`: the board has no salaried jobs, so every salary figure on it is internship pay; label the figures as internship pay (e.g. "Internship"). The same on every salary page of a board. Absent means `salaried`.
+             * @enum {string}
+             */
+            payType?: "salaried" | "internship";
             /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
             indexable: boolean;
         };
@@ -9193,6 +9218,11 @@ export interface components {
             boardMedianMin: number | null;
             boardMedianMax: number | null;
             currency: string;
+            /**
+             * @description What the board's salary figures count. `salaried`: salaried jobs only (internships and hourly-paid jobs are left out). `internship`: the board has no salaried jobs, so every salary figure on it is internship pay; label the figures as internship pay (e.g. "Internship"). The same on every salary page of a board. Absent means `salaried`.
+             * @enum {string}
+             */
+            payType?: "salaried" | "internship";
             /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
             indexable: boolean;
         };
@@ -9681,6 +9711,11 @@ export interface components {
             boardCategoryAvgMin: number | null;
             boardCategoryAvgMax: number | null;
             currency: string;
+            /**
+             * @description What the board's salary figures count. `salaried`: salaried jobs only (internships and hourly-paid jobs are left out). `internship`: the board has no salaried jobs, so every salary figure on it is internship pay; label the figures as internship pay (e.g. "Internship"). The same on every salary page of a board. Absent means `salaried`.
+             * @enum {string}
+             */
+            payType?: "salaried" | "internship";
             /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
             indexable: boolean;
         };
@@ -9765,6 +9800,11 @@ export interface components {
             boardP25Min: number | null;
             boardP75Max: number | null;
             currency: string;
+            /**
+             * @description What the board's salary figures count. `salaried`: salaried jobs only (internships and hourly-paid jobs are left out). `internship`: the board has no salaried jobs, so every salary figure on it is internship pay; label the figures as internship pay (e.g. "Internship"). The same on every salary page of a board. Absent means `salaried`.
+             * @enum {string}
+             */
+            payType?: "salaried" | "internship";
             /** @description Whether this salary page is worth indexing. When `false`, render `<meta name="robots" content="noindex, follow">`; the page still renders and its links stay followable. The board sitemap lists only indexable salary pages. */
             indexable: boolean;
         };
