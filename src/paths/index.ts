@@ -307,6 +307,11 @@ export const BOARD_PATHS = {
   mePurchases: '/me/purchases',
   /** The tip page: visitors tip the board through its tip jar. */
   tip: '/tip',
+  /**
+   * The person's email preferences (job alerts, job matches, marketing and
+   * its topics), opened from every email footer with a preferences token.
+   */
+  emailPreferences: '/email-preferences',
 } as const;
 
 /**
@@ -318,6 +323,7 @@ export const BOARD_PATHS = {
  *   /go/job/<immutableId>
  *   /go/alerts-manage
  *   /go/alerts-confirm
+ *   /go/email-preferences
  *
  * No encoding — callers pass opaque Cavuno ids / static role segments that
  * are already URL-safe path segments. Query strings are composed by the
@@ -333,6 +339,10 @@ export function goAlertsManagePath(): string {
 
 export function goAlertsConfirmPath(): string {
   return '/go/alerts-confirm';
+}
+
+export function goEmailPreferencesPath(): string {
+  return '/go/email-preferences';
 }
 
 /**

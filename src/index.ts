@@ -9,12 +9,14 @@ import { authNamespace } from './namespaces/auth';
 import { blogNamespace } from './namespaces/blog';
 import { collectionsNamespace } from './namespaces/collections';
 import { companiesNamespace } from './namespaces/companies';
+import { emailPreferencesNamespace } from './namespaces/email-preferences';
 import { embedNamespace } from './namespaces/embed';
 import { invitesNamespace } from './namespaces/invites';
 import { jobAlertsNamespace } from './namespaces/job-alerts';
 import { jobPostingNamespace } from './namespaces/job-posting';
 import { jobsNamespace } from './namespaces/jobs';
 import { locationsNamespace } from './namespaces/locations';
+import { marketingTopicsNamespace } from './namespaces/marketing-topics';
 import { meNamespace } from './namespaces/me';
 import { passwordNamespace } from './namespaces/password';
 import { paywallNamespace } from './namespaces/paywall';
@@ -116,8 +118,11 @@ export function createBoardClient(options: CreateBoardClientOptions) {
     /**
      * Sign an address up for the board's email from a newsletter form. Sends
      * a confirmation email; nothing is granted until the person clicks it.
-     * Always resolves `{ status: 'submitted', sendingPaused }`. Limited to 3
-     * a minute per address and 10 requests a minute per IP; on a builder
+     * Always resolves `{ status: 'submitted', sendingPaused, tagsSkipped }`.
+     * Send the ticked topic keys from `board.marketingTopics.list()` in
+     * `topics`; without them the person gets the board's topics that take
+     * new sign-ups. Limited to 3 a minute per address and 10 requests a
+     * minute per IP; on a builder
      * site Cavuno hosts the IP limit counts each visitor, plus 6 sign-ups a
      * minute per visitor (429 `rate_limited`).
      *
@@ -151,11 +156,13 @@ export function createBoardClient(options: CreateBoardClientOptions) {
     locations: locationsNamespace(client),
     redirects: redirectsNamespace(client),
     jobAlerts: jobAlertsNamespace(client),
+    emailPreferences: emailPreferencesNamespace(client),
     jobPosting: jobPostingNamespace(client),
     salaries: salariesNamespace(client),
     talent: talentNamespace(client),
     profileFields: profileFieldsNamespace(client),
     plans: plansNamespace(client),
+    marketingTopics: marketingTopicsNamespace(client),
     paywall: paywallNamespace(client),
     products: productsNamespace(client),
     purchases: purchasesNamespace(client),
@@ -283,6 +290,8 @@ export type {
 export type {
   BoardSubscribeInput,
   MarketingConsent,
+  MarketingTopic,
+  MarketingTopicListEnvelope,
   SubscriptionRequest,
 } from './types/marketing-consent';
 export type { RedirectResolution } from './types/redirects';
@@ -389,6 +398,12 @@ export type {
   PurchaseSummary,
   PurchaseSummaryListEnvelope,
 } from './types/products';
+// Email preferences — `board.emailPreferences.*` (the page every email
+// footer links to, behind the person's preferences token).
+export type {
+  EmailPreferences,
+  EmailPreferencesUpdate,
+} from './types/email-preferences';
 // Tip jar — `board.tipJar.*` (the tip page and tip checkout).
 export { tipCoverFeeCents } from './tip-cover-fee';
 export type {

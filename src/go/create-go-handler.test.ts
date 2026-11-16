@@ -41,6 +41,17 @@ describe('resolveGoRedirect (SDK)', () => {
       location: '/alerts/confirm?token=z',
       status: 302,
     });
+    expect(
+      resolveGoRedirect(['email-preferences'], '?token=u.f00&x=1', null),
+    ).toEqual({
+      location: 'https://cavuno.com/email/preferences?token=u.f00',
+      status: 302,
+    });
+    expect(
+      resolveGoRedirect(['email-preferences'], '?token=u.f00&x=1', null, {
+        emailPreferencesPath: '/email-preferences',
+      }),
+    ).toEqual({ location: '/email-preferences?token=u.f00', status: 302 });
   });
 
   it('unknown role → jobs index', () => {
@@ -109,6 +120,31 @@ describe('createGoHandler', () => {
     );
     expect(res.headers.get('Location')).toBe(
       'https://jobs.example.com/alerts/confirm?token=z',
+    );
+  });
+
+  it('email-preferences goes to the Cavuno-hosted page, with only the token, while the site has no page', async () => {
+    const res = await createGoHandler({})(
+      new Request(
+        'https://jobs.example.com/go/email-preferences?token=u.f00&x=1',
+      ),
+    );
+    expect(res.status).toBe(302);
+    expect(res.headers.get('Location')).toBe(
+      'https://cavuno.com/email/preferences?token=u.f00',
+    );
+    expect(res.headers.get('Referrer-Policy')).toBe('no-referrer');
+    expect(res.headers.get('X-Robots-Tag')).toBe('noindex, nofollow');
+  });
+
+  it("email-preferences goes to the site's own page when it declares one", async () => {
+    const res = await createGoHandler({
+      emailPreferencesPath: '/preferences',
+    })(
+      new Request('https://jobs.example.com/go/email-preferences?token=u.f00'),
+    );
+    expect(res.headers.get('Location')).toBe(
+      'https://jobs.example.com/preferences?token=u.f00',
     );
   });
 

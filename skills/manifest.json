@@ -51,6 +51,13 @@
       "category": "core"
     },
     {
+      "name": "cavuno-board-email-preferences",
+      "description": "Build the manage-email and unsubscribe page that the board's email footers link to, with board.emailPreferences from @cavuno/board. Use for the emailPreferences route role, the preferences token, switches for job alerts, job matches, marketing and topics, and Unsubscribe from all.",
+      "path": "skills/cavuno-board-email-preferences/SKILL.md",
+      "framework": null,
+      "category": "core"
+    },
+    {
       "name": "cavuno-board-errors",
       "description": "Classify Board API failures and board-password challenges. Use when mapping SDK errors to UI states, retries, support diagnostics, or password-gated access.",
       "path": "skills/cavuno-board-errors/SKILL.md",
@@ -108,7 +115,7 @@
     },
     {
       "name": "cavuno-board-newsletter",
-      "description": "Newsletter sign-up forms with @cavuno/board. Use for an email sign-up for the board's news (footer, blog, landing page), its consent checkbox, the confirmation email, and sendingPaused.",
+      "description": "Newsletter sign-up forms with @cavuno/board. Use for an email sign-up for the board's news (footer, blog, landing page), its consent checkbox, topic checkboxes and tags, the confirmation email, and sendingPaused.",
       "path": "skills/cavuno-board-newsletter/SKILL.md",
       "framework": null,
       "category": "core"
