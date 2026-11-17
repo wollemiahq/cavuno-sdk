@@ -4,6 +4,7 @@ import {
   CANONICAL_MANIFEST,
   compileManifest,
   compileManifestFromTree,
+  extractCavunoFeaturesMarker,
   extractCavunoPageMarker,
   ROLE_PARAM_REGISTRY,
   REQUIRED_ROLES,
@@ -593,6 +594,118 @@ describe('route-contract compiler', () => {
       expect(result.blockingMissing).toEqual([]);
       const validated = validateManifest(result.manifest);
       expect(validated.ok).toBe(true);
+    });
+  });
+
+  describe('features', () => {
+    const tree = (extra: { path: string; contents: string }[]) => [
+      { path: 'src/routes/__root.tsx', contents: 'export const Route = {}' },
+      { path: 'src/routes/index.tsx', contents: 'export const Route = {}' },
+      ...extra,
+    ];
+
+    it('declares a feature from a cavunoFeatures marker in any file', () => {
+      const result = compileManifestFromTree(
+        tree([
+          {
+            path: 'src/board/talent-view-model.ts',
+            contents:
+              "export const cavunoFeatures = ['talentFreeTrial'] as const;",
+          },
+        ]),
+      );
+      expect(result.manifest.features).toEqual(['talentFreeTrial']);
+      expect(validateManifest(result.manifest)).toEqual({
+        ok: true,
+        manifest: result.manifest,
+      });
+    });
+
+    it('reads the marker only where code declares it', () => {
+      // Docs and skills committed to a site quote the marker; a commented-out
+      // export switches it off. Neither declares the feature.
+      const quoted = compileManifestFromTree(
+        tree([
+          {
+            path: '.agents/skills/talent/SKILL.md',
+            contents: "export const cavunoFeatures = ['talentFreeTrial'];",
+          },
+          {
+            path: 'src/routes/p.$handle.tsx',
+            contents:
+              "/**\n * export const cavunoFeatures = ['talentFreeTrial'];\n */\n// export const cavunoFeatures = ['talentFreeTrial'];",
+          },
+        ]),
+      );
+      expect('features' in quoted.manifest).toBe(false);
+      const typed = compileManifestFromTree(
+        tree([
+          {
+            path: 'src/routes/p.$handle.tsx',
+            contents:
+              "export const cavunoFeatures: RouteFeature[] = ['talentFreeTrial'];",
+          },
+        ]),
+      );
+      expect(typed.manifest.features).toEqual(['talentFreeTrial']);
+    });
+
+    it('leaves features out of a manifest whose site declares none', () => {
+      const result = compileManifestFromTree(tree([]));
+      expect('features' in result.manifest).toBe(false);
+    });
+
+    it('warns about an unknown feature name and keeps the known ones', () => {
+      const result = compileManifestFromTree(
+        tree([
+          {
+            path: 'src/features.ts',
+            contents:
+              'export const cavunoFeatures = ["talentFreeTrial", "teleport"];',
+          },
+        ]),
+      );
+      expect(result.manifest.features).toEqual(['talentFreeTrial']);
+      expect(result.warnings).toContain(
+        "unknown feature 'teleport' in cavunoFeatures",
+      );
+    });
+
+    it('reads every quoted name and ignores a file without the marker', () => {
+      expect(
+        extractCavunoFeaturesMarker(
+          'export const cavunoFeatures = [\n  \'talentFreeTrial\',\n  "x",\n];',
+        ),
+      ).toEqual({ features: ['talentFreeTrial'], unknown: ['x'] });
+      expect(
+        extractCavunoFeaturesMarker("export const cavunoPage = 'jobs';"),
+      ).toEqual({ features: [], unknown: [] });
+    });
+
+    it('validateManifest drops unknown features and refuses a non-array', () => {
+      // A site built on a newer SDK may declare a feature this one does not
+      // know yet; its roles must still load.
+      const unknown = validateManifest({
+        version: 1,
+        roles: { home: '/' },
+        features: ['teleport', 'talentFreeTrial', 7],
+      });
+      expect(unknown).toEqual({
+        ok: true,
+        manifest: {
+          version: 1,
+          roles: { home: '/' },
+          features: ['talentFreeTrial'],
+        },
+      });
+      const notArray = validateManifest({
+        version: 1,
+        roles: { home: '/' },
+        features: 'talentFreeTrial',
+      });
+      expect(!notArray.ok && notArray.errors.map((e) => e.code)).toEqual([
+        'invalid_shape',
+      ]);
     });
   });
 
