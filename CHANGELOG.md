@@ -3,6 +3,28 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.74.0 — 2026-11-17
+
+- One form submission sends one confirmation email. A free product claim
+  that ticks both `jobAlertOptIn` and the marketing checkbox now gets the
+  job alert's confirmation email, whose click confirms the alert and the
+  marketing email together, instead of two emails.
+- `marketingConsent` on `board.jobAlerts.subscribe`, `board.products.checkout`,
+  `board.tipJar.checkout` and `board.jobPosting.create` takes optional
+  `topics`: keys of the board's marketing topics, up to 20, as on
+  `board.subscribe`. One checkbox can stand for several topics, or a form can
+  show one checkbox per topic. The topics wait for the same confirmation
+  click as the marketing email, except for someone who already gets the
+  board's marketing, who gets them at once. Without `topics`, the person
+  gets the topics the board adds to new marketing sign-ups. An unknown key
+  is refused with `subscribe_unknown_topic` (400), naming the key in
+  `details.key`, before anything is recorded.
+- On the operator API, every paid digital product buyer is a contact. A
+  buyer with no subscription, such as one who did not tick the marketing
+  checkbox, has the new contact status `not_subscribed` (also a `status`
+  filter on `GET /contacts`) and gets no job alert, job match or marketing
+  email.
+
 ## 4.73.0 — 2026-11-17
 
 - The `cavuno-board-collections` skill covers profile item verification:
@@ -24,7 +46,6 @@ types, runtime behavior, or supported integration patterns.
   `GET /contacts` count paid digital product purchases only. Leaving a tip
   no longer makes someone a buyer; a tip's marketing checkbox still records
   the sign-up as before.
-
 ## 4.72.0 — 2026-11-16
 
 - `board.emailPreferences` builds the page that the board's job alert, job
