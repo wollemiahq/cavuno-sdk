@@ -70,7 +70,7 @@ await board.jobAlerts.subscribe({
 });
 ```
 
-Nothing is granted until the person clicks a confirmation email. An address that still has to confirm the alert gets one email that confirms the alert and the marketing email together; an address that already gets alerts gets a separate confirmation for the marketing email. The response is the same either way. For a form that only offers news, use `board.subscribe` (the `cavuno-board-newsletter` skill).
+Nothing is granted until the person clicks a confirmation email. An address that still has to confirm the alert gets one email that confirms the alert and the marketing email together; an address that already gets alerts gets a separate confirmation for the marketing email. The response is the same either way. To sign the person up to particular topics, add `topics` to `marketingConsent` with keys from `board.marketingTopics.list()`: one checkbox can stand for several topics, or the form can show a checkbox per topic and send the keys of those ticked. Without `topics` they get the topics the board adds to new marketing sign-ups. A key that isn't one of the board's live topics is refused with 400 `subscribe_unknown_topic` (`details.key` names it) before anything is recorded. For a form that only offers news, use `board.subscribe` (the `cavuno-board-newsletter` skill).
 
 ## Alert kinds, keywords, and anchor jobs
 
@@ -123,7 +123,7 @@ await board.jobAlerts.deletePreference({
 
 `unsubscribe` and `resubscribe` accept an optional `preferenceId`. Each managed preference also includes its own `manageToken`.
 
-`resubscribe` returns `status`: `resubscribed` means the subscription is resumed. `confirmation_sent` means the address never confirmed, so a confirmation email went out instead; keep showing the alerts as off and tell the person to check their inbox. A 429 means rate limiting or a confirmation email requested in the last two minutes; nothing new was sent. A 409 (`job_alert_email_suppressed`) means the address never confirmed and can't receive email, so nothing was sent; keep the alerts off and don't retry. A 502 (`job_alert_confirmation_send_failed`) means the email could not be sent.
+`resubscribe` returns `status`: `resubscribed` means the subscription is resumed; an alert still waiting for its confirmation link is emailed a fresh one when possible and starts when it's clicked. `confirmation_sent` means the address never confirmed, so a confirmation email went out instead; keep showing the alerts as off and tell the person to check their inbox. A 429 means rate limiting or, for an address that never confirmed, a confirmation email requested in the last two minutes; nothing new was sent. A 409 (`job_alert_email_suppressed`) means the address never confirmed and can't receive email, so nothing was sent; keep the alerts off and don't retry. A 502 (`job_alert_confirmation_send_failed`) means the email could not be sent.
 
 `updatePreference` is a full replacement. Round-trip every retained value and always send `frequency`.
 

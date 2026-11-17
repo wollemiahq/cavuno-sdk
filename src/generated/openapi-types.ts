@@ -843,7 +843,7 @@ export interface paths {
         head?: never;
         /**
          * Change a person's email preferences
-         * @description Change any of the preferences in one request, as the person: delete or edit job alerts, turn job matches, marketing or topics on or off. Turning marketing or a topic on records `consentText` as their consent, confirmed at once because the token proves the address.
+         * @description Change any of the preferences in one request, as the person: pause, resume, delete or edit job alerts, turn job alerts as a whole, job matches, marketing or topics on or off. Each alert's change applies before `jobAlerts`. Turning marketing or a topic on records `consentText` as their consent, confirmed at once because the token proves the address.
          */
         patch: operations["updateBoardEmailPreferences"];
         trace?: never;
@@ -1063,7 +1063,7 @@ export interface paths {
         put?: never;
         /**
          * Re-activate a job-alert subscription via a manage link
-         * @description Re-activate a previously-unsubscribed subscription via the HMAC manage token. Read `status`: an address that never confirmed is sent a confirmation email (`confirmation_sent`) instead of resuming. 404 when the subscription is gone; 429 (`rate_limited`) when a confirmation email was requested in the last two minutes, in which case nothing is sent; 409 (`job_alert_email_suppressed`) when the address never confirmed and cannot receive email (a hard bounce or spam report), in which case nothing is sent; 502 (`job_alert_confirmation_send_failed`) when the confirmation email could not be sent.
+         * @description Re-activate a previously-unsubscribed subscription via the HMAC manage token. Read `status`: an address that never confirmed is sent a confirmation email (`confirmation_sent`) instead of resuming. 404 when the subscription is gone; 429 (`rate_limited`) when an address that never confirmed had a confirmation email requested in the last two minutes, in which case nothing is sent (a confirmed address resumes without a new link); 409 (`job_alert_email_suppressed`) when the address never confirmed and cannot receive email (a hard bounce or spam report), in which case nothing is sent; 502 (`job_alert_confirmation_send_failed`) when the confirmation email could not be sent.
          */
         post: operations["resubscribeBoardJobAlerts"];
         delete?: never;
@@ -6102,6 +6102,8 @@ export interface components {
                 granted: true;
                 /** @description The checkbox wording the person agreed to, such as `Send me news and offers from Acme Jobs.` It must contain the board's name (case-insensitive), so they know whose email it is. */
                 text: string;
+                /** @description Keys of the board's marketing topics this checkbox signs the person up to (`GET /v1/boards/{identifier}/marketing-topics`), up to 20, so one checkbox can stand for several topics, or a form can show one checkbox per topic and send the keys of those ticked. They get only these. Omitted, they get every topic with Add new marketing sign-ups on. An unknown or removed key is refused with 400 `subscribe_unknown_topic` before anything is recorded. Topics wait for the confirmation click like marketing itself, except for someone who already gets the board's marketing, who gets them at once. */
+                topics?: string[];
             };
         };
         CreatePipelineStageBody: {
@@ -6160,12 +6162,16 @@ export interface components {
                  * @enum {string}
                  */
                 frequency?: "weekly";
+                /** @description Pause (`true`) or resume (`false`) this alert. A paused alert keeps its filters. One waiting for its confirmation link isn't paused; it stays waiting. Resuming one that is waiting for its confirmation link, or while the person waits for room on the board's plan, leaves it waiting; with job alerts off it comes back when they do. */
+                paused?: boolean;
                 /**
                  * @description Delete the alert.
                  * @enum {boolean}
                  */
                 delete?: true;
             }[];
+            /** @description Turn every job alert off or back on, as the Unsubscribe link in a digest does. Back on restores the alerts that were on before, not ones paused by themselves. Alerts still waiting for a confirmation link, such as every alert of an address that never confirmed, are emailed a fresh link and wait for it; when that link cannot go out (sent in the last two minutes, or the address cannot receive email) nothing changes and the request fails. */
+            jobAlerts?: boolean;
             /** @description Turn weekly job matches on or off. */
             jobMatches?: boolean;
             /** @description Turn the board's marketing email on or off. On needs `consentText`; it is recorded as the person's own consent, and topics that went off with marketing come back. */
@@ -7527,7 +7533,7 @@ export interface components {
             amountCents?: number;
             /** @description Free products: also subscribe the email to the board’s job alerts, for every new job on the board (no filters). Offer it only when the board’s operator asks for it, as an unticked checkbox, and send `true` only when the person ticks it. */
             jobAlertOptIn?: boolean;
-            /** @description The checkout's optional marketing checkbox, when ticked: the buyer also asks for the board's marketing email. Recorded once the purchase completes (a free claim at once, a paid one when its payment arrives, for a tip at the address Stripe collected), then confirmed by a separate email; nothing is granted until they click it. The response is the same either way. */
+            /** @description The checkout's optional marketing checkbox, when ticked: the buyer also asks for the board's marketing email. Recorded once the purchase completes (a free claim at once, a paid one when its payment arrives, for a tip at the address Stripe collected), then confirmed by email; nothing is granted until they click it. One submission sends one confirmation email: a free claim that also ticks `jobAlertOptIn` gets the alert's confirmation, which confirms both. The response is the same either way. */
             marketingConsent?: {
                 /**
                  * @description Always `true`: send this object only when the person ticked the box. Leave the box unticked, and offer it only when the operator asks for one.
@@ -7536,6 +7542,8 @@ export interface components {
                 granted: true;
                 /** @description The checkbox wording the person agreed to, such as `Send me news and offers from Acme Jobs.` It must contain the board's name (case-insensitive), so they know whose email it is. */
                 text: string;
+                /** @description Keys of the board's marketing topics this checkbox signs the person up to (`GET /v1/boards/{identifier}/marketing-topics`), up to 20, so one checkbox can stand for several topics, or a form can show one checkbox per topic and send the keys of those ticked. They get only these. Omitted, they get every topic with Add new marketing sign-ups on. An unknown or removed key is refused with 400 `subscribe_unknown_topic` before anything is recorded. Topics wait for the confirmation click like marketing itself, except for someone who already gets the board's marketing, who gets them at once. */
+                topics?: string[];
             };
             /** @description Paid products: the relative path Stripe returns the buyer to (`session_id` is appended). Defaults to the product page. */
             returnPath?: string;
@@ -8131,14 +8139,19 @@ export interface components {
             jobAlerts: {
                 /** @description The person confirmed their address for job alerts. */
                 confirmed: boolean;
-                /** @description The person turned off every job alert. */
+                /** @description The person turned off every job alert (the Job alerts switch, or the Unsubscribe link in a digest). */
                 unsubscribed: boolean;
+                /** @description On, but waiting for room on the board's plan before digests start. */
+                waitlisted: boolean;
                 alerts: {
                     id: string;
                     label: string | null;
                     /** @enum {string} */
                     frequency: "weekly";
+                    /** @description Digests are being sent for it now. False while it is paused, waiting for confirmation, waiting for room, or job alerts are off. */
                     isActive: boolean;
+                    /** @description The person paused this alert by itself. It keeps its filters and stays off until resumed, even when job alerts as a whole come back on. */
+                    paused: boolean;
                     /** @description Not sending yet: waiting for the person to click the confirmation link in the alert's email. */
                     awaitingConfirmation: boolean;
                     /**
@@ -8410,7 +8423,7 @@ export interface components {
         };
         PublicJobAlertResubscribeResult: components["schemas"]["PublicJobAlertManageResult"] & {
             /**
-             * @description `resubscribed`: the subscription is resumed; its alerts start again, or wait for a spot when the board can't send to more people yet. `confirmation_sent`: the address never confirmed, so nothing is on yet; a confirmation email went out, and the alerts start when the person clicks its link. Tell them to check their inbox, and don't show the alerts as on.
+             * @description `resubscribed`: the subscription is resumed; its alerts start again, or wait for a spot when the board can't send to more people yet. An alert still waiting for its confirmation link is emailed a fresh one when possible and starts once it is clicked. `confirmation_sent`: the address never confirmed, so nothing is on yet; a confirmation email went out, and the alerts start when the person clicks its link. Tell them to check their inbox, and don't show the alerts as on.
              * @enum {string}
              */
             status: "resubscribed" | "confirmation_sent";
@@ -9775,7 +9788,7 @@ export interface components {
             note?: string;
             /** @description Add the card fee on top of the tip, so the board keeps the whole tip. Default false. Only when the tip jar `coverFee` is not `null` (otherwise refused with `tip_fee_cover_not_allowed`); the checkout then charges `amountCents` plus the fee worked out from it. */
             coverFee?: boolean;
-            /** @description The checkout's optional marketing checkbox, when ticked: the buyer also asks for the board's marketing email. Recorded once the purchase completes (a free claim at once, a paid one when its payment arrives, for a tip at the address Stripe collected), then confirmed by a separate email; nothing is granted until they click it. The response is the same either way. */
+            /** @description The checkout's optional marketing checkbox, when ticked: the buyer also asks for the board's marketing email. Recorded once the purchase completes (a free claim at once, a paid one when its payment arrives, for a tip at the address Stripe collected), then confirmed by email; nothing is granted until they click it. One submission sends one confirmation email: a free claim that also ticks `jobAlertOptIn` gets the alert's confirmation, which confirms both. The response is the same either way. */
             marketingConsent?: {
                 /**
                  * @description Always `true`: send this object only when the person ticked the box. Leave the box unticked, and offer it only when the operator asks for one.
@@ -9784,6 +9797,8 @@ export interface components {
                 granted: true;
                 /** @description The checkbox wording the person agreed to, such as `Send me news and offers from Acme Jobs.` It must contain the board's name (case-insensitive), so they know whose email it is. */
                 text: string;
+                /** @description Keys of the board's marketing topics this checkbox signs the person up to (`GET /v1/boards/{identifier}/marketing-topics`), up to 20, so one checkbox can stand for several topics, or a form can show one checkbox per topic and send the keys of those ticked. They get only these. Omitted, they get every topic with Add new marketing sign-ups on. An unknown or removed key is refused with 400 `subscribe_unknown_topic` before anything is recorded. Topics wait for the confirmation click like marketing itself, except for someone who already gets the board's marketing, who gets them at once. */
+                topics?: string[];
             };
             /** @description The relative path Stripe returns the tipper to (`session_id` is appended). Defaults to the tip page. */
             returnPath?: string;
@@ -12451,7 +12466,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description A topic turned on while marketing is off (`email_preferences_marketing_required`). */
+            /** @description A topic turned on while marketing is off (`email_preferences_marketing_required`), or job alerts turned back on with alerts that wait for a confirmation link, for an address that can't receive email (`job_alert_email_suppressed`). Nothing changed. */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -12462,6 +12477,15 @@ export interface operations {
             };
             /** @description Job matches turned on where the board sends this person none (`candidate_notification_preference_paused`). */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Job alerts turned back on with alerts that wait for a confirmation link, within two minutes of the last one (`rate_limited`, with `Retry-After`). Nothing changed. */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -12795,6 +12819,8 @@ export interface operations {
                         granted: true;
                         /** @description The checkbox wording the person agreed to, such as `Send me news and offers from Acme Jobs.` It must contain the board's name (case-insensitive), so they know whose email it is. */
                         text: string;
+                        /** @description Keys of the board's marketing topics this checkbox signs the person up to (`GET /v1/boards/{identifier}/marketing-topics`), up to 20, so one checkbox can stand for several topics, or a form can show one checkbox per topic and send the keys of those ticked. They get only these. Omitted, they get every topic with Add new marketing sign-ups on. An unknown or removed key is refused with 400 `subscribe_unknown_topic` before anything is recorded. Topics wait for the confirmation click like marketing itself, except for someone who already gets the board's marketing, who gets them at once. */
+                        topics?: string[];
                     };
                 };
             };
@@ -12809,7 +12835,7 @@ export interface operations {
                     "application/json": components["schemas"]["PublicJobAlertSubscription"];
                 };
             };
-            /** @description Invalid body (`validation_bad_request`), including `filters.query` sent with a job-page `context`, or a `marketingConsent.text` that doesn't name the board. */
+            /** @description Invalid body (`validation_bad_request`), including `filters.query` sent with a job-page `context`, or a `marketingConsent.text` that doesn't name the board, or a `marketingConsent.topics` key that names no live topic (`subscribe_unknown_topic`, with the key in `details.key`). */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -24643,7 +24669,7 @@ export interface operations {
                     "application/json": components["schemas"]["ProductCheckout"];
                 };
             };
-            /** @description Invalid email (`product_email_invalid`), answers (`product_answers_invalid`, `details.questionId`), or amount (`product_amount_below_minimum` with `details.minimumCents`, `product_amount_invalid`). */
+            /** @description Invalid email (`product_email_invalid`), answers (`product_answers_invalid`, `details.questionId`), or amount (`product_amount_below_minimum` with `details.minimumCents`, `product_amount_invalid`), or a `marketingConsent.topics` key that names no live topic (`subscribe_unknown_topic`, with the key in `details.key`). */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -26417,7 +26443,7 @@ export interface operations {
                     "application/json": components["schemas"]["TipJarCheckout"];
                 };
             };
-            /** @description The amount is below the smallest tip (`tip_amount_below_minimum`, with `details.minimumCents`, or without it when Stripe refuses the amount as too small after converting it to the board's settlement currency), or is not a whole amount or is above what Stripe can charge in the currency (`tip_amount_invalid`), or the note is not allowed (`tip_note_not_allowed`) or too long (`tip_note_too_long`), or `coverFee` is true while the tip jar does not offer it (`tip_fee_cover_not_allowed`). */
+            /** @description The amount is below the smallest tip (`tip_amount_below_minimum`, with `details.minimumCents`, or without it when Stripe refuses the amount as too small after converting it to the board's settlement currency), or is not a whole amount or is above what Stripe can charge in the currency (`tip_amount_invalid`), or the note is not allowed (`tip_note_not_allowed`) or too long (`tip_note_too_long`), or `coverFee` is true while the tip jar does not offer it (`tip_fee_cover_not_allowed`), or a `marketingConsent.topics` key names no live topic (`subscribe_unknown_topic`, with the key in `details.key`). */
             400: {
                 headers: {
                     [name: string]: unknown;
