@@ -62,7 +62,9 @@ export function jobAlertsNamespace(client: BoardClient) {
     },
 
     /**
-     * Deactivate a subscription via the HMAC manage token. Spread
+     * Deactivate a subscription via the HMAC manage token. Call it from a
+     * button the subscriber taps, never when a digest link's page loads:
+     * mail scanners open every link in a message. Spread
      * `parseJobAlertUnsubscribeParams(url)` into the input to record which
      * digest the subscriber unsubscribed from.
      */

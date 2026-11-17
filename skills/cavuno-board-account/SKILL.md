@@ -292,14 +292,17 @@ await board.me.notificationPreferences.update({
 });
 ```
 
-Email links use an anonymous HMAC token as authorization. Read all three inputs from the link query:
+Email Unsubscribe links carry an anonymous HMAC token as authorization. Opening the link must change nothing: mail scanners and link checkers open every link in a message, so a page that unsubscribes on load turns people off who never asked. When the page loads, read `boardUserId`, `channel` and `token` from the link query and show an Unsubscribe button. Call `unsubscribeWithToken` only from that button's handler, then say they're unsubscribed:
 
 ```ts snippet
-await board.me.notificationPreferences.unsubscribeWithToken({
-  boardUserId,
-  channel: 'applicationEmails',
-  token,
-});
+// The Unsubscribe button's handler. Never call this on page load.
+async function onUnsubscribePress() {
+  await board.me.notificationPreferences.unsubscribeWithToken({
+    boardUserId,
+    channel: 'applicationEmails',
+    token,
+  });
+}
 ```
 
 ## Completion gate
@@ -314,7 +317,7 @@ await board.me.notificationPreferences.unsubscribeWithToken({
 - Uploaded `avatarUrl` renders.
 - Resume parsing reaches `parsed`, reports `parseFailureReason`, or reaches the explicit delayed state without blocking editing.
 - Recommended jobs render the returned cards in list order; an empty list plus missing skills / unparsed resume shows an upload-resume prompt.
-- Anonymous unsubscribe works in a logged-out browser.
+- Opening an email's Unsubscribe link changes nothing; the anonymous unsubscribe runs only when the person taps the button, and works in a logged-out browser.
 
 ## Cavuno SDK reference
 
