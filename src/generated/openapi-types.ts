@@ -3238,7 +3238,7 @@ export interface paths {
         put?: never;
         /**
          * Unsubscribe via a signed email link
-         * @description Anonymous one-click unsubscribe (`/settings?u=&c=&t=` branch). The HMAC token bound to `(boardUserId, channel)` authorizes the flip: no session. Idempotent. Never cached.
+         * @description Anonymous unsubscribe for the page an email's Unsubscribe link opens (`/settings?u=&c=&t=`). Call it when the person taps an Unsubscribe button on that page, never when the page loads: mail scanners and link checkers open every link in a message. The HMAC token bound to `(boardUserId, channel)` authorizes the change: no session. Idempotent. Never cached.
          */
         post: operations["unsubscribeBoardMeNotificationPreferences"];
         delete?: never;
@@ -6184,7 +6184,7 @@ export interface components {
                  */
                 delete?: true;
             }[];
-            /** @description Turn every job alert off or back on, as the Unsubscribe link in a digest does. Back on restores the alerts that were on before, not ones paused by themselves. Alerts still waiting for a confirmation link, such as every alert of an address that never confirmed, are emailed a fresh link and wait for it; when that link cannot go out (sent in the last two minutes, or the address cannot receive email) nothing changes and the request fails. */
+            /** @description Turn every job alert off or back on. Off does what tapping Unsubscribe on the page a digest's Unsubscribe link opens does. Back on restores the alerts that were on before, not ones paused by themselves. Alerts still waiting for a confirmation link, such as every alert of an address that never confirmed, are emailed a fresh link and wait for it; when that link cannot go out (sent in the last two minutes, or the address cannot receive email) nothing changes and the request fails. */
             jobAlerts?: boolean;
             /** @description Turn weekly job matches on or off. */
             jobMatches?: boolean;
@@ -8164,7 +8164,7 @@ export interface components {
             jobAlerts: {
                 /** @description The person confirmed their address for job alerts. */
                 confirmed: boolean;
-                /** @description The person turned off every job alert (the Job alerts switch, or the Unsubscribe link in a digest). */
+                /** @description The person turned off every job alert (the Job alerts switch, or the Unsubscribe button on the page a digest's Unsubscribe link opens). */
                 unsubscribed: boolean;
                 /** @description On, but waiting for room on the board's plan before digests start. */
                 waitlisted: boolean;
