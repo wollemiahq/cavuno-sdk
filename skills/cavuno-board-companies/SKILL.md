@@ -128,12 +128,15 @@ const results = await board.companies.search({ query: 'acme', limit: 20 });
 ## Resolve markets
 
 `companies.markets` is callable and carries `.resolve`. The call returns
-`CompanyMarket` rows (`slug`, `name`, `companyCount`) ranked by company count;
-it accepts `limit` (1–200, default 100) and optional `search`.
+`CompanyMarket` rows (`slug`, `name`, `companyCount`, `indexable`) ranked by
+company count; it accepts `limit` (1–200, default 100) and optional `search`.
+Link a market page only from rows where `indexable` is `true`.
 
 Resolve an inbound slug before loading an archive. `TaxonomyResolution`
 returns `sourceSlug`, `canonicalSlug`, `displayName`, and `redirectTo`. Issue a
 308 to `redirectTo` when present, then use the resolved slug as `marketSlug`.
+A market resolution also carries `indexable`: render the plain market page
+with `noindex, follow` when it is `false`.
 
 ```ts snippet
 const { data: markets } = await board.companies.markets({ search: 'robotics' });
@@ -148,7 +151,7 @@ if (market.redirectTo) {
 `PublicCompany` carries `id`, `name`, `slug`, `website`, `logoUrl`,
 `description`, `jobCount`, `publishedJobCount`, and `links.public`.
 `PublicCompanyDetail` adds `markets: CompanyMarketRef[]`, whose rows contain
-`name` and source `slug`.
+`name`, source `slug`, and `indexable` for the market page the chip links.
 
 ```ts snippet
 const company = await board.companies.retrieve('acme');
