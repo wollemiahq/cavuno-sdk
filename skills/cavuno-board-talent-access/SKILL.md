@@ -5,7 +5,7 @@ description: Employer talent-access paywall with @cavuno/board. Use for charging
 
 # Employer talent-access paywall
 
-Operators sell access to the candidate directory: profile-unlock credits and/or first-message credits. Credits are company-scoped. This is a different buyer from the candidate job-access paywall (`board.me.access.*`, skill `cavuno-board-paywall`).
+Operators sell access to the candidate directory: profile-unlock credits and/or first-message credits. Paid credits are company-scoped. This is a different buyer from the candidate job-access paywall (`board.me.access.*`, skill `cavuno-board-paywall`).
 
 Two charging models (from `retrieve().accessModel`):
 
@@ -13,6 +13,8 @@ Two charging models (from `retrieve().accessModel`):
 - `paid_unlocks_and_messaging` — directory cards redact; opaque `/p/{id}` requires an unlock credit; messaging stays credit-gated.
 
 When no public `talent_access` plan exists, `accessModel` is `none` and the paywall is inert.
+
+An operator can also give each employer a free trial: a few free profile unlocks and free conversations, counted per company or per recruiter. Free credits are spent after paid ones and are included in `unlockCreditsRemaining` and `messageCreditsRemaining`. They are not purchased access, so `hasTalentAccess` stays `false` for an employer on the trial.
 
 ## Read the CTA and remaining credits
 
@@ -27,6 +29,16 @@ access.messageCreditsRemaining;
 access.hasUnlimitedUnlocks;
 access.hasUnlimitedMessages;
 access.companyId;
+```
+
+Decide what an employer can do from the remaining credits, not from `hasTalentAccess` alone: an employer on a free trial has credits to spend but no plan. Show the upsell when both are absent.
+
+```ts snippet
+const canUnlock =
+  access.hasUnlimitedUnlocks || access.unlockCreditsRemaining > 0;
+const canMessage =
+  access.hasUnlimitedMessages || access.messageCreditsRemaining > 0;
+if (!access.hasTalentAccess && !canUnlock && !canMessage) renderPlans();
 ```
 
 `companyId` is set when the viewer has exactly one approved membership. It is `null` when they have none or more than one — pass `companyId` on writes or the API returns `company_required`.
@@ -98,7 +110,7 @@ if (unlock.alreadyUnlocked) renderProfile();
 else renderProfile(unlock.unlockCreditsRemaining);
 ```
 
-`talent_access_required` means no plan or no remaining unlock credits.
+`talent_access_required` means no remaining unlock credits, paid or free.
 
 ## Upgrade in place
 
@@ -123,7 +135,7 @@ location.href = url;
 
 ## Message credits spend on start
 
-There is no separate message-credit spend endpoint. The composer gates on `hasTalentAccess` and remaining message credits; `conversations.start` still 403s `messaging_talent_access_required` on a cold send without credit.
+There is no separate message-credit spend endpoint. The composer gates on remaining message credits (`hasUnlimitedMessages` or `messageCreditsRemaining > 0`), which include free ones, not on `hasTalentAccess`. A cold `conversations.start`, by `candidateBoardUserId` or `candidateHandle`, also needs the candidate unlocked first, or a plan with unlimited unlocks; the named-link bypass applies only on the hosted profile page. `conversations.start` still 403s `messaging_talent_access_required` on a cold send without credit.
 
 ```ts snippet
 await board.me.conversations.start({

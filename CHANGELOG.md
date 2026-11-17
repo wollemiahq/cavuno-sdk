@@ -3,6 +3,56 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.74.0 — 2026-11-17
+
+- Every salary row that links a salary page carries `indexable` for the
+  page it links to, as the hub and place rows already do: the company,
+  title, skill and location rows of the title, skill, location,
+  title-by-location and skill-by-location pages, and the category,
+  location and competitor rows of the company salary pages and summary.
+  On a location page, `topCategories` rows link the title-by-location page
+  on a city (`adminLevel` `city` or `locality`) and the title page
+  elsewhere. Link a salary page only from rows where `indexable` is `true`.
+- Salary `indexable` flags, on rows and on pages, are `false` for a title the
+  board has excluded from search indexing: its title, title-by-location and
+  company-by-title pages render `noindex, follow`, whatever their job count.
+- Market rows (`board.companies.markets`), market resolutions
+  (`board.companies.markets.resolve`) and a company's `markets` chips
+  (`board.companies.retrieve`) carry `indexable` for the market's page:
+  `true` when enough of the board's companies carry the market and the
+  board has not excluded the market from search indexing. Link a market page only where it is `true`, and render a resolved
+  market's page with `noindex, follow` when it is `false`.
+- One form submission sends one confirmation email. A free product claim
+  that ticks both `jobAlertOptIn` and the marketing checkbox now gets the
+  job alert's confirmation email, whose click confirms the alert and the
+  marketing email together, instead of two emails.
+- `marketingConsent` on `board.jobAlerts.subscribe`, `board.products.checkout`,
+  `board.tipJar.checkout` and `board.jobPosting.create` takes optional
+  `topics`: keys of the board's marketing topics, up to 20, as on
+  `board.subscribe`. One checkbox can stand for several topics, or a form can
+  show one checkbox per topic. The topics wait for the same confirmation
+  click as the marketing email, except for someone who already gets the
+  board's marketing, who gets them at once. Without `topics`, the person
+  gets the topics the board adds to new marketing sign-ups. An unknown key
+  is refused with `subscribe_unknown_topic` (400), naming the key in
+  `details.key`, before anything is recorded.
+- Boards can give employers a free trial of talent access: a few free
+  profile unlocks and free conversations before they buy a plan.
+  `board.me.talentAccess.retrieve()` and `retrieveCandidate()` include the
+  free credits in `unlockCreditsRemaining` and `messageCreditsRemaining`.
+  `unlock` and `conversations.start` spend them after any paid credits; as
+  with paid message credits, a cold start needs the candidate unlocked
+  first. `hasTalentAccess` stays `false` for an employer on the trial until
+  they hold a plan, so decide what an employer can do from the remaining
+  credits. On the operator API, the settings endpoint takes
+  `talentFreeUnlockCount`, `talentFreeMessageCount` (0 to 100 each) and
+  `talentFreeAllowanceScope` (`company` or `recruiter`).
+- On the operator API, every paid digital product buyer is a contact. A
+  buyer with no subscription, such as one who did not tick the marketing
+  checkbox, has the new contact status `not_subscribed` (also a `status`
+  filter on `GET /contacts`) and gets no job alert, job match or marketing
+  email.
+
 ## 4.73.0 — 2026-11-17
 
 - The `cavuno-board-collections` skill covers profile item verification:
@@ -24,7 +74,6 @@ types, runtime behavior, or supported integration patterns.
   `GET /contacts` count paid digital product purchases only. Leaving a tip
   no longer makes someone a buyer; a tip's marketing checkbox still records
   the sign-up as before.
-
 ## 4.72.0 — 2026-11-16
 
 - `board.emailPreferences` builds the page that the board's job alert, job

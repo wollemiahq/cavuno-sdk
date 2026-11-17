@@ -61,7 +61,7 @@ if (status.status === 'paid') redirect(status.downloadUrl);
 
 ### Marketing checkbox, only when asked
 
-Leave it off: a checkout doesn't carry a marketing checkbox unless the board's operator asks for one. When they do, add an **unticked** checkbox asking for the board's own email (news and offers), worded with the board's name, such as "Send me news and offers from Acme Jobs.", and only when the buyer ticks it send `marketingConsent: { granted: true, text }` with that exact wording, on `board.products.checkout` or `board.tipJar.checkout`. It is recorded once the purchase completes (a free claim at once, a paid one when the payment arrives, a tip at the address Stripe collected) and confirmed by its own email; nothing is granted until the buyer clicks it, and the response is the same either way. Wording without the board's name is refused with `validation_bad_request` (400).
+Leave it off: a checkout doesn't carry a marketing checkbox unless the board's operator asks for one. When they do, add an **unticked** checkbox asking for the board's own email (news and offers), worded with the board's name, such as "Send me news and offers from Acme Jobs.", and only when the buyer ticks it send `marketingConsent: { granted: true, text }` with that exact wording, on `board.products.checkout` or `board.tipJar.checkout`. It is recorded once the purchase completes (a free claim at once, a paid one when the payment arrives, a tip at the address Stripe collected) and confirmed by email; nothing is granted until the buyer clicks it, and the response is the same either way. One submission sends one confirmation email: a free claim that also sends `jobAlertOptIn: true` gets the alert's confirmation, whose click confirms the alert and the marketing email together. Wording without the board's name is refused with `validation_bad_request` (400). To sign the buyer up to particular topics, add `topics` to `marketingConsent` with keys from `board.marketingTopics.list()`: one checkbox can stand for several topics, or the form can show a checkbox per topic and send the keys of those ticked. Without `topics` they get the topics the board adds to new marketing sign-ups. A key that isn't one of the board's live topics is refused with 400 `subscribe_unknown_topic` (`details.key` names it) before anything is recorded.
 
 ```ts snippet
 await board.products.checkout('salary-guide', {
@@ -74,7 +74,7 @@ await board.products.checkout('salary-guide', {
 });
 ```
 
-Checkout errors: `product_sold_out` (409), `product_email_invalid` (400), `product_email_blocked` (403), `product_amount_below_minimum` (400, `details.minimumCents`), `product_amount_invalid` (400), `product_answers_invalid` (400, `details.questionId`), `stripe_not_connected` (409), `rate_limited` (429), `rate_limit_unavailable` (503); `getCheckout` with an unknown session is `product_checkout_not_found`.
+Checkout errors: `product_sold_out` (409), `product_email_invalid` (400), `product_email_blocked` (403), `product_amount_below_minimum` (400, `details.minimumCents`), `product_amount_invalid` (400), `product_answers_invalid` (400, `details.questionId`), `stripe_not_connected` (409), `subscribe_unknown_topic` (400, `details.key`), `rate_limited` (429), `rate_limit_unavailable` (503); `getCheckout` with an unknown session is `product_checkout_not_found`.
 
 ## Download page and the shared-link check
 
@@ -164,7 +164,7 @@ if (status.status === 'paid') showThanks(status.thankYouMessage, status.receiptE
 // 'processing' until the payment clears: poll briefly
 ```
 
-Stripe collects the tipper's email (prefilled for a signed-in board user), so the form asks only for the amount and the note. Render the note as a plain `textarea`. `receiptEmail` is masked (`m•••@gmail.com`) because the session id is in a shareable URL. Link to the tip page with `jar.url`, which follows the board's route manifest. Errors: `tip_amount_below_minimum` (400, `details.minimumCents`), `tip_amount_invalid`, `tip_note_not_allowed`, `tip_note_too_long`, `tip_fee_cover_not_allowed` (400), `tip_jar_not_found` (404), `stripe_not_connected` (409), `rate_limited` (429), `rate_limit_unavailable` (503); `getCheckout` with an unknown session is `tip_checkout_not_found` (404). The API never returns other tippers' emails or notes.
+Stripe collects the tipper's email (prefilled for a signed-in board user), so the form asks only for the amount and the note. Render the note as a plain `textarea`. `receiptEmail` is masked (`m•••@gmail.com`) because the session id is in a shareable URL. Link to the tip page with `jar.url`, which follows the board's route manifest. Errors: `tip_amount_below_minimum` (400, `details.minimumCents`), `tip_amount_invalid`, `tip_note_not_allowed`, `tip_note_too_long`, `tip_fee_cover_not_allowed` (400), `subscribe_unknown_topic` (400, `details.key`), `tip_jar_not_found` (404), `stripe_not_connected` (409), `rate_limited` (429), `rate_limit_unavailable` (503); `getCheckout` with an unknown session is `tip_checkout_not_found` (404). The API never returns other tippers' emails or notes.
 
 ## Completion gate
 
