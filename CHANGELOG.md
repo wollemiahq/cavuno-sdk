@@ -3,6 +3,16 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.75.0 — 2026-11-17
+
+- The account and job alert skills, and the docs for
+  `board.me.notificationPreferences.unsubscribeWithToken` and
+  `board.jobAlerts.unsubscribe`, now show an email's Unsubscribe link
+  opening a page that changes nothing: mail scanners and link checkers open
+  every link in a message. Read the link's parameters when the page loads,
+  show an Unsubscribe button, and call the method only from that button.
+  The methods themselves are unchanged.
+
 ## 4.74.0 — 2026-11-17
 
 - Every salary row that links a salary page carries `indexable` for the
