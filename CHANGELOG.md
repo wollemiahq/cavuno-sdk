@@ -3,6 +3,50 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.75.0 — 2026-11-17
+
+- The account and job alert skills, and the docs for
+  `board.me.notificationPreferences.unsubscribeWithToken` and
+  `board.jobAlerts.unsubscribe`, now show an email's Unsubscribe link
+  opening a page that changes nothing: mail scanners and link checkers open
+  every link in a message. Read the link's parameters when the page loads,
+  show an Unsubscribe button, and call the method only from that button.
+  The methods themselves are unchanged.
+- The descriptions of `POST /boards/{identifier}/me/notification-preferences/unsubscribe`
+  and of the email preferences `jobAlerts` fields say the same: the call
+  runs when the person taps Unsubscribe, not when the link's page loads.
+- Missing from the 4.74.0 notes: the email preferences page can turn job
+  alerts off and on, all of them or one at a time.
+  - `board.emailPreferences.update` takes `jobAlerts: false` to turn every
+    alert off, and `jobAlerts: true` to bring back the alerts that were on
+    before. An alert the person paused by
+    itself stays paused. Alerts still waiting for a confirmation link are
+    emailed a fresh one. When that email can't go out, nothing changes and
+    the request fails: `429 rate_limited` with `Retry-After` when one was
+    sent in the last two minutes, `409 job_alert_email_suppressed` when the
+    address can't receive email.
+  - It also takes `alerts: [{ id, paused }]` to pause or resume one alert.
+    A paused alert keeps its filters. Resuming one that waits for its
+    confirmation link, or for room on the board's plan, leaves it waiting.
+  - `EmailPreferences` adds `jobAlerts.waitlisted` (on, but waiting for room
+    on the board's plan before digests start) and each alert's `paused`.
+    Show neither a paused nor a waitlisted alert as sending.
+  - The `cavuno-board-email-preferences` skill covers the Job alerts switch
+    and the switch for each alert.
+- On the operator API, `DELETE /contacts/{id}` permanently erases a contact
+  for a deletion request: their record, every subscription, and their
+  sign-up and consent evidence. Their purchases are kept for tax and
+  refunds but no longer make them a contact; a purchase they make afterwards
+  does. A contact with a candidate or employer account returns
+  `409 contacts_has_account`: delete them with `DELETE /candidates/{id}` or
+  `DELETE /employers/{id}`. It always runs asynchronously, returning `202`
+  with a `contacts.remove` operation (target type `contact`) to poll;
+  afterwards `GET /contacts/{id}` returns `404`. Requires `alerts.manage`.
+- On the operator API, a `translations` entry's `status` in
+  `GET /page-content` can be `translating`: a machine translation into that
+  locale is running now, usually for a few seconds after the page is saved.
+  Read again for the result.
+
 ## 4.74.0 — 2026-11-17
 
 - Every salary row that links a salary page carries `indexable` for the
