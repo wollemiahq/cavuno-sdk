@@ -3,6 +3,28 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.73.0 — 2026-11-17
+
+- The `cavuno-board-collections` skill covers profile item verification:
+  reuse the starter's verification UI, read a worker's statuses from
+  `board.me.profile.listVerifications()`, show a verified badge only from
+  the `verification` field on public profile data, and never add a
+  verification or status field of your own.
+- A board's MCP server lets employers sign in and read the companies they
+  manage: `list_my_companies`, `get_company_profile`, `list_company_jobs`,
+  `get_company_job` and `list_applicants`, under a new `employer` scope
+  beside `candidate`. One sign-in covers someone who is both.
+- `jobAlertOptIn` on `board.products.checkout` is an option to offer only
+  when the board's operator asks for it: on a free product it subscribes the
+  person to job alerts for every new job on the board, with no filters.
+  Show it as an unticked checkbox and send `true` only when the person
+  ticks it. The `cavuno-board-products` skill's checkout example leaves it
+  out.
+- On the operator API, a contact's `isBuyer` and the `buyer` filter on
+  `GET /contacts` count paid digital product purchases only. Leaving a tip
+  no longer makes someone a buyer; a tip's marketing checkbox still records
+  the sign-up as before.
+
 ## 4.72.0 — 2026-11-16
 
 - `board.emailPreferences` builds the page that the board's job alert, job

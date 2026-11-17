@@ -112,6 +112,18 @@ Collection creation, entry mutation, and imports are operator API operations and
 
 An approved company member sets a job's own wording with `collectionOverrides` on `board.me.companies.jobs.create` / `update`: one `{ fieldKey, recordId, title?, description? }` per selected entry, only on a field whose definition has `allowOverrides`. `cavuno-board-post-a-job` shows the form.
 
+## Item verification
+
+The operator can switch on verification, in the dashboard, for a collection field (each repeatable-details row, or the selection when the field has none) and for built-in experience and education. A worker requests it and the board team decides. Editing a checked field of a verified item moves it to `changed` and removes the badge.
+
+- The starter already ships the UI: `ItemVerificationCard` (`src/components/item-verification.tsx`) on the account page and `VerifiedTick` (`src/components/verified-tick.tsx`) on public profiles. Reuse them.
+- The worker's statuses come from `board.me.profile.listVerifications()`; requests go through `submitVerification`, `submitEmailDomainVerification` and `confirmEmailDomainVerification` on `board.me.profile`.
+- Public profile data carries `verification` (`{ status: 'verified', verifiedDomain }`) on a verified experience or education entry, a collection selection, or a repeatable row. It is absent otherwise.
+- Never add your own verification or status field, and never store evidence on the profile. Show a verified badge only from `verification`.
+- A field's `verification.required` (on the public field definitions) means employers should see "Not verified" on an item without a badge; render that for signed-in employers.
+
+Operator setup: https://cavuno.com/docs/profile-item-verification
+
 ## Rendering
 
 - Take every label from the definition list (`referenceDefinitions[].label`, `definitions[].label`, `fieldLabel`, `field.label`), never from the key.
