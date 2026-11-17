@@ -70,7 +70,7 @@ await board.jobAlerts.subscribe({
 });
 ```
 
-Nothing is granted until the person clicks a confirmation email. An address that still has to confirm the alert gets one email that confirms the alert and the marketing email together; an address that already gets alerts gets a separate confirmation for the marketing email. The response is the same either way. For a form that only offers news, use `board.subscribe` (the `cavuno-board-newsletter` skill).
+Nothing is granted until the person clicks a confirmation email. An address that still has to confirm the alert gets one email that confirms the alert and the marketing email together; an address that already gets alerts gets a separate confirmation for the marketing email. The response is the same either way. To sign the person up to particular topics, add `topics` to `marketingConsent` with keys from `board.marketingTopics.list()`: one checkbox can stand for several topics, or the form can show a checkbox per topic and send the keys of those ticked. Without `topics` they get the topics the board adds to new marketing sign-ups. A key that isn't one of the board's live topics is refused with 400 `subscribe_unknown_topic` (`details.key` names it) before anything is recorded. For a form that only offers news, use `board.subscribe` (the `cavuno-board-newsletter` skill).
 
 ## Alert kinds, keywords, and anchor jobs
 

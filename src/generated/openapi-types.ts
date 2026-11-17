@@ -6102,6 +6102,8 @@ export interface components {
                 granted: true;
                 /** @description The checkbox wording the person agreed to, such as `Send me news and offers from Acme Jobs.` It must contain the board's name (case-insensitive), so they know whose email it is. */
                 text: string;
+                /** @description Keys of the board's marketing topics this checkbox signs the person up to (`GET /v1/boards/{identifier}/marketing-topics`), up to 20, so one checkbox can stand for several topics, or a form can show one checkbox per topic and send the keys of those ticked. They get only these. Omitted, they get every topic with Add new marketing sign-ups on. An unknown or removed key is refused with 400 `subscribe_unknown_topic` before anything is recorded. Topics wait for the confirmation click like marketing itself, except for someone who already gets the board's marketing, who gets them at once. */
+                topics?: string[];
             };
         };
         CreatePipelineStageBody: {
@@ -7527,7 +7529,7 @@ export interface components {
             amountCents?: number;
             /** @description Free products: also subscribe the email to the board’s job alerts, for every new job on the board (no filters). Offer it only when the board’s operator asks for it, as an unticked checkbox, and send `true` only when the person ticks it. */
             jobAlertOptIn?: boolean;
-            /** @description The checkout's optional marketing checkbox, when ticked: the buyer also asks for the board's marketing email. Recorded once the purchase completes (a free claim at once, a paid one when its payment arrives, for a tip at the address Stripe collected), then confirmed by a separate email; nothing is granted until they click it. The response is the same either way. */
+            /** @description The checkout's optional marketing checkbox, when ticked: the buyer also asks for the board's marketing email. Recorded once the purchase completes (a free claim at once, a paid one when its payment arrives, for a tip at the address Stripe collected), then confirmed by email; nothing is granted until they click it. One submission sends one confirmation email: a free claim that also ticks `jobAlertOptIn` gets the alert's confirmation, which confirms both. The response is the same either way. */
             marketingConsent?: {
                 /**
                  * @description Always `true`: send this object only when the person ticked the box. Leave the box unticked, and offer it only when the operator asks for one.
@@ -7536,6 +7538,8 @@ export interface components {
                 granted: true;
                 /** @description The checkbox wording the person agreed to, such as `Send me news and offers from Acme Jobs.` It must contain the board's name (case-insensitive), so they know whose email it is. */
                 text: string;
+                /** @description Keys of the board's marketing topics this checkbox signs the person up to (`GET /v1/boards/{identifier}/marketing-topics`), up to 20, so one checkbox can stand for several topics, or a form can show one checkbox per topic and send the keys of those ticked. They get only these. Omitted, they get every topic with Add new marketing sign-ups on. An unknown or removed key is refused with 400 `subscribe_unknown_topic` before anything is recorded. Topics wait for the confirmation click like marketing itself, except for someone who already gets the board's marketing, who gets them at once. */
+                topics?: string[];
             };
             /** @description Paid products: the relative path Stripe returns the buyer to (`session_id` is appended). Defaults to the product page. */
             returnPath?: string;
@@ -9775,7 +9779,7 @@ export interface components {
             note?: string;
             /** @description Add the card fee on top of the tip, so the board keeps the whole tip. Default false. Only when the tip jar `coverFee` is not `null` (otherwise refused with `tip_fee_cover_not_allowed`); the checkout then charges `amountCents` plus the fee worked out from it. */
             coverFee?: boolean;
-            /** @description The checkout's optional marketing checkbox, when ticked: the buyer also asks for the board's marketing email. Recorded once the purchase completes (a free claim at once, a paid one when its payment arrives, for a tip at the address Stripe collected), then confirmed by a separate email; nothing is granted until they click it. The response is the same either way. */
+            /** @description The checkout's optional marketing checkbox, when ticked: the buyer also asks for the board's marketing email. Recorded once the purchase completes (a free claim at once, a paid one when its payment arrives, for a tip at the address Stripe collected), then confirmed by email; nothing is granted until they click it. One submission sends one confirmation email: a free claim that also ticks `jobAlertOptIn` gets the alert's confirmation, which confirms both. The response is the same either way. */
             marketingConsent?: {
                 /**
                  * @description Always `true`: send this object only when the person ticked the box. Leave the box unticked, and offer it only when the operator asks for one.
@@ -9784,6 +9788,8 @@ export interface components {
                 granted: true;
                 /** @description The checkbox wording the person agreed to, such as `Send me news and offers from Acme Jobs.` It must contain the board's name (case-insensitive), so they know whose email it is. */
                 text: string;
+                /** @description Keys of the board's marketing topics this checkbox signs the person up to (`GET /v1/boards/{identifier}/marketing-topics`), up to 20, so one checkbox can stand for several topics, or a form can show one checkbox per topic and send the keys of those ticked. They get only these. Omitted, they get every topic with Add new marketing sign-ups on. An unknown or removed key is refused with 400 `subscribe_unknown_topic` before anything is recorded. Topics wait for the confirmation click like marketing itself, except for someone who already gets the board's marketing, who gets them at once. */
+                topics?: string[];
             };
             /** @description The relative path Stripe returns the tipper to (`session_id` is appended). Defaults to the tip page. */
             returnPath?: string;
@@ -12795,6 +12801,8 @@ export interface operations {
                         granted: true;
                         /** @description The checkbox wording the person agreed to, such as `Send me news and offers from Acme Jobs.` It must contain the board's name (case-insensitive), so they know whose email it is. */
                         text: string;
+                        /** @description Keys of the board's marketing topics this checkbox signs the person up to (`GET /v1/boards/{identifier}/marketing-topics`), up to 20, so one checkbox can stand for several topics, or a form can show one checkbox per topic and send the keys of those ticked. They get only these. Omitted, they get every topic with Add new marketing sign-ups on. An unknown or removed key is refused with 400 `subscribe_unknown_topic` before anything is recorded. Topics wait for the confirmation click like marketing itself, except for someone who already gets the board's marketing, who gets them at once. */
+                        topics?: string[];
                     };
                 };
             };
@@ -12809,7 +12817,7 @@ export interface operations {
                     "application/json": components["schemas"]["PublicJobAlertSubscription"];
                 };
             };
-            /** @description Invalid body (`validation_bad_request`), including `filters.query` sent with a job-page `context`, or a `marketingConsent.text` that doesn't name the board. */
+            /** @description Invalid body (`validation_bad_request`), including `filters.query` sent with a job-page `context`, or a `marketingConsent.text` that doesn't name the board, or a `marketingConsent.topics` key that names no live topic (`subscribe_unknown_topic`, with the key in `details.key`). */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -24643,7 +24651,7 @@ export interface operations {
                     "application/json": components["schemas"]["ProductCheckout"];
                 };
             };
-            /** @description Invalid email (`product_email_invalid`), answers (`product_answers_invalid`, `details.questionId`), or amount (`product_amount_below_minimum` with `details.minimumCents`, `product_amount_invalid`). */
+            /** @description Invalid email (`product_email_invalid`), answers (`product_answers_invalid`, `details.questionId`), or amount (`product_amount_below_minimum` with `details.minimumCents`, `product_amount_invalid`), or a `marketingConsent.topics` key that names no live topic (`subscribe_unknown_topic`, with the key in `details.key`). */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -26417,7 +26425,7 @@ export interface operations {
                     "application/json": components["schemas"]["TipJarCheckout"];
                 };
             };
-            /** @description The amount is below the smallest tip (`tip_amount_below_minimum`, with `details.minimumCents`, or without it when Stripe refuses the amount as too small after converting it to the board's settlement currency), or is not a whole amount or is above what Stripe can charge in the currency (`tip_amount_invalid`), or the note is not allowed (`tip_note_not_allowed`) or too long (`tip_note_too_long`), or `coverFee` is true while the tip jar does not offer it (`tip_fee_cover_not_allowed`). */
+            /** @description The amount is below the smallest tip (`tip_amount_below_minimum`, with `details.minimumCents`, or without it when Stripe refuses the amount as too small after converting it to the board's settlement currency), or is not a whole amount or is above what Stripe can charge in the currency (`tip_amount_invalid`), or the note is not allowed (`tip_note_not_allowed`) or too long (`tip_note_too_long`), or `coverFee` is true while the tip jar does not offer it (`tip_fee_cover_not_allowed`), or a `marketingConsent.topics` key names no live topic (`subscribe_unknown_topic`, with the key in `details.key`). */
             400: {
                 headers: {
                     [name: string]: unknown;
