@@ -3,6 +3,19 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.72.1 — 2026-11-17
+
+- `jobAlertOptIn` on `board.products.checkout` is an option to offer only
+  when the board's operator asks for it: on a free product it subscribes the
+  person to job alerts for every new job on the board, with no filters.
+  Show it as an unticked checkbox and send `true` only when the person
+  ticks it. The `cavuno-board-products` skill's checkout example leaves it
+  out.
+- On the operator API, a contact's `isBuyer` and the `buyer` filter on
+  `GET /contacts` count paid digital product purchases only. Leaving a tip
+  no longer makes someone a buyer; a tip's marketing checkbox still records
+  the sign-up as before.
+
 ## 4.72.0 — 2026-11-16
 
 - `board.emailPreferences` builds the page that the board's job alert, job
