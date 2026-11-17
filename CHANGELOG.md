@@ -3,6 +3,24 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.76.0 — 2026-11-17
+
+- A site's route manifest can declare `features`: behaviours the site
+  supports across its pages, so Cavuno offers the matching board setting
+  only where the site handles it. On a site Cavuno builds from source,
+  declare one by exporting `cavunoFeatures` from a code file, such as
+  `export const cavunoFeatures = ['talentFreeTrial'] as const`; a site that
+  serves its own `/.well-known/cavuno.json` can pass `features` to
+  `createWellKnownHandler`, `emitWellKnownManifest` or `compileManifest`.
+  `talentFreeTrial` means the talent pages let an employer spend free
+  profile unlocks and free conversations before they hold a plan; declare
+  it once they gate on `unlockCreditsRemaining` and
+  `messageCreditsRemaining` rather than `hasTalentAccess`.
+  `validateManifest` keeps `features` and drops a name it does not know
+  rather than refusing the manifest, so a site built on a newer version
+  still loads its roles. New exports: `RouteFeature`, `ALL_FEATURES`,
+  `isRouteFeature` and `extractCavunoFeaturesMarker`.
+
 ## 4.75.0 — 2026-11-17
 
 - The account and job alert skills, and the docs for
