@@ -146,7 +146,7 @@ Job alert digests and alert confirmation emails have a footer link to the person
 
 Digest job links open your job page with `ja_alert`, `ja_email`, `ja_pos` and `ja_mv`. Report the click from the job page's server code, once per full `GET` (not on prefetches or `HEAD`), and forward the visitor's user agent so crawlers and link scanners are left out. `recordClick` always resolves with `status: 'accepted'`; never block the page on it.
 
-Digest manage and unsubscribe links carry `ja_alert` and `ja_email`. Spread them into `unsubscribe` to attribute the unsubscribe to that email; a link without them returns `null`, which spreads to nothing.
+Digest manage and unsubscribe links carry `ja_alert` and `ja_email`. Opening either link must change nothing: mail scanners and link checkers open every link in a message. Show an Unsubscribe button and call `unsubscribe` only from its action, with the URL the page opened on. Spread the parsed params into it to attribute the unsubscribe to that email; a link without them returns `null`, which spreads to nothing.
 
 ```ts snippet
 import {
@@ -165,11 +165,14 @@ if (click) {
     .catch(() => undefined);
 }
 
-await board.jobAlerts.unsubscribe({
-  subscriptionId,
-  token,
-  ...parseJobAlertUnsubscribeParams(request.url),
-});
+// The Unsubscribe button's action. Never call this on page load.
+async function unsubscribeFromAlerts(pageUrl: string) {
+  await board.jobAlerts.unsubscribe({
+    subscriptionId,
+    token,
+    ...parseJobAlertUnsubscribeParams(pageUrl),
+  });
+}
 ```
 
 ## Signed-in lane
