@@ -34,7 +34,6 @@ Collect the email and the answers to `product.questions` (text → string, check
 const result = await board.products.checkout('salary-guide', {
   email: 'ada@example.com',
   answers: [{ questionId: 'waiver', value: true }],
-  jobAlertOptIn: false, // free products only; render unticked
   returnPath: '/products/salary-guide',
   website: '', // honeypot: render hidden, send empty
 });
@@ -45,6 +44,8 @@ if (result.status === 'complete') {
   mountEmbeddedCheckout(result); // paid: Stripe mount kit
 }
 ```
+
+A free product can also subscribe the person to the board's job alerts, for every new job on the board (no filters), with `jobAlertOptIn: true`. Leave it off unless the board's operator asks for it; then add an **unticked** checkbox that says so, and send `jobAlertOptIn: true` only when the person ticks it.
 
 `status: 'open'` returns `publishableKey`, `stripeAccountId`, `clientSecret` and `sessionId`. Mount with `loadStripe(publishableKey, { stripeAccount: stripeAccountId })` and `initEmbeddedCheckout({ clientSecret })`. The session expires after 30 minutes. For pay what you want, send `amountCents` (at least the minimum) or omit it to let the buyer choose on Stripe's page; `amountCents: 0` on a $0+ product is a free claim.
 

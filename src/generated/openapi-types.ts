@@ -7525,7 +7525,7 @@ export interface components {
             }[];
             /** @description Pay what you want: the amount the buyer chose, in cents. Omit to let the buyer choose on the Stripe page. `0` on a $0+ product claims it for free. */
             amountCents?: number;
-            /** @description Free products: also subscribe the email to the board’s job alerts. Show it unticked. */
+            /** @description Free products: also subscribe the email to the board’s job alerts, for every new job on the board (no filters). Offer it only when the board’s operator asks for it, as an unticked checkbox, and send `true` only when the person ticks it. */
             jobAlertOptIn?: boolean;
             /** @description The checkout's optional marketing checkbox, when ticked: the buyer also asks for the board's marketing email. Recorded once the purchase completes (a free claim at once, a paid one when its payment arrives, for a tip at the address Stripe collected), then confirmed by a separate email; nothing is granted until they click it. The response is the same either way. */
             marketingConsent?: {
