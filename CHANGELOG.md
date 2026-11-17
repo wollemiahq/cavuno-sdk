@@ -3,6 +3,32 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.75.0 — 2026-11-17
+
+- The account and job alert skills, and the docs for
+  `board.me.notificationPreferences.unsubscribeWithToken` and
+  `board.jobAlerts.unsubscribe`, now show an email's Unsubscribe link
+  opening a page that changes nothing: mail scanners and link checkers open
+  every link in a message. Read the link's parameters when the page loads,
+  show an Unsubscribe button, and call the method only from that button.
+  The methods themselves are unchanged.
+- The descriptions of `POST /boards/{identifier}/me/notification-preferences/unsubscribe`
+  and of the email preferences `jobAlerts` fields say the same: the call
+  runs when the person taps Unsubscribe, not when the link's page loads.
+- On the operator API, `DELETE /contacts/{id}` permanently erases a contact
+  for a deletion request: their record, every subscription, and their
+  sign-up and consent evidence. Their purchases are kept for tax and
+  refunds but no longer make them a contact; a purchase they make afterwards
+  does. A contact with a candidate or employer account returns
+  `409 contacts_has_account`: delete them with `DELETE /candidates/{id}` or
+  `DELETE /employers/{id}`. It always runs asynchronously, returning `202`
+  with a `contacts.remove` operation (target type `contact`) to poll;
+  afterwards `GET /contacts/{id}` returns `404`. Requires `alerts.manage`.
+- On the operator API, a `translations` entry's `status` in
+  `GET /page-content` can be `translating`: a machine translation into that
+  locale is running now, usually for a few seconds after the page is saved.
+  Read again for the result.
+
 ## 4.74.0 — 2026-11-17
 
 - Every salary row that links a salary page carries `indexable` for the

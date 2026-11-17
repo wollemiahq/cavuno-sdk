@@ -599,8 +599,10 @@ export function meNamespace(client: BoardClient) {
         );
       },
       /**
-       * Anonymous one-click unsubscribe via an HMAC email-link token — no
-       * session. Resolves void on success (204).
+       * Anonymous unsubscribe with the HMAC token from an email's
+       * Unsubscribe link — no session. Call it from a button the person
+       * taps, never when the link's page loads: mail scanners open every
+       * link in a message. Resolves void on success (204).
        */
       unsubscribeWithToken(body: UnsubscribeBody, options?: FetchOptions) {
         return client.fetch<void>('/me/notification-preferences/unsubscribe', {
