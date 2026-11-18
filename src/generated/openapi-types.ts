@@ -5088,6 +5088,8 @@ export interface components {
             token: string;
             /** @description The person's IANA time zone from their browser (`Intl.DateTimeFormat().resolvedOptions().timeZone`), such as `Europe/Berlin`. Stored the first time only; an invalid value is ignored. */
             timeZone?: string;
+            /** @description The language of the page the person signed up from, as a BCP-47 tag such as `de`: the board language or one of its Interface locales. Stored the first time only; a language the board does not offer is ignored. */
+            locale?: string;
         };
         BoardAuthForgotPasswordBody: {
             /** Format: email */
@@ -5146,6 +5148,8 @@ export interface components {
             inviteToken?: string;
             /** @description The person's IANA time zone from their browser (`Intl.DateTimeFormat().resolvedOptions().timeZone`), such as `Europe/Berlin`. Stored the first time only; an invalid value is ignored. */
             timeZone?: string;
+            /** @description The language of the page the person signed up from, as a BCP-47 tag such as `de`: the board language or one of its Interface locales. Stored the first time only; a language the board does not offer is ignored. */
+            locale?: string;
         };
         BoardAuthRequestMagicLinkBody: {
             audienceAttribution?: components["schemas"]["AudienceAttribution"];
@@ -5528,6 +5532,8 @@ export interface components {
             website?: string;
             /** @description The person's IANA time zone from their browser (`Intl.DateTimeFormat().resolvedOptions().timeZone`), such as `Europe/Berlin`. Stored the first time only; an invalid value is ignored. */
             timeZone?: string;
+            /** @description The language of the page the person signed up from, as a BCP-47 tag such as `de`: the board language or one of its Interface locales. Stored the first time only; a language the board does not offer is ignored. */
+            locale?: string;
             /** @description Keys of the board's marketing topics the person chose (`GET /v1/boards/{identifier}/marketing-topics`), up to 20. They get only these. Omitted, they get every topic with Add new marketing sign-ups on. An unknown or removed key is refused with 400 `subscribe_unknown_topic`. Topics wait for the confirmation click like marketing itself, except for someone who already gets the board's marketing, who gets them at once. */
             topics?: string[];
             /** @description Labels for the person, such as `audience:employer`, up to 10: lowercase letters, digits, `_` and `-`, with one optional `namespace:` part, each part up to 32 characters. An unknown tag is created. Applied with the confirmation click (at once for someone who already gets the board's marketing). A board holds 500 tags and a person 50; past either, the tag is skipped and the sign-up still goes through. */
@@ -12994,6 +13000,8 @@ export interface operations {
                     };
                     /** @description The person's IANA time zone from their browser (`Intl.DateTimeFormat().resolvedOptions().timeZone`), such as `Europe/Berlin`. Stored the first time only; an invalid value is ignored. */
                     timeZone?: string;
+                    /** @description The language of the page the person signed up from, as a BCP-47 tag such as `de`: the board language or one of its Interface locales. Stored the first time only; a language the board does not offer is ignored. */
+                    locale?: string;
                     /** @description The form's optional marketing checkbox, when ticked: the person also asks for the board's marketing email. Nothing is granted until they click a confirmation email. An address that still has to confirm the alert gets one email that confirms both; any other address gets a separate confirmation for the marketing email. The response stays the same either way. */
                     marketingConsent?: {
                         /**
