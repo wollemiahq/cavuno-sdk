@@ -1,3 +1,4 @@
+import type { RouteFeature } from './features';
 import type { RouteRole } from './roles';
 
 /**
@@ -15,6 +16,11 @@ export type RouteEntry = {
 export type ManifestV1 = {
   version: 1;
   roles: Partial<Record<RouteRole, string>>;
+  /**
+   * Behaviours the site supports across its pages, in `ALL_FEATURES` order.
+   * Absent when the site declares none.
+   */
+  features?: RouteFeature[];
 };
 
 export type Ambiguity = {

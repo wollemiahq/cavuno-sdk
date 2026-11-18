@@ -19,6 +19,8 @@ export {
   type RouteRole,
 } from './roles';
 
+export { ALL_FEATURES, isRouteFeature, type RouteFeature } from './features';
+
 export type {
   Ambiguity,
   ClassifyResult,
@@ -32,7 +34,10 @@ export type {
 export { classifyRoutes } from './classify';
 export { compileManifest } from './compile';
 export { compileManifestFromTree, type TreeFile } from './compile-from-tree';
-export { extractCavunoPageMarker } from './markers';
+export {
+  extractCavunoFeaturesMarker,
+  extractCavunoPageMarker,
+} from './markers';
 export { extractParamNames, sameParamSet } from './params';
 export { checkRoleTemplate, validateManifest } from './validate';
 export {
