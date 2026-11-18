@@ -78,6 +78,32 @@ Successful logout revokes the refresh token and clears SDK storage. A failed log
 
 **Complete when:** logout revokes the server session, clears the app-owned cookie or browser store, and an authenticated read is handled as signed out.
 
+## Mistyped email addresses
+
+Under the email field, offer a one-tap fix for a mistyped domain: `suggestEmailAddress` from `@cavuno/board/email` compares the domain with common mailbox providers and returns the corrected address, or `null`. It never changes the part before the @, and it runs in the browser, so call it on blur. The API also refuses an address whose domain has no mail server (no MX, A or AAAA record) with 422 `email_domain_undeliverable`, before anything is created or emailed; `details.suggestion` carries the same correction when there is one.
+
+```ts snippet
+import { BoardApiError } from '@cavuno/board';
+import { suggestEmailAddress } from '@cavuno/board/email';
+
+// On blur: 'jane@gmial.com' gives 'jane@gmail.com'; a likely-fine address gives null.
+const hint = suggestEmailAddress(email);
+
+try {
+  await board.auth.register({ role: 'candidate', method: 'emailpass', email, password, displayName });
+} catch (error) {
+  if (
+    error instanceof BoardApiError &&
+    error.code === 'email_domain_undeliverable'
+  ) {
+    const { suggestion } = (error.details ?? {}) as { suggestion?: string };
+    // Show "Did you mean {suggestion}?", or ask them to check the address.
+  } else {
+    throw error;
+  }
+}
+```
+
 ## Verification and recovery
 
 ```ts snippet

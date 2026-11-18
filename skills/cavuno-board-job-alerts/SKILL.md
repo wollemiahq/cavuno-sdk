@@ -54,6 +54,32 @@ Only `jobFunctions`, `placeSlugs`, and `remoteOptions` filter digest delivery. S
 
 `jobFunctions` are category and skill slugs (the `slug` of a category or skill, such as `engineering` or `media-and-communication`). A digest matches a job when any entry equals one of the job's category or skill slugs. Prefer sending slugs. If you send display names or free-text keywords instead, the server slugifies each one when the alert is saved and matches it against the board's category and skill slugs, their aliases, and their board-language slugs. A display name that does not slugify to one of those (for example, a renamed category) is stored slugified and will not match, so send slugs whenever you have them. Alerts read back from the API therefore always carry slugs, so compare and display them as slugs.
 
+## Mistyped email addresses
+
+Under the email field, offer a one-tap fix for a mistyped domain: `suggestEmailAddress` from `@cavuno/board/email` compares the domain with common mailbox providers and returns the corrected address, or `null`. It never changes the part before the @, and it runs in the browser, so call it on blur. The API also refuses an address whose domain has no mail server (no MX, A or AAAA record) with 422 `email_domain_undeliverable`, before anything is created or emailed; `details.suggestion` carries the same correction when there is one.
+
+```ts snippet
+import { BoardApiError } from '@cavuno/board';
+import { suggestEmailAddress } from '@cavuno/board/email';
+
+// On blur: 'jane@gmial.com' gives 'jane@gmail.com'; a likely-fine address gives null.
+const hint = suggestEmailAddress(email);
+
+try {
+  await board.jobAlerts.subscribe({ email, consent: true, frequency: 'weekly' });
+} catch (error) {
+  if (
+    error instanceof BoardApiError &&
+    error.code === 'email_domain_undeliverable'
+  ) {
+    const { suggestion } = (error.details ?? {}) as { suggestion?: string };
+    // Show "Did you mean {suggestion}?", or ask them to check the address.
+  } else {
+    throw error;
+  }
+}
+```
+
 ## Marketing checkbox, only when asked
 
 Leave it off: a job alert form doesn't carry a marketing checkbox unless the board's operator asks for one. When they do, add an **unticked** checkbox under the email field asking for the board's own email (news and offers), worded with the board's name, such as "Send me news and offers from Acme Jobs.". Only when the person ticks it, send `marketingConsent` with that exact wording; leave it out otherwise. Wording without the board's name is refused with `validation_bad_request` (400).
