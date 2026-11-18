@@ -15,6 +15,7 @@ Every sign-up is double opt-in. The person gets a confirmation email, and nothin
 - A `source` label for the form, such as `blog-footer` or `homepage-hero` (lowercase letters, digits and hyphens). It shows as the person's Source in the board's dashboard, so give each form its own.
 - A hidden `website` field people leave empty. Bots fill it in; the API then answers as usual and does nothing.
 - The person's time zone as `timeZone`: read `Intl.DateTimeFormat().resolvedOptions().timeZone` in their browser (such as `Europe/Berlin`) and send it with the form. On your server it returns the server's zone, so never fill it in there. The board keeps the first value it gets for a person and ignores an invalid one.
+- The language of the page as `locale`, such as `de` (the board language or one of its Interface locales). The board keeps the first value it gets for a person and ignores a language it does not offer.
 
 Read the board's name from `board.context()` rather than typing it.
 
@@ -29,6 +30,7 @@ const result = await board.subscribe({
   source: 'blog-footer',
   website: honeypotValue,
   timeZone: browserTimeZone, // read in the browser, sent with the form
+  locale: pageLocale, // the language of the page, such as 'de'
 });
 
 if (result.sendingPaused) {
