@@ -3,6 +3,41 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.76.0 — 2026-11-17
+
+- `board.emailPreferences.update` returns `confirmationEmailQueued`: true
+  when the change emailed the person a fresh confirmation link, which
+  happens when job alerts come back on with alerts that wait for one. Show
+  "check your inbox" only when it is true, instead of inferring it from
+  `awaitingConfirmation`. New type: `EmailPreferencesUpdateResult`.
+- An alert's `awaitingConfirmation` now stays true while job alerts are
+  off, for an alert that will not send until a confirmation link is
+  clicked (an unpaused alert of an address that never confirmed, or one
+  whose own link was never clicked). It used to read false while job alerts were off,
+  although such an alert can't be paused. Offer it Delete only.
+- A site's route manifest can declare `features`: behaviours the site
+  supports across its pages, so Cavuno offers the matching board setting
+  only where the site handles it. On a site Cavuno builds from source,
+  declare one by exporting `cavunoFeatures` from a code file, such as
+  `export const cavunoFeatures = ['talentFreeTrial'] as const`; a site that
+  serves its own `/.well-known/cavuno.json` can pass `features` to
+  `createWellKnownHandler`, `emitWellKnownManifest` or `compileManifest`.
+  `talentFreeTrial` means the talent pages let an employer spend free
+  profile unlocks and free conversations before they hold a plan; declare
+  it once they gate on `unlockCreditsRemaining` and
+  `messageCreditsRemaining` rather than `hasTalentAccess`.
+  `validateManifest` keeps `features` and drops a name it does not know
+  rather than refusing the manifest, so a site built on a newer version
+  still loads its roles. New exports: `RouteFeature`, `ALL_FEATURES`,
+  `isRouteFeature` and `extractCavunoFeaturesMarker`.
+- On paid messaging boards, `board.me.conversations.start` starts a
+  conversation with a candidate the employer can see, spending a message
+  credit (paid or free), without unlocking them first. It used to refuse
+  with `messaging_talent_access_required` unless the candidate had been
+  unlocked. A candidate whose profile the employer cannot see is refused
+  with `messaging_recipient_not_open`. Boards that charge for profile
+  unlocks still need the candidate unlocked before a cold start.
+
 ## 4.75.0 — 2026-11-17
 
 - The account and job alert skills, and the docs for

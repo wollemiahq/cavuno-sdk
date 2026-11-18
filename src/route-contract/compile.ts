@@ -1,4 +1,5 @@
 import { classifyRoutes } from './classify';
+import { ALL_FEATURES, type RouteFeature } from './features';
 import { ALL_ROLES, REQUIRED_ROLES, type RouteRole } from './roles';
 import { checkRoleTemplate } from './validate';
 
@@ -14,6 +15,7 @@ const REQUIRED_SET: ReadonlySet<RouteRole> = new Set(REQUIRED_ROLES);
 export function compileManifest(
   routes: RouteEntry[],
   markers?: ReadonlyMap<string, RouteRole>,
+  features?: ReadonlySet<RouteFeature>,
 ): CompileResult {
   const { assignments, ambiguities, missingRequired } = classifyRoutes(
     routes,
@@ -60,8 +62,14 @@ export function compileManifest(
     warnings.push(`optional role '${role}' is unassigned`);
   }
 
+  const declared = ALL_FEATURES.filter((feature) => features?.has(feature));
+
   return {
-    manifest: { version: 1, roles },
+    manifest: {
+      version: 1,
+      roles,
+      ...(declared.length > 0 ? { features: declared } : {}),
+    },
     blockingMissing: REQUIRED_ROLES.filter((r) => blocking.has(r)),
     warnings,
     ambiguities,
