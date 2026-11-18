@@ -87,10 +87,37 @@ const message = !subscribed
     : 'Your job alert is confirmed.';
 ```
 
+## Mistyped email addresses
+
+Under the email field, offer a one-tap fix for a mistyped domain: `suggestEmailAddress` from `@cavuno/board/email` compares the domain with common mailbox providers and returns the corrected address, or `null`. It never changes the part before the @, and it runs in the browser, so call it on blur. The API also refuses an address whose domain has no mail server (no MX, A or AAAA record) with 422 `email_domain_undeliverable`, before anything is created or emailed; `details.suggestion` carries the same correction when there is one.
+
+```ts snippet
+import { BoardApiError } from '@cavuno/board';
+import { suggestEmailAddress } from '@cavuno/board/email';
+
+// On blur: 'jane@gmial.com' gives 'jane@gmail.com'; a likely-fine address gives null.
+const hint = suggestEmailAddress(email);
+
+try {
+  await board.subscribe({ email, consent: true, consentText, source: 'footer' });
+} catch (error) {
+  if (
+    error instanceof BoardApiError &&
+    error.code === 'email_domain_undeliverable'
+  ) {
+    const { suggestion } = (error.details ?? {}) as { suggestion?: string };
+    // Show "Did you mean {suggestion}?", or ask them to check the address.
+  } else {
+    throw error;
+  }
+}
+```
+
 ## Errors
 
 - `validation_bad_request` (400): a field is missing or malformed, `consent` isn't `true`, or `consentText` doesn't name the board.
 - `subscribe_unknown_topic` (400): a key in `topics` isn't one of the board's live topics.
+- `email_domain_undeliverable` (422): the address's domain has no mail server, usually a typo; `details.suggestion` is the corrected address when there is one.
 - `rate_limited` (429): 3 sign-ups a minute per address across all boards, or 10 requests a minute per IP. A self-hosted site calls from its own server, so all its visitors share that IP limit with every other sign-in and sign-up call from that server; on a builder site Cavuno hosts it counts each visitor separately, plus 6 sign-ups a minute per visitor. `details.retryAfterSeconds` says when to try again.
 - `rate_limit_unavailable` (503): retry shortly.
 

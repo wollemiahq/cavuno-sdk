@@ -74,6 +74,16 @@
         "default": "./dist/format.js"
       }
     },
+    "./email": {
+      "import": {
+        "types": "./dist/email.d.mts",
+        "default": "./dist/email.mjs"
+      },
+      "require": {
+        "types": "./dist/email.d.ts",
+        "default": "./dist/email.js"
+      }
+    },
     "./filters": {
       "import": {
         "types": "./dist/filters.d.mts",
