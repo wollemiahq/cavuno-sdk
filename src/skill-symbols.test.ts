@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import * as emailModule from './email';
 import * as filtersModule from './filters';
 import * as formatModule from './format';
 import { createBoardClient } from './index';
@@ -27,6 +28,7 @@ const exported = new Set(Object.keys(sdk));
 const SUBPATH_EXPORTS: Record<string, Set<string>> = {
   '': exported,
   '/format': new Set(Object.keys(formatModule)),
+  '/email': new Set(Object.keys(emailModule)),
   '/filters': new Set(Object.keys(filtersModule)),
   '/suggest': new Set(Object.keys(suggestModule)),
   '/seo': new Set(Object.keys(seoModule)),

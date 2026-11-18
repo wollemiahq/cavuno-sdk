@@ -5,6 +5,16 @@ types, runtime behavior, or supported integration patterns.
 
 ## 4.77.0 — 2026-11-18
 
+- New `@cavuno/board/email` entry with `suggestEmailAddress(email)`: the
+  corrected address when the domain looks like a typo of a common mailbox
+  provider (`jane@gmial.com` → `jane@gmail.com`), or `null`. It changes only
+  the domain and needs no network, so call it on blur to offer a one-tap
+  fix under an email field.
+- `board.auth.register`, `board.jobAlerts.subscribe` and `board.subscribe`
+  now refuse an address whose domain has no mail server (no MX, A or AAAA
+  record) with `email_domain_undeliverable` (422), before anything is
+  created or emailed. `details.domain` names the domain, and
+  `details.suggestion` is the corrected address when there is one.
 - A site can show the assistant (MCP) consent step on its own page. Declare
   an `assistantConsent` page in the route manifest (canonical path
   `/authorize`), and `/oauth/authorize` sends the browser there with the

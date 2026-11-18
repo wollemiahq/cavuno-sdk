@@ -3,6 +3,7 @@ import { defineConfig } from 'tsup';
 const isomorphicEntries = {
   index: 'src/index.ts',
   format: 'src/format/index.ts',
+  email: 'src/email/index.ts',
   filters: 'src/filters/index.ts',
   suggest: 'src/suggest/index.ts',
   seo: 'src/seo/index.ts',
