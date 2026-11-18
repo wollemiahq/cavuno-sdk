@@ -1529,6 +1529,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/mcp/consent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the MCP consent step
+         * @description What a site's consent page (the `assistantConsent` route role, which `/oauth/authorize` sends the browser to) shows when an AI assistant asks to sign in to the board: the consent copy with Allow and Cancel, a step to sign in or verify an email first, a redirect back to the assistant, or an error to show. For the board’s own Builder site only: its server calls this for the visitor, with their session’s access token when they are signed in. Never cached.
+         */
+        get: operations["getBoardMcpConsent"];
+        put?: never;
+        /**
+         * Allow or cancel an MCP sign-in
+         * @description Allow or Cancel on the consent step `GET /mcp/consent` returned, for the person signed in. Every check runs again. Allow issues the assistant a one-time code; either way the answer is where to send the browser. For the board’s own Builder site only: its server calls this for the visitor, with their session’s access token when they are signed in.
+         */
+        post: operations["submitBoardMcpConsent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/boards/{identifier}/mcp/docs": {
         parameters: {
             query?: never;
@@ -5258,6 +5282,106 @@ export interface components {
             /** @description The topic’s name, to label its checkbox. */
             name: string;
         };
+        BoardMcpConsentDecision: {
+            /** @enum {string} */
+            next: "redirect";
+            /** @description Send the browser here: the assistant’s callback, with the code or `access_denied`. */
+            location: string;
+        } | {
+            /** @enum {string} */
+            next: "error";
+            /** @description Show this to the person. */
+            message: string;
+            /**
+             * @description Why: `invalid_link` the link is broken; `unknown_client` the assistant isn’t registered with the board; `client_rejected` the assistant’s registration couldn’t be used; `redirect_mismatch` it asked to return to an address it didn’t register; `not_signed_in` the person came back from sign-in but the site’s session wasn’t seen; `no_account` the person has no account kind the assistant can use (see `accountScopes`); `expired` the page expired; `unavailable` the assistant can’t be connected right now. `message` says the same in English.
+             * @enum {string}
+             */
+            code: "invalid_link" | "unknown_client" | "client_rejected" | "redirect_mismatch" | "not_signed_in" | "no_account" | "expired" | "unavailable";
+        };
+        BoardMcpConsentDecisionBody: {
+            /** @description The `request` of the consent step shown. */
+            request: string;
+            /** @description The `consentToken` of the consent step shown. */
+            consentToken: string;
+            /**
+             * @description `allow` connects the assistant; `deny` tells it no.
+             * @enum {string}
+             */
+            decision: "allow" | "deny";
+        };
+        BoardMcpConsentStep: {
+            /** @enum {string} */
+            next: "consent";
+            /** @description Send back unchanged with Allow or Cancel. */
+            request: string;
+            /** @description Send back unchanged with Allow or Cancel. Good for ten minutes, for this person and request only. */
+            consentToken: string;
+            /** @description The name the assistant registered. */
+            clientName: string;
+            /** @description A well-known assistant (`Claude`, `ChatGPT`, …), recognised by where the sign-in is sent, not by the name it registered; otherwise null. */
+            knownAssistant: string | null;
+            /** @description The page’s heading, in English. */
+            heading: string;
+            /** @description Who stands behind the assistant, in English: from `knownAssistant`, `redirectHost`, `trustLevel` and `publisherHost`. */
+            trust: {
+                label: string;
+                description: string;
+            };
+            /** @description What approving lets the assistant do, one paragraph each, in English: from `access`. */
+            scopes: string[];
+            /** @description Where Allow sends the person, for an assistant that isn’t a known one: text runs, with `{ strong }` for the part to emphasise. Null for a known assistant. */
+            redirectNotice: (string | {
+                strong: string;
+            })[] | null;
+            /** @description Who is signed in. */
+            email: string;
+            /**
+             * @description How the assistant registered: `domain_verified` its client ID is a URL on its publisher’s domain (`publisherHost`); `verified` a known application; `unverified` it registered itself, so who publishes it isn’t confirmed. A page for a `knownAssistant` can say where the sign-in goes instead.
+             * @enum {string}
+             */
+            trustLevel: "domain_verified" | "verified" | "unverified";
+            /** @description The domain that publishes the assistant, for `domain_verified`; otherwise null. */
+            publisherHost: string | null;
+            /** @description The host Allow sends the person, and the code, to. */
+            redirectHost: string;
+            /** @description What approving lets the assistant do, as facts to word in the board’s language. `scopes` says the same in English. */
+            access: {
+                /**
+                 * @description Job seeker access: `account` reads and changes their profile, saved jobs, applications and job alerts; `searches` only lets job searches show the jobs their access unlocks. Null when not granted.
+                 * @enum {string|null}
+                 */
+                candidate: "account" | "searches" | null;
+                /** @description Employer access. Null when not granted. */
+                employer: {
+                    /** @description What it reads of the companies the person manages; empty means only their names. */
+                    reads: ("profiles" | "jobs" | "applicants")[];
+                    /** @description What it can change of those companies. */
+                    changes: ("profiles" | "jobs" | "applicants")[];
+                } | null;
+            };
+        } | {
+            /** @enum {string} */
+            next: "sign_in" | "verify_email";
+            /** @description Where the site’s sign-in or email verification returns the person: a same-origin path back to `/oauth/authorize`. */
+            returnTo: string;
+        } | {
+            /** @enum {string} */
+            next: "redirect";
+            /** @description Send the browser here: the assistant’s own callback. */
+            location: string;
+        } | {
+            /** @enum {string} */
+            next: "error";
+            /** @description Show this to the person. */
+            message: string;
+            /**
+             * @description Why: `invalid_link` the link is broken; `unknown_client` the assistant isn’t registered with the board; `client_rejected` the assistant’s registration couldn’t be used; `redirect_mismatch` it asked to return to an address it didn’t register; `not_signed_in` the person came back from sign-in but the site’s session wasn’t seen; `no_account` the person has no account kind the assistant can use (see `accountScopes`); `expired` the page expired; `unavailable` the assistant can’t be connected right now. `message` says the same in English.
+             * @enum {string}
+             */
+            code: "invalid_link" | "unknown_client" | "client_rejected" | "redirect_mismatch" | "not_signed_in" | "no_account" | "expired" | "unavailable";
+            /** @description For `no_account`: the account kinds the board’s assistants can use. */
+            accountScopes?: ("candidate" | "employer")[];
+        };
         /** @description An MCP Server Card (SEP-2127): what an assistant needs to find and connect to the server before it connects. It lists no tools; `tools/list` on the server does. */
         BoardMcpServerCard: {
             /** @description The Server Card JSON Schema this document follows: `https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json`. */
@@ -8177,7 +8301,7 @@ export interface components {
                     isActive: boolean;
                     /** @description The person paused this alert by itself. It keeps its filters and stays off until resumed, even when job alerts as a whole come back on. */
                     paused: boolean;
-                    /** @description Not sending yet: waiting for the person to click the confirmation link in the alert's email. */
+                    /** @description Not sending until the person clicks a confirmation link for it. Stays true while job alerts are off: turning them off closes the link, and turning them back on emails a fresh one. Such an alert can't be paused; it can be deleted. */
                     awaitingConfirmation: boolean;
                     /**
                      * @description How the digest is filled. `similar_job`: jobs similar to `anchorJob` (subscribed from a job page). `search`: a board search for `filters.query` (subscribed from a search page, or given keywords). `filters`: jobs matching the stored filters exactly. Read-only.
@@ -8219,6 +8343,10 @@ export interface components {
                 name: string;
                 subscribed: boolean;
             }[];
+        };
+        PublicEmailPreferencesUpdateResult: components["schemas"]["PublicEmailPreferences"] & {
+            /** @description This change emailed the person a fresh confirmation link: job alerts came back on with alerts that wait for one. Show "check your inbox" only when this is true. The email is queued, so it can still fail to arrive. */
+            confirmationEmailQueued: boolean;
         };
         PublicJob: {
             /** @description Unique identifier for the object. Use this value as the `{id}` path parameter for the job endpoints (e.g. `GET /v1/jobs/{id}`). */
@@ -12486,13 +12614,13 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The preferences after the change. */
+            /** @description The preferences after the change, and whether it emailed a confirmation link. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PublicEmailPreferences"];
+                    "application/json": components["schemas"]["PublicEmailPreferencesUpdateResult"];
                 };
             };
             /** @description Invalid body (`validation_bad_request`), including a missing `consentText` or one that doesn't name the board, or a topic key that names no live topic (`subscribe_unknown_topic`, with the key in `details.key`). */
@@ -12513,7 +12641,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description An alert id that is not the person's (`job_alert_not_found`). */
+            /** @description An alert id that is not the person's, or job alerts turned back on with alerts that wait for a confirmation link the board can't send (`job_alert_not_found`). Nothing changed. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -14516,6 +14644,103 @@ export interface operations {
             };
             /** @description The board has no MCP server (`board_mcp_not_found`): it is not on a paid plan, it is password-protected, or its server is turned off. An unknown board answers `boards_not_found`. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getBoardMcpConsent: {
+        parameters: {
+            query?: {
+                response_type?: string;
+                client_id?: string;
+                redirect_uri?: string;
+                code_challenge?: string;
+                code_challenge_method?: string;
+                scope?: string;
+                resource?: string;
+                state?: string;
+                request?: string;
+                from?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description What the page does next. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BoardMcpConsentStep"];
+                };
+            };
+            /** @description Not available here (`board_mcp_not_found`): the request is not from the board’s own live Builder site, sign-in from AI assistants is not on for the board, or the board has no MCP server people can sign in to. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited (`rate_limited`). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    submitBoardMcpConsent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BoardMcpConsentDecisionBody"];
+            };
+        };
+        responses: {
+            /** @description Where to send the browser, or an error to show. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BoardMcpConsentDecision"];
+                };
+            };
+            /** @description Not available here (`board_mcp_not_found`): the request is not from the board’s own live Builder site, sign-in from AI assistants is not on for the board, or the board has no MCP server people can sign in to. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited (`rate_limited`). */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };

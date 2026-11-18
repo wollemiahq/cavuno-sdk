@@ -22,6 +22,14 @@ const SHARED_SIGNATURE_COUNTS: ReadonlyMap<string, number> = (() => {
 })();
 
 /**
+ * Roles a route takes only with a `cavunoPage` marker, never by its path,
+ * so a page that happens to sit at the canonical path does not become one.
+ * `assistantConsent`'s `/authorize` is a generic word, and every assistant
+ * sign-in on the board is sent there.
+ */
+const MARKER_ONLY_ROLES: ReadonlySet<RouteRole> = new Set(['assistantConsent']);
+
+/**
  * Whether `route` is a param-signature (or static exact-match) candidate
  * for `role`. Empty-param roles never infer by signature — only exact
  * template match against CANONICAL_MANIFEST (or a marker, applied upstream).
@@ -32,6 +40,7 @@ const SHARED_SIGNATURE_COUNTS: ReadonlyMap<string, number> = (() => {
  * directories.
  */
 function isSignatureCandidate(route: RouteEntry, role: RouteRole): boolean {
+  if (MARKER_ONLY_ROLES.has(role)) return false;
   const registry = ROLE_PARAM_REGISTRY[role];
   const routeParams = extractParamNames(route.template);
 

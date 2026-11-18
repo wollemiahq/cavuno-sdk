@@ -39,6 +39,7 @@ const REDIRECT_OK: ReadonlySet<RouteRole> = new Set([
   'alertsConfirm',
   'mePurchases',
   'emailPreferences',
+  'assistantConsent',
 ]);
 
 /**
@@ -56,6 +57,8 @@ const MAY_BE_UNPUBLISHED: ReadonlySet<RouteRole> = new Set([
   'impressum',
   // A board with no tip jar (or an archived one) has no tip page.
   'tip',
+  // A board whose MCP server has no sign-in has no consent page.
+  'assistantConsent',
 ]);
 
 /** The board's access gates: a redirect there means the page was not served. */

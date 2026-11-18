@@ -17,6 +17,7 @@ import { jobPostingNamespace } from './namespaces/job-posting';
 import { jobsNamespace } from './namespaces/jobs';
 import { locationsNamespace } from './namespaces/locations';
 import { marketingTopicsNamespace } from './namespaces/marketing-topics';
+import { mcpConsentNamespace } from './namespaces/mcp-consent';
 import { meNamespace } from './namespaces/me';
 import { passwordNamespace } from './namespaces/password';
 import { paywallNamespace } from './namespaces/paywall';
@@ -157,6 +158,7 @@ export function createBoardClient(options: CreateBoardClientOptions) {
     redirects: redirectsNamespace(client),
     jobAlerts: jobAlertsNamespace(client),
     emailPreferences: emailPreferencesNamespace(client),
+    mcpConsent: mcpConsentNamespace(client),
     jobPosting: jobPostingNamespace(client),
     salaries: salariesNamespace(client),
     talent: talentNamespace(client),
@@ -403,7 +405,15 @@ export type {
 export type {
   EmailPreferences,
   EmailPreferencesUpdate,
+  EmailPreferencesUpdateResult,
 } from './types/email-preferences';
+// MCP consent — `board.mcpConsent.*` (the page where a person lets an AI
+// assistant connect to their account).
+export type {
+  McpConsentDecision,
+  McpConsentDecisionBody,
+  McpConsentStep,
+} from './types/mcp-consent';
 // Tip jar — `board.tipJar.*` (the tip page and tip checkout).
 export { tipCoverFeeCents } from './tip-cover-fee';
 export type {

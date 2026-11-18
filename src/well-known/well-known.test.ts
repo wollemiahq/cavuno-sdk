@@ -59,7 +59,13 @@ const HARDCODED_CANONICAL_ROLES: Record<RouteRole, string> = {
   mePurchases: '/me/purchases',
   tip: '/tip',
   emailPreferences: '/email-preferences',
+  assistantConsent: '/authorize',
 };
+
+/** The starter marks its consent page: `assistantConsent` is marker-only. */
+const STARTER_MARKERS = new Map<string, RouteRole>([
+  ['src/routes/assistantConsent.tsx', 'assistantConsent'],
+]);
 
 function canonicalRouteEntries(): RouteEntry[] {
   return Object.entries(HARDCODED_CANONICAL_ROLES).map(([role, template]) => ({
@@ -74,6 +80,7 @@ describe('well-known endpoint', () => {
     it('returns version 1, jobDetail template, content-type + cache-control', async () => {
       const handler = createWellKnownHandler({
         routes: canonicalRouteEntries(),
+        markers: STARTER_MARKERS,
       });
       const res = await handler(
         new Request('https://board.example/.well-known/cavuno.json'),
@@ -92,7 +99,9 @@ describe('well-known endpoint', () => {
         '/companies/:companySlug/jobs/:jobSlug',
       );
       // Wire format is the versioned manifest only — no warnings/ambiguities.
-      expect(body).toEqual(compileManifest(canonicalRouteEntries()).manifest);
+      expect(body).toEqual(
+        compileManifest(canonicalRouteEntries(), STARTER_MARKERS).manifest,
+      );
       expect('warnings' in body).toBe(false);
       expect('ambiguities' in body).toBe(false);
       expect(body).toEqual(CANONICAL_MANIFEST);
@@ -307,6 +316,7 @@ describe('well-known endpoint', () => {
     it('returns deterministic JSON at the well-known path (ALL_ROLES key order)', () => {
       const result = emitWellKnownManifest({
         routes: canonicalRouteEntries(),
+        markers: STARTER_MARKERS,
       });
 
       expect(result.path).toBe('.well-known/cavuno.json');
@@ -328,6 +338,7 @@ describe('well-known endpoint', () => {
       // Deterministic across calls.
       const again = emitWellKnownManifest({
         routes: canonicalRouteEntries(),
+        markers: STARTER_MARKERS,
       });
       expect(again.contents).toBe(result.contents);
     });
