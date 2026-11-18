@@ -34,7 +34,7 @@ A missing token, one from another board, or one that was changed rejects with `e
 
 - **Job alerts** (`prefs.jobAlerts`): a Job alerts switch for all of them, on while `unsubscribed` is false, then each alert with its own switch and a Delete button.
   - An alert's switch is on while `paused` is false. Show every alert's switch as off, and disabled, while job alerts are off, as with topics and marketing.
-  - Show `awaitingConfirmation` alerts as waiting for the person to click the link in the alert's confirmation email, not as sending, and give them no switch: the page can't start them.
+  - Show `awaitingConfirmation` alerts as waiting for the person to click the link in the alert's confirmation email, not as sending, and give them no switch: the page can't start or pause them, only delete them. It stays true while job alerts are off; turning them back on emails a fresh link.
   - `waitlisted` means job alerts are on but wait for room on the board's plan; say so rather than showing them as sending. `isActive` is whether an alert is sending right now.
 - **Job matches** (`prefs.jobMatches`): a switch. It is `null` when the board sends this person none; hide the switch then. `waitlisted` means it is on but waits for room on the board's plan.
 - **Marketing** (`prefs.marketing.subscribed`): a switch, with the board's consent wording next to it.
@@ -50,7 +50,7 @@ Save each switch as the person clicks it, and send only what they changed:
 - **Topics: send only the topic whose switch changed.** Never send the whole topic list on each save. A topic sent as `subscribed: false` is recorded as the person turning it off, so resending the off topics records refusals they never made, and those topics no longer come back with marketing.
 - **Marketing back on restores its topics.** Turning marketing on brings back the topics that went off with it; someone who has never had a topic gets the topics the board adds to new sign-ups instead. Topics the person or the board's team removed one by one stay off. So send `marketing: true` alone and render the topics from the response.
 - **Consent wording.** Turning marketing or a topic on is the person's own opt-in, confirmed at once because the link reached their inbox. Send the wording shown next to the marketing switch as `consentText`; for a topic, send that wording or a line that names the topic and the board. It must name the board; read the name from `board.context()`. Without it, or without the name, the request fails with `validation_bad_request` (400, `details.field: 'consentText'`). Add a `source` label for the page, such as `email-preferences`, and, from a server, `pageUrl` without the `token` parameter.
-- **Job alerts switch.** `jobAlerts: false` turns every alert off, as the Unsubscribe button a digest's link opens does; `jobAlerts: true` brings back the alerts that were on before, not ones the person paused one by one. Alerts that wait for a confirmation link, including every alert of an address that never confirmed, come back `awaitingConfirmation` and a fresh link is emailed: say a link is on its way.
+- **Job alerts switch.** `jobAlerts: false` turns every alert off, as the Unsubscribe button a digest's link opens does; `jobAlerts: true` brings back the alerts that were on before, not ones the person paused one by one. Alerts that wait for a confirmation link, including every alert of an address that never confirmed, come back `awaitingConfirmation` and a fresh link is emailed. The response's `confirmationEmailQueued` is true then: say a link is on its way only when it is true.
 - **Alerts.** `{ id, paused: true }` pauses one alert and keeps its filters; `{ id, paused: false }` resumes it. One that waits for its confirmation link isn't paused. Resuming one that waits for its confirmation link, or while the person waits for room, leaves it waiting. `{ id, delete: true }` deletes an alert; `{ id, frequency: 'weekly' }` sends it weekly, and `'weekly'` is the value `frequency` takes.
 
 ```ts
@@ -72,6 +72,12 @@ await board.emailPreferences.update(token, {
 await board.emailPreferences.update(token, {
   alerts: [{ id: alert.id, paused: true }],
 });
+
+// The person turned job alerts back on.
+const back = await board.emailPreferences.update(token, { jobAlerts: true });
+if (back.confirmationEmailQueued) {
+  // Say a confirmation link is on its way; otherwise just "Saved."
+}
 ```
 
 Errors:

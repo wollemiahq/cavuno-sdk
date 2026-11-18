@@ -1,3 +1,4 @@
+import { isRouteFeature, type RouteFeature } from './features';
 import { isRouteRole, type RouteRole } from './roles';
 
 /**
@@ -28,4 +29,30 @@ export function extractCavunoPageMarker(contents: string): RouteRole | null {
   if (isRouteRole(camel)) return camel;
 
   return null;
+}
+
+/**
+ * Tolerant parse of `export const cavunoFeatures = ['<feature>', ...]`
+ * (single or double quotes; optional type annotation or `as const`). The
+ * export must start its line, so a commented-out one does not count.
+ * Returns the known features and the unknown names separately; an absent
+ * marker yields both empty.
+ */
+export function extractCavunoFeaturesMarker(contents: string): {
+  features: RouteFeature[];
+  unknown: string[];
+} {
+  const match =
+    /^[ \t]*export\s+const\s+cavunoFeatures\s*(?::[^=]*)?=\s*\[([^\]]*)\]/m.exec(
+      contents,
+    );
+  const features: RouteFeature[] = [];
+  const unknown: string[] = [];
+  if (!match) return { features, unknown };
+  for (const item of (match[1] ?? '').matchAll(/(['"])([^'"]*)\1/g)) {
+    const name = item[2] ?? '';
+    if (isRouteFeature(name)) features.push(name);
+    else unknown.push(name);
+  }
+  return { features, unknown };
 }

@@ -403,6 +403,7 @@ export type {
 export type {
   EmailPreferences,
   EmailPreferencesUpdate,
+  EmailPreferencesUpdateResult,
 } from './types/email-preferences';
 // Tip jar — `board.tipJar.*` (the tip page and tip checkout).
 export { tipCoverFeeCents } from './tip-cover-fee';

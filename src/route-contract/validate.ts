@@ -1,3 +1,4 @@
+import { ALL_FEATURES, isRouteFeature, type RouteFeature } from './features';
 import { extractParamNames } from './params';
 import { isRouteRole, ROLE_PARAM_REGISTRY, type RouteRole } from './roles';
 
@@ -235,12 +236,35 @@ export function validateManifest(value: unknown): ValidateManifestResult {
     rolesOut[role] = template;
   }
 
+  let featuresOut: RouteFeature[] = [];
+  if (record.features !== undefined) {
+    if (!Array.isArray(record.features)) {
+      errors.push({
+        code: 'invalid_shape',
+        message: 'manifest.features must be an array',
+      });
+    } else {
+      // Unknown names are dropped, not refused: a site built on a newer SDK
+      // may declare a feature this one does not know yet, and refusing it
+      // would discard the site's roles with it.
+      const known = new Set<RouteFeature>();
+      for (const name of record.features as unknown[]) {
+        if (typeof name === 'string' && isRouteFeature(name)) known.add(name);
+      }
+      featuresOut = ALL_FEATURES.filter((feature) => known.has(feature));
+    }
+  }
+
   if (errors.length > 0) {
     return { ok: false, errors };
   }
 
   return {
     ok: true,
-    manifest: { version: 1, roles: rolesOut },
+    manifest: {
+      version: 1,
+      roles: rolesOut,
+      ...(featuresOut.length > 0 ? { features: featuresOut } : {}),
+    },
   };
 }
