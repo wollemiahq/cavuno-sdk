@@ -114,6 +114,7 @@ function canonicalHelperPath(role: RouteRole): string {
     case 'mePurchases':
     case 'tip':
     case 'emailPreferences':
+    case 'assistantConsent':
       return BOARD_PATHS[role];
     default: {
       const _exhaustive: never = role;

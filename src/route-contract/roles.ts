@@ -81,7 +81,14 @@ export type RouteRole =
    * The email preferences page every email footer links to; optional, never
    * required. A board that does not declare it gets a Cavuno-hosted page.
    */
-  | 'emailPreferences';
+  | 'emailPreferences'
+  /**
+   * The page where a person lets an AI assistant connect to their account;
+   * optional, never required, and taken only through its `cavunoPage`
+   * marker, never from its path. A board that does not declare it gets a
+   * Cavuno-hosted page.
+   */
+  | 'assistantConsent';
 
 /**
  * Exact param-name set per role, derived from each helper's signature.
@@ -126,6 +133,7 @@ export const ROLE_PARAM_REGISTRY: Record<RouteRole, readonly string[]> = {
   mePurchases: [],
   tip: [],
   emailPreferences: [],
+  assistantConsent: [],
 };
 
 /** Email-emitting roles — a missing one blocks publish. */
@@ -192,5 +200,6 @@ export const CANONICAL_MANIFEST: ManifestV1 = {
     mePurchases: BOARD_PATHS.mePurchases,
     tip: BOARD_PATHS.tip,
     emailPreferences: BOARD_PATHS.emailPreferences,
+    assistantConsent: BOARD_PATHS.assistantConsent,
   },
 };

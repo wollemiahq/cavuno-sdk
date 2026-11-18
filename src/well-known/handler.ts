@@ -9,7 +9,9 @@
 
 import {
   compileManifest,
+  type ManifestV1,
   type RouteEntry,
+  type RouteFeature,
   type RouteRole,
 } from '../route-contract';
 
@@ -26,6 +28,8 @@ export type WellKnownHandlerConfig = {
   routes: RouteEntry[] | (() => RouteEntry[] | Promise<RouteEntry[]>);
   /** Optional cavunoPage marker map keyed by sourcePath. */
   markers?: ReadonlyMap<string, RouteRole>;
+  /** Behaviours the site supports across its pages. */
+  features?: ReadonlySet<RouteFeature>;
 };
 
 export type WellKnownHandler = (request: Request) => Promise<Response>;
@@ -41,7 +45,11 @@ export function createWellKnownHandler(
   return async (_request: Request): Promise<Response> => {
     try {
       const routes = await resolveRoutes(config.routes);
-      const { manifest } = compileManifest(routes, config.markers);
+      const { manifest } = compileManifest(
+        routes,
+        config.markers,
+        config.features,
+      );
       const body = serializeManifest(manifest);
       return new Response(body, {
         status: 200,
@@ -70,9 +78,6 @@ async function resolveRoutes(
  * Deterministic JSON for ManifestV1. Roles are already inserted in
  * ALL_ROLES order by compileManifest — preserve that insertion order.
  */
-export function serializeManifest(manifest: {
-  version: 1;
-  roles: Partial<Record<RouteRole, string>>;
-}): string {
+export function serializeManifest(manifest: ManifestV1): string {
   return JSON.stringify(manifest);
 }
