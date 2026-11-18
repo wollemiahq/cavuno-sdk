@@ -10837,7 +10837,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description The email provider cannot deliver to this address, such as a temporary or disposable inbox (`board_auth_email_undeliverable`). Nothing is created; ask for a different address. */
+            /** @description The email provider cannot deliver to this address, such as a temporary or disposable inbox (`board_auth_email_undeliverable`), or an address whose domain has no mail server (no MX, A or AAAA record), usually a mistyped domain (`email_domain_undeliverable`, with `details.domain`, and `details.suggestion` holding the corrected address when the domain looks like a mistyped common one, such as `gmial.com` for `gmail.com`). Nothing is created or sent; show the suggestion or ask for a different address. */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -13028,7 +13028,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Job alerts are not enabled for this board. */
+            /** @description Job alerts are not enabled for this board (`job_alerts_disabled`), or an address whose domain has no mail server (no MX, A or AAAA record), usually a mistyped domain (`email_domain_undeliverable`, with `details.domain`, and `details.suggestion` holding the corrected address when the domain looks like a mistyped common one, such as `gmial.com` for `gmail.com`). Nothing is created or sent; show the suggestion or ask for a different address. */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -26425,6 +26425,15 @@ export interface operations {
             };
             /** @description Invalid body (`validation_bad_request`), including a `consentText` that doesn't name the board, or a topic key that names no live topic (`subscribe_unknown_topic`, with the key in `details.key`). */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The email address can't receive email: an address whose domain has no mail server (no MX, A or AAAA record), usually a mistyped domain (`email_domain_undeliverable`, with `details.domain`, and `details.suggestion` holding the corrected address when the domain looks like a mistyped common one, such as `gmial.com` for `gmail.com`). Nothing is created or sent; show the suggestion or ask for a different address. */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -100,6 +100,9 @@ export const BOARD_API_ERROR_CODES = [
   'candidate_alert_limit_reached',
   // Newsletter sign-up: a topic key that names no live topic
   'subscribe_unknown_topic',
+  // Sign-up (account, job alert, newsletter): the address's domain has no
+  // mail server, usually a typo; `details.suggestion` may correct it
+  'email_domain_undeliverable',
   // Email preferences: a bad link, or a topic on while marketing is off
   'email_preferences_token_invalid',
   'email_preferences_marketing_required',
