@@ -1,5 +1,5 @@
 {
-  "version": "4.75.0",
+  "version": "4.76.0",
   "skills": [
     {
       "name": "cavuno-board-account",
@@ -52,7 +52,7 @@
     },
     {
       "name": "cavuno-board-email-preferences",
-      "description": "Build the manage-email and unsubscribe page that the board's email footers link to, with board.emailPreferences from @cavuno/board. Use for the emailPreferences route role, the preferences token, switches for job alerts, job matches, marketing and topics, and Unsubscribe from all.",
+      "description": "Build the manage-email and unsubscribe page that the board's email footers link to, with board.emailPreferences from @cavuno/board. Use for the emailPreferences route role, the preferences token, switches for job alerts (all of them and each one), job matches, marketing and topics, and Unsubscribe from all.",
       "path": "skills/cavuno-board-email-preferences/SKILL.md",
       "framework": null,
       "category": "core"

@@ -61,6 +61,43 @@ forwarded from a self-hosted server arrive from that server's address, so the
 limit applies to the board's MCP traffic as a whole. Over the limit, `/mcp`
 answers 429 with `Retry-After`.
 
+## The consent page (Builder sites)
+
+When people can sign in to the board's MCP server from its live Cavuno
+Builder site, an assistant starts sign-in at the board's `/oauth/authorize`.
+A site that declares the `assistantConsent` route role gets the browser sent
+to that page with the sign-in request in the query; without the role, Cavuno
+shows its own page. The role needs the page's marker,
+`export const cavunoPage = 'assistantConsent'`: a page at the canonical
+`/authorize` alone does not take it. Keep `/oauth/*` for the platform: a page
+declared there is ignored.
+
+The page passes its query string on unchanged, words the step in the board's
+language from its facts (`access`, `trustLevel`, `publisherHost`,
+`redirectHost`), and posts the person's choice from a server function:
+
+```ts snippet
+import { createBoardClient } from '@cavuno/board';
+
+const board = createBoardClient({ board: 'acme-jobs' });
+const auth = { headers: { authorization: 'Bearer <session access token>' } };
+
+const step = await board.mcpConsent.get('?request=eyJ9', auth);
+if (step.next === 'consent') {
+  const decision = await board.mcpConsent.submit(
+    {
+      request: step.request,
+      consentToken: step.consentToken,
+      decision: 'allow',
+    },
+    auth);
+}
+```
+
+`sign_in` and `verify_email` steps carry a `returnTo` back to the page;
+`redirect` sends the browser to the assistant; `error` carries a `code` to
+word the message from. Never cache either response.
+
 ## Completion gate
 
 Finish only after every check passes against the deployed board:

@@ -2,6 +2,7 @@ import type { BoardClient, FetchOptions } from '../client';
 import type {
   EmailPreferences,
   EmailPreferencesUpdate,
+  EmailPreferencesUpdateResult,
 } from '../types/email-preferences';
 
 /** The header the preferences token travels in; never put it in a URL. */
@@ -37,19 +38,27 @@ export function emailPreferencesNamespace(client: BoardClient) {
      * Change any preference, as the person, and get the result back.
      * Turning marketing or a topic on records `consentText` as their
      * consent, so show it next to the switch; it must name the board.
+     * `confirmationEmailQueued` is true when the change emailed a fresh
+     * confirmation link (job alerts back on with alerts waiting for one).
      *
      * @example
      * await board.emailPreferences.update(token, {
      *   marketing: true,
      *   consentText: 'Send me news and offers from Acme Jobs.',
      * });
+     *
+     * @example
+     * const after = await board.emailPreferences.update(token, {
+     *   jobAlerts: true,
+     * });
+     * after.confirmationEmailQueued; // true: say "check your inbox"
      */
     update(
       token: string,
       changes: EmailPreferencesUpdate,
       options?: FetchOptions,
     ) {
-      return client.fetch<EmailPreferences>('/email-preferences', {
+      return client.fetch<EmailPreferencesUpdateResult>('/email-preferences', {
         ...withToken(token, options),
         method: 'PATCH',
         body: changes,

@@ -312,6 +312,12 @@ export const BOARD_PATHS = {
    * its topics), opened from every email footer with a preferences token.
    */
   emailPreferences: '/email-preferences',
+  /**
+   * Where a person approves or declines an AI assistant connecting to their
+   * account on the board's MCP server. The board's `/oauth/authorize` sends
+   * the browser here with the sign-in request in the query.
+   */
+  assistantConsent: '/authorize',
 } as const;
 
 /**
