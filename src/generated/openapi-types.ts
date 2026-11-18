@@ -1529,6 +1529,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/mcp/consent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the MCP consent step
+         * @description What a site's `/oauth/authorize` page shows when an AI assistant asks to sign in to the board: the consent copy with Allow and Cancel, a step to sign in or verify an email first, a redirect back to the assistant, or an error to show. For the board’s own Builder site only: its server calls this for the visitor, with their session’s access token when they are signed in. Never cached.
+         */
+        get: operations["getBoardMcpConsent"];
+        put?: never;
+        /**
+         * Allow or cancel an MCP sign-in
+         * @description Allow or Cancel on the consent step `GET /mcp/consent` returned, for the person signed in. Every check runs again. Allow issues the assistant a one-time code; either way the answer is where to send the browser. For the board’s own Builder site only: its server calls this for the visitor, with their session’s access token when they are signed in.
+         */
+        post: operations["submitBoardMcpConsent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/boards/{identifier}/mcp/docs": {
         parameters: {
             query?: never;
@@ -5257,6 +5281,68 @@ export interface components {
             key: string;
             /** @description The topic’s name, to label its checkbox. */
             name: string;
+        };
+        BoardMcpConsentDecision: {
+            /** @enum {string} */
+            next: "redirect";
+            /** @description Send the browser here: the assistant’s callback, with the code or `access_denied`. */
+            location: string;
+        } | {
+            /** @enum {string} */
+            next: "error";
+            /** @description Show this to the person. */
+            message: string;
+        };
+        BoardMcpConsentDecisionBody: {
+            /** @description The `request` of the consent step shown. */
+            request: string;
+            /** @description The `consentToken` of the consent step shown. */
+            consentToken: string;
+            /**
+             * @description `allow` connects the assistant; `deny` tells it no.
+             * @enum {string}
+             */
+            decision: "allow" | "deny";
+        };
+        BoardMcpConsentStep: {
+            /** @enum {string} */
+            next: "consent";
+            /** @description Send back unchanged with Allow or Cancel. */
+            request: string;
+            /** @description Send back unchanged with Allow or Cancel. Good for ten minutes, for this person and request only. */
+            consentToken: string;
+            /** @description The name the assistant registered. */
+            clientName: string;
+            /** @description A well-known assistant (`Claude`, `ChatGPT`, …), recognised by where the sign-in is sent, not by the name it registered; otherwise null. */
+            knownAssistant: string | null;
+            heading: string;
+            trust: {
+                label: string;
+                description: string;
+            };
+            /** @description What approving lets the assistant do, one paragraph each. */
+            scopes: string[];
+            /** @description Where Allow sends the person, for an assistant that isn’t a known one: text runs, with `{ strong }` for the part to emphasise. Null for a known assistant. */
+            redirectNotice: (string | {
+                strong: string;
+            })[] | null;
+            /** @description Who is signed in. */
+            email: string;
+        } | {
+            /** @enum {string} */
+            next: "sign_in" | "verify_email";
+            /** @description Where the site’s sign-in or email verification returns the person: a same-origin path back to `/oauth/authorize`. */
+            returnTo: string;
+        } | {
+            /** @enum {string} */
+            next: "redirect";
+            /** @description Send the browser here: the assistant’s own callback. */
+            location: string;
+        } | {
+            /** @enum {string} */
+            next: "error";
+            /** @description Show this to the person. */
+            message: string;
         };
         /** @description An MCP Server Card (SEP-2127): what an assistant needs to find and connect to the server before it connects. It lists no tools; `tools/list` on the server does. */
         BoardMcpServerCard: {
@@ -14516,6 +14602,103 @@ export interface operations {
             };
             /** @description The board has no MCP server (`board_mcp_not_found`): it is not on a paid plan, it is password-protected, or its server is turned off. An unknown board answers `boards_not_found`. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getBoardMcpConsent: {
+        parameters: {
+            query?: {
+                response_type?: string;
+                client_id?: string;
+                redirect_uri?: string;
+                code_challenge?: string;
+                code_challenge_method?: string;
+                scope?: string;
+                resource?: string;
+                state?: string;
+                request?: string;
+                from?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description What the page does next. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BoardMcpConsentStep"];
+                };
+            };
+            /** @description Not available here (`board_mcp_not_found`): the request is not from the board’s own live Builder site, sign-in from AI assistants is not on for the board, or the board has no MCP server people can sign in to. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited (`rate_limited`). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    submitBoardMcpConsent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BoardMcpConsentDecisionBody"];
+            };
+        };
+        responses: {
+            /** @description Where to send the browser, or an error to show. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BoardMcpConsentDecision"];
+                };
+            };
+            /** @description Not available here (`board_mcp_not_found`): the request is not from the board’s own live Builder site, sign-in from AI assistants is not on for the board, or the board has no MCP server people can sign in to. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited (`rate_limited`). */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
