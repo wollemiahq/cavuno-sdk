@@ -10,6 +10,14 @@ import type { Schemas } from './_spec';
 export type EmailPreferences = Schemas['PublicEmailPreferences'];
 
 /**
+ * What `emailPreferences.update` returns: the preferences after the change,
+ * and `confirmationEmailQueued`, true when the change emailed a fresh
+ * confirmation link. Say "check your inbox" only when it is true.
+ */
+export type EmailPreferencesUpdateResult =
+  Schemas['PublicEmailPreferencesUpdateResult'];
+
+/**
  * Body for `emailPreferences.update`. Turning marketing or a topic on needs
  * `consentText`, the wording shown next to the switch, naming the board.
  */

@@ -135,7 +135,7 @@ location.href = url;
 
 ## Message credits spend on start
 
-There is no separate message-credit spend endpoint. The composer gates on remaining message credits (`hasUnlimitedMessages` or `messageCreditsRemaining > 0`), which include free ones, not on `hasTalentAccess`. A cold `conversations.start`, by `candidateBoardUserId` or `candidateHandle`, also needs the candidate unlocked first, or a plan with unlimited unlocks; the named-link bypass applies only on the hosted profile page. `conversations.start` still 403s `messaging_talent_access_required` on a cold send without credit.
+There is no separate message-credit spend endpoint. The composer gates on remaining message credits (`hasUnlimitedMessages` or `messageCreditsRemaining > 0`), which include free ones, not on `hasTalentAccess`. On `paid_unlocks_and_messaging`, a cold `conversations.start`, by `candidateBoardUserId` or `candidateHandle`, also needs the candidate unlocked first, or a plan with unlimited unlocks; the named-link bypass applies only on the hosted profile page. On `paid_messaging`, profiles are already full, so a cold start needs only a message credit. `conversations.start` still 403s `messaging_talent_access_required` on a cold send without credit.
 
 ```ts snippet
 await board.me.conversations.start({
@@ -168,6 +168,7 @@ The profile route may move to another shape with fixed text around the handle, f
 
 - `retrieve()` drives the Message-vs-upsell CTA and remaining-credit hints.
 - Opaque `/p/{id}` uses `retrieveCandidate` then `unlock`; named `/p/{handle}` does not.
+- Once the talent pages gate on remaining credits, declare the `talentFreeTrial` route feature in the profile route file, as an array of string literals: `export const cavunoFeatures = ['talentFreeTrial'] as const;`. The operator's dashboard offers the free trial only on sites that declare it.
 - Checkout reaches `complete`, then bounded `retrieve()` polling reaches `hasTalentAccess: true`.
 - `upgrade` is the out-of-credits plan swap; never a second checkout session.
 - Billing management uses `me.companies.billingPortal.create`, not a talent-access portal.
