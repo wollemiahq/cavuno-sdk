@@ -11,6 +11,7 @@
 import {
   compileManifest,
   type RouteEntry,
+  type RouteFeature,
   type RouteRole,
 } from '../route-contract';
 import { serializeManifest } from './handler';
@@ -20,6 +21,8 @@ export const WELL_KNOWN_MANIFEST_PATH = '.well-known/cavuno.json';
 export type EmitWellKnownManifestConfig = {
   routes: RouteEntry[];
   markers?: ReadonlyMap<string, RouteRole>;
+  /** Behaviours the site supports across its pages. */
+  features?: ReadonlySet<RouteFeature>;
 };
 
 export type EmitWellKnownManifestResult = {
@@ -34,7 +37,11 @@ export type EmitWellKnownManifestResult = {
 export function emitWellKnownManifest(
   config: EmitWellKnownManifestConfig,
 ): EmitWellKnownManifestResult {
-  const { manifest } = compileManifest(config.routes, config.markers);
+  const { manifest } = compileManifest(
+    config.routes,
+    config.markers,
+    config.features,
+  );
   const contents = serializeManifest(manifest);
   return { path: WELL_KNOWN_MANIFEST_PATH, contents };
 }
