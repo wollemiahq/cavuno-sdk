@@ -506,6 +506,43 @@ describe('board.me', () => {
     expect(spy.mock.calls[0]![1]!.method).toBe('DELETE');
   });
 
+  it('assistants.list GETs /me/assistants with the bearer token', async () => {
+    const spy = stubFetch(jsonResponse({ object: 'list', data: [] }));
+    const board = await makeAuthedBoard();
+    await board.me.assistants.list();
+    expect(spy.mock.calls[0]![0]).toBe(`${BASE}/me/assistants`);
+    const headers = spy.mock.calls[0]![1]!.headers as Headers;
+    expect(headers.get('authorization')).toBe('Bearer jwt');
+  });
+
+  it('assistants.retrieve GETs /me/assistants/:id and returns the wire body', async () => {
+    const assistant = {
+      id: 'grant 1',
+      object: 'assistant',
+      name: 'Claude',
+      host: 'claude.ai',
+      scopes: ['candidate'],
+      connectedAt: '2026-11-01T00:00:00.000Z',
+      lastUsedAt: '2026-11-02T00:00:00.000Z',
+    };
+    const spy = stubFetch(jsonResponse(assistant));
+    const board = await makeAuthedBoard();
+    await expect(board.me.assistants.retrieve('grant 1')).resolves.toEqual(
+      assistant,
+    );
+    expect(spy.mock.calls[0]![0]).toBe(`${BASE}/me/assistants/grant%201`);
+  });
+
+  it('assistants.revoke DELETEs /me/assistants/:id and resolves void on 204', async () => {
+    const spy = stubFetch(() => new Response(null, { status: 204 }));
+    const board = await makeAuthedBoard();
+    await expect(
+      board.me.assistants.revoke('grant_1'),
+    ).resolves.toBeUndefined();
+    expect(spy.mock.calls[0]![0]).toBe(`${BASE}/me/assistants/grant_1`);
+    expect(spy.mock.calls[0]![1]!.method).toBe('DELETE');
+  });
+
   it('alerts.list GETs /me/alerts with the bearer token', async () => {
     const spy = stubFetch(jsonResponse({ object: 'list', data: [] }));
     const board = await makeAuthedBoard();

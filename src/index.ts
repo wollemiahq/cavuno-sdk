@@ -458,6 +458,7 @@ export type {
   AlertBody,
   CreateAlertBody,
   Application,
+  Assistant,
   ApplicationsListQuery,
   ApplyBody,
   Block,

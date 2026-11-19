@@ -1813,6 +1813,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/me/assistants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List my connected assistants
+         * @description The AI assistants the authenticated board user allowed to use their account through the board’s MCP server, most recently connected first. Up to 50; disconnected ones are omitted. Never cached.
+         */
+        get: operations["listBoardMeAssistants"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/me/assistants/{assistantId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieve a connected assistant
+         * @description Retrieve one of the authenticated board user’s connected assistants. Never cached.
+         */
+        get: operations["getBoardMeAssistant"];
+        put?: never;
+        post?: never;
+        /**
+         * Disconnect an assistant
+         * @description Disconnect one of the authenticated board user’s assistants. Its access and refresh tokens stop working at once, and it drops out of the list. Connecting again later starts a new connection with a new ID.
+         */
+        delete: operations["deleteBoardMeAssistant"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/boards/{identifier}/me/blocks": {
         parameters: {
             query?: never;
@@ -5024,6 +5068,28 @@ export interface components {
             gatewayUrl: string;
             /** Format: date-time */
             expiresAt: string;
+        };
+        Assistant: {
+            /** @description Connected assistant ID (one per approval). Also the path key. */
+            id: string;
+            /** @enum {string} */
+            object: "assistant";
+            /** @description The assistant’s name as it was when the person approved it. */
+            name: string;
+            /** @description The assistant’s website (`claude.ai`, `chatgpt.com`), from its https client ID. Null for an assistant registered without one. */
+            host: string | null;
+            /** @description What the person allowed it to do, as approved: `candidate` (their job seeker account), `employer` (their employer account). New scopes may be added; show an unknown one by name. */
+            scopes: string[];
+            /**
+             * Format: date-time
+             * @description When the person approved it.
+             */
+            connectedAt: string;
+            /**
+             * Format: date-time
+             * @description When it last signed in or refreshed its access (at most about hourly).
+             */
+            lastUsedAt: string;
         };
         AudienceAttribution: {
             channel?: string;
@@ -15745,6 +15811,192 @@ export interface operations {
                 };
             };
             /** @description Rate limited: 100 requests per minute per board user. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listBoardMeAssistants: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Connected assistants, newest first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        object: "list";
+                        url: string;
+                        hasMore: boolean;
+                        nextCursor: string | null;
+                        data: components["schemas"]["Assistant"][];
+                    };
+                };
+            };
+            /** @description Missing/invalid (`board_auth_invalid_token`) or expired (`board_auth_token_expired`) access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Token was issued for a different board. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited (`rate_limited`): 100 requests per minute per board user. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getBoardMeAssistant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                /** @description The connected assistant’s `id`. */
+                assistantId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The connected assistant. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Assistant"];
+                };
+            };
+            /** @description Missing/invalid (`board_auth_invalid_token`) or expired (`board_auth_token_expired`) access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Token was issued for a different board. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board not found, or no such connected assistant for this board user (`assistant_not_found`): an unknown or malformed ID, another person’s, or one already disconnected, indistinguishably. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited (`rate_limited`): 100 requests per minute per board user. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    deleteBoardMeAssistant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                /** @description The connected assistant’s `id`. */
+                assistantId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Disconnected. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing/invalid (`board_auth_invalid_token`) or expired (`board_auth_token_expired`) access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Token was issued for a different board. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board not found, or no such connected assistant for this board user (`assistant_not_found`): an unknown or malformed ID, another person’s, or one already disconnected, indistinguishably. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited (`rate_limited`): 100 requests per minute per board user. */
             429: {
                 headers: {
                     [name: string]: unknown;

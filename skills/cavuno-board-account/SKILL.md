@@ -1,6 +1,6 @@
 ---
 name: cavuno-board-account
-description: Candidate self-service boundary with @cavuno/board. Use for account, profile, custom profile fields, collection selections, resume onboarding, recommended jobs, avatar, experience, education, skills, languages, or notification preferences.
+description: Candidate self-service boundary with @cavuno/board. Use for account, profile, custom profile fields, collection selections, resume onboarding, recommended jobs, avatar, experience, education, skills, languages, notification preferences, or connected AI assistants.
 ---
 
 # Candidate self-service boundary
@@ -305,6 +305,27 @@ async function onUnsubscribePress() {
 }
 ```
 
+## Connected assistants
+
+When the board's MCP server lets people sign in, the settings page lists the
+AI assistants a person connected, for job seeker and employer accounts alike,
+with a Disconnect button on each. Show `name`, `host` when it is not null,
+and the `connectedAt` / `lastUsedAt` dates; hide the section when the list is
+empty. `scopes` says what the assistant may do (`candidate`, `employer`);
+show any other value by name. Never cache these responses.
+
+```ts snippet
+const { data: assistants } = await board.me.assistants.list();
+
+// The Disconnect button's handler: the assistant's access ends at once.
+async function onDisconnectPress(assistantId: string) {
+  await board.me.assistants.revoke(assistantId);
+}
+```
+
+`assistant_not_found` (404) from `revoke` or `board.me.assistants.retrieve` means
+it is already disconnected or not theirs: drop it from the list.
+
 ## Completion gate
 
 - Candidate screens render only for `me.role === 'candidate'`; an employer account gets the employer profile view (avatar, `displayName`, link to employer screens).
@@ -317,6 +338,7 @@ async function onUnsubscribePress() {
 - Uploaded `avatarUrl` renders.
 - Resume parsing reaches `parsed`, reports `parseFailureReason`, or reaches the explicit delayed state without blocking editing.
 - Recommended jobs render the returned cards in list order; an empty list plus missing skills / unparsed resume shows an upload-resume prompt.
+- Disconnecting an assistant removes it from the list, and it stays gone after a reload.
 - Opening an email's Unsubscribe link changes nothing; the anonymous unsubscribe runs only when the person taps the button, and works in a logged-out browser.
 
 ## Cavuno SDK reference
