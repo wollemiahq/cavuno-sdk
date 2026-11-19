@@ -50,6 +50,13 @@ export type JobAlertSubscribeInput = {
    */
   timeZone?: string;
   /**
+   * The language of the page the person signed up from, such as `de`: the
+   * board language or one of its Interface locales. Pass the page's locale.
+   * Stored the first time only; a language the board does not offer is
+   * ignored.
+   */
+  locale?: string;
+  /**
    * The form's optional marketing checkbox: send it only when the person
    * ticked the box, and leave the box unticked by default. `text` is the
    * wording they agreed to (10 to 1,000 characters) and must contain the

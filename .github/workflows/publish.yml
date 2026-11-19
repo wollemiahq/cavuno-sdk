@@ -31,6 +31,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: npm
+    # Playwright's image carries the browsers' system libraries. Installing
+    # them with `--with-deps` pulled ~70 apt packages from a mirror slow
+    # enough to time the job out before it published. Keep the tag on the
+    # lockfile's @playwright/test version.
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:2f05f8a734509a7b3f26a912639488ee08f58a7b292d14d62271bcff9038768f
+      options: --user 1001 --ipc=host
 
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -87,7 +94,9 @@ jobs:
 
       - name: Install browser engines
         if: steps.release.outputs.publish == 'true'
-        run: pnpm exec playwright install --with-deps chromium firefox webkit
+        # A no-op while the image matches the lockfile; downloads only the
+        # browsers (no system packages) if they drift apart.
+        run: pnpm exec playwright install chromium firefox webkit
 
       - name: Test classic-script distribution
         if: steps.release.outputs.publish == 'true'
