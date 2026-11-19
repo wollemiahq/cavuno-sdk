@@ -29,6 +29,7 @@ await board.auth.register({
   password: 'a-strong-password',
   displayName: 'Ada',
   timeZone: browserTimeZone, // read in the browser, sent with the form
+  locale: pageLocale, // the language of the page, such as 'de'
 });
 
 const session = await board.auth.login({
@@ -42,6 +43,8 @@ const session = await board.auth.login({
 For alternate entry points, use `requestMagicLink` / `consumeMagicLink` or the OAuth authorization and exchange methods exposed under `board.auth`.
 
 Pass `timeZone` to `register` and `consumeMagicLink`: the person's IANA time zone from `Intl.DateTimeFormat().resolvedOptions().timeZone`, read in their browser (such as `Europe/Berlin`). On your server it returns the server's zone, so never fill it in there. The board keeps the first value it gets for a person and ignores an invalid one, so it never fails the sign-up.
+
+Pass `locale` to the same two methods: the language of the page the person is signing up from, such as `de` (the board language or one of its Interface locales). The board keeps the first value it gets for a person and ignores a language it does not offer.
 
 **Complete when:** the chosen entry flow returns a session and `board.me.retrieve()` resolves as that board user.
 

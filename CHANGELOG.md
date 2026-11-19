@@ -3,6 +3,15 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.78.0 — 2026-11-19
+
+- `board.auth.register`, `board.auth.consumeMagicLink`, `board.jobAlerts.subscribe`
+  and `board.subscribe` accept an optional `locale`: the language of the page
+  the person signed up from. It is stored the first time one arrives, only
+  when it is one of the board's languages; any other value is ignored and
+  never fails the sign-up. Pass the page's locale from your server; the SDK
+  never fills it in.
+
 ## 4.77.0 — 2026-11-18
 
 - New `@cavuno/board/email` entry with `suggestEmailAddress(email)`: the

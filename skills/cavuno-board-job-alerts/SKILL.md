@@ -18,6 +18,8 @@ Both lanes are available only when `board.context()` reports `features.jobAlerts
 
 Send the person's time zone as `timeZone`: read `Intl.DateTimeFormat().resolvedOptions().timeZone` in their browser (such as `Europe/Berlin`) and pass it with the form. On your server it returns the server's zone, so never fill it in there. The board keeps the first value it gets for a person and ignores an invalid one.
 
+Send the language of the page as `locale`, such as `de` (the board language or one of its Interface locales). The board keeps the first value it gets for a person and ignores a language it does not offer.
+
 ```ts snippet
 const submitted = await board.jobAlerts.subscribe({
   email: 'ada@example.com',
@@ -29,6 +31,7 @@ const submitted = await board.jobAlerts.subscribe({
     placeSlugs: ['berlin'],
   },
   timeZone: browserTimeZone, // read in the browser, sent with the form
+  locale: pageLocale, // the language of the page, such as 'de'
 });
 
 const result = await board.jobAlerts.confirm({ token });
