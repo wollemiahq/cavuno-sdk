@@ -266,6 +266,10 @@ export type ConversationsListQuery = {
   limit?: number;
 };
 
+// ── Connected assistants ─────────────────────────────────────────────
+/** An AI assistant the board user connected to the board's MCP server. */
+export type Assistant = Schemas['Assistant'];
+
 // ── Job alerts ────────────────────────────────────────────
 /** One of the authenticated board user's job-alert preferences. */
 export type Alert = Schemas['Alert'];
