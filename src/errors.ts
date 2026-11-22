@@ -107,6 +107,8 @@ export const BOARD_API_ERROR_CODES = [
   'email_preferences_token_invalid',
   'email_preferences_marketing_required',
   'candidate_alert_not_found',
+  // Connected assistants: unknown, another person's, or already disconnected
+  'assistant_not_found',
   // Candidate account
   'candidate_entry_not_found',
   'candidate_handle_taken',
