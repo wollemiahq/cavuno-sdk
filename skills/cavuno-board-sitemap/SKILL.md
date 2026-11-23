@@ -5,10 +5,10 @@ description: Board sitemap generation with @cavuno/board/sitemap. Use for sitema
 
 # Sitemap generation
 
-`@cavuno/board/sitemap` implements the hosted eight-bucket sitemap: an index at
+`@cavuno/board/sitemap` implements the board's bucketed sitemap: an index at
 `/sitemap.xml` points to ordinary `<urlset>` files for `marketing`,
 `jobs-categories`, `jobs-skills`, `jobs-locations`, `jobs-details`,
-`companies`, `salaries`, and optionally `blog`.
+`companies`, `salaries`, and optionally `blog` and `help`.
 
 Structured data and head tags use `cavuno-board-seo`. The host app owns feeds.
 
@@ -27,7 +27,8 @@ siblings: same walk and same policy, but each result keeps its
 
 List every non-empty chunk filename for every listed bucket. Keep one filename
 for an empty bucket so its route returns a valid empty urlset. `listedBuckets`
-removes blog when the feature is off.
+removes blog when the feature is off, and lists `help` only when the board
+publishes help pages (`cavuno-board-help`).
 
 ```ts snippet
 import {
@@ -134,6 +135,10 @@ it):
   `MIN_JOBS_PER_INDEXED_PAGE`.
 - Marketing URLs follow context feature flags for talent directory and
   employers. Blog is listed only when `features.blog` is enabled.
+- The `help` bucket comes from the board's published sitemap only; there is
+  no catalog walk for it. It lists articles when your site has the help
+  article page, and the help home and category pages when your site has
+  those pages too.
 - `/impressum` follows the board unless you pass the `impressum` option
   (`buildBucketEntries(board, origin, bucket, { impressum })`). Pass it when
   your site owns its Impressum content, so the sitemap lists `/impressum`
