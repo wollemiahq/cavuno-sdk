@@ -272,6 +272,19 @@ export function purchasePath(purchaseToken: string): string {
 }
 
 /**
+ * A help center category (`/help/categories/<slug>`): the published
+ * articles of one category.
+ */
+export function helpCategoryPath(categorySlug: string): string {
+  return `/help/categories/${encodePathSegment(categorySlug)}`;
+}
+
+/** A help center article (`/help/articles/<slug>`). */
+export function helpArticlePath(articleSlug: string): string {
+  return `/help/articles/${encodePathSegment(articleSlug)}`;
+}
+
+/**
  * Static top-level board paths (indexed marketing + index surfaces). Kept
  * here so the sitemap and consumers share one definition of the chrome
  * routes too.
@@ -307,6 +320,12 @@ export const BOARD_PATHS = {
   mePurchases: '/me/purchases',
   /** The tip page: visitors tip the board through its tip jar. */
   tip: '/tip',
+  /** The help center home: the board's help categories and articles. */
+  help: '/help',
+  /** A job seeker creates an account. */
+  signUp: '/auth/sign-up',
+  /** A signed-in job seeker's job matches, picked from their profile. */
+  matches: '/matches',
   /**
    * The person's email preferences (job alerts, job matches, marketing and
    * its topics), opened from every email footer with a preferences token.

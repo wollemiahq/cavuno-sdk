@@ -58,6 +58,11 @@ const HARDCODED_CANONICAL_ROLES: Record<RouteRole, string> = {
   tip: '/tip',
   emailPreferences: '/email-preferences',
   assistantConsent: '/authorize',
+  help: '/help',
+  helpCategory: '/help/categories/:helpCategorySlug',
+  helpArticle: '/help/articles/:helpArticleSlug',
+  signUp: '/auth/sign-up',
+  matches: '/matches',
 };
 
 /** Starter fixture: one RouteEntry per hardcoded canonical role. */
