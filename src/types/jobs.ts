@@ -69,6 +69,12 @@ export interface RelatedSearch {
 /** The browse list envelope — `PublicJobCard`s + job catalog pagination + `relatedSearches`. */
 export type JobCardListEnvelope = ListEnvelope<PublicJobCard> & {
   relatedSearches?: RelatedSearch[];
+  /**
+   * Board-relative path of the page whose results this listing duplicates.
+   * When present, use it as the landing page's canonical URL. Absent means
+   * the page is its own canonical.
+   */
+  canonicalPath?: string;
 };
 
 /** The search envelope — `PublicJobCard`s + job catalog pagination. */
