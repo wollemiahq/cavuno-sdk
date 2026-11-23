@@ -1538,13 +1538,13 @@ export interface paths {
         };
         /**
          * Get the MCP consent step
-         * @description What a site's consent page (the `assistantConsent` route role, which `/oauth/authorize` sends the browser to) shows when an AI assistant asks to sign in to the board: the consent copy with Allow and Cancel, a step to sign in or verify an email first, a redirect back to the assistant, or an error to show. For the board’s own Builder site only: its server calls this for the visitor, with their session’s access token when they are signed in. Never cached.
+         * @description What a site's consent page (the `assistantConsent` route role, which `/oauth/authorize` sends the browser to) shows when an AI assistant asks to sign in to the board: the consent copy with Allow and Cancel, a step to sign in or verify an email first, a redirect back to the assistant, or an error to show. For the board’s own site only: its server calls this for the visitor, with their session’s access token when they are signed in. That is the board’s live Builder site, or a self-hosted site calling with its publishable key (`pk_…`) as the identifier and its own origin in the `x-cavuno-mcp-site` header, which must be the key’s registered origin or one of the board’s development origins. The origin named there is the sign-in’s issuer, so send the one the visitor is on. Never cached.
          */
         get: operations["getBoardMcpConsent"];
         put?: never;
         /**
          * Allow or cancel an MCP sign-in
-         * @description Allow or Cancel on the consent step `GET /mcp/consent` returned, for the person signed in. Every check runs again. Allow issues the assistant a one-time code; either way the answer is where to send the browser. For the board’s own Builder site only: its server calls this for the visitor, with their session’s access token when they are signed in.
+         * @description Allow or Cancel on the consent step `GET /mcp/consent` returned, for the person signed in. Every check runs again. Allow issues the assistant a one-time code; either way the answer is where to send the browser. For the board’s own site only: its server calls this for the visitor, with their session’s access token when they are signed in. That is the board’s live Builder site, or a self-hosted site calling with its publishable key (`pk_…`) as the identifier and its own origin in the `x-cavuno-mcp-site` header, which must be the key’s registered origin or one of the board’s development origins. The origin named there is the sign-in’s issuer, so send the one the visitor is on.
          */
         post: operations["submitBoardMcpConsent"];
         delete?: never;
@@ -1808,6 +1808,50 @@ export interface paths {
          */
         post: operations["createBoardMeApplicationWithdraw"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/me/assistants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List my connected assistants
+         * @description The AI assistants the authenticated board user allowed to use their account through the board’s MCP server, most recently connected first. Up to 50; disconnected ones are omitted. Never cached.
+         */
+        get: operations["listBoardMeAssistants"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/me/assistants/{assistantId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieve a connected assistant
+         * @description Retrieve one of the authenticated board user’s connected assistants. Never cached.
+         */
+        get: operations["getBoardMeAssistant"];
+        put?: never;
+        post?: never;
+        /**
+         * Disconnect an assistant
+         * @description Disconnect one of the authenticated board user’s assistants. Its access and refresh tokens stop working at once, and it drops out of the list. Connecting again later starts a new connection with a new ID.
+         */
+        delete: operations["deleteBoardMeAssistant"];
         options?: never;
         head?: never;
         patch?: never;
@@ -5025,6 +5069,28 @@ export interface components {
             /** Format: date-time */
             expiresAt: string;
         };
+        Assistant: {
+            /** @description Connected assistant ID (one per approval). Also the path key. */
+            id: string;
+            /** @enum {string} */
+            object: "assistant";
+            /** @description The assistant’s name as it was when the person approved it. */
+            name: string;
+            /** @description The assistant’s website (`claude.ai`, `chatgpt.com`), from its https client ID. Null for an assistant registered without one. */
+            host: string | null;
+            /** @description What the person allowed it to do, as approved: `candidate` (their job seeker account), `employer` (their employer account). New scopes may be added; show an unknown one by name. */
+            scopes: string[];
+            /**
+             * Format: date-time
+             * @description When the person approved it.
+             */
+            connectedAt: string;
+            /**
+             * Format: date-time
+             * @description When it last signed in or refreshed its access (at most about hourly).
+             */
+            lastUsedAt: string;
+        };
         AudienceAttribution: {
             channel?: string;
             source?: string;
@@ -6240,7 +6306,7 @@ export interface components {
             /** @description The form's optional marketing checkbox, when ticked: the poster also asks for the board's marketing email at `submission.contactEmail`. Recorded when the post is submitted, including one held for approval or invoiced (a paid post when its payment arrives), then confirmed by a separate email; nothing is granted until they click it. The response is the same either way. */
             marketingConsent?: {
                 /**
-                 * @description Always `true`: send this object only when the person ticked the box. Leave the box unticked, and offer it only when the operator asks for one.
+                 * @description Always `true`: send this object only when the person ticked the box, which starts unticked.
                  * @enum {boolean}
                  */
                 granted: true;
@@ -7691,7 +7757,7 @@ export interface components {
             /** @description The checkout's optional marketing checkbox, when ticked: the buyer also asks for the board's marketing email. Recorded once the purchase completes (a free claim at once, a paid one when its payment arrives, for a tip at the address Stripe collected), then confirmed by email; nothing is granted until they click it. One submission sends one confirmation email: a free claim that also ticks `jobAlertOptIn` gets the alert's confirmation, which confirms both. The response is the same either way. */
             marketingConsent?: {
                 /**
-                 * @description Always `true`: send this object only when the person ticked the box. Leave the box unticked, and offer it only when the operator asks for one.
+                 * @description Always `true`: send this object only when the person ticked the box, which starts unticked.
                  * @enum {boolean}
                  */
                 granted: true;
@@ -9966,7 +10032,7 @@ export interface components {
             /** @description The checkout's optional marketing checkbox, when ticked: the buyer also asks for the board's marketing email. Recorded once the purchase completes (a free claim at once, a paid one when its payment arrives, for a tip at the address Stripe collected), then confirmed by email; nothing is granted until they click it. One submission sends one confirmation email: a free claim that also ticks `jobAlertOptIn` gets the alert's confirmation, which confirms both. The response is the same either way. */
             marketingConsent?: {
                 /**
-                 * @description Always `true`: send this object only when the person ticked the box. Leave the box unticked, and offer it only when the operator asks for one.
+                 * @description Always `true`: send this object only when the person ticked the box, which starts unticked.
                  * @enum {boolean}
                  */
                 granted: true;
@@ -13906,6 +13972,8 @@ export interface operations {
                         };
                         /** @description Present when the result set is larger than the deepest page this search can reach (keyword relevance ranks the top matches). `count` keeps its usual meaning (every match, or the visible preview when `gatedCount` is present); pagination (`hasMore`, `nextCursor`) ends at `reachableCount`. Narrow the query or add filters to reach more. */
                         reachableCount?: number;
+                        /** @description Board-relative path, starting with `/`, of the page whose results this listing duplicates. When present, use it as the landing page's canonical URL (`<link rel="canonical">`), prefixed with your own origin; keep the page live (no redirect, no noindex). Absent means the landing page is its own canonical. */
+                        canonicalPath?: string;
                     };
                 };
             };
@@ -14693,7 +14761,7 @@ export interface operations {
                     "application/json": components["schemas"]["BoardMcpConsentStep"];
                 };
             };
-            /** @description Not available here (`board_mcp_not_found`): the request is not from the board’s own live Builder site, sign-in from AI assistants is not on for the board, or the board has no MCP server people can sign in to. */
+            /** @description Not available here (`board_mcp_not_found`): the request is not from the board’s own site (its live Builder site, or a self-hosted site calling with its publishable key and naming the key’s registered origin or one of the board’s development origins in `x-cavuno-mcp-site`), sign-in from AI assistants is not on for the board, or the board has no MCP server people can sign in to. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -14738,7 +14806,7 @@ export interface operations {
                     "application/json": components["schemas"]["BoardMcpConsentDecision"];
                 };
             };
-            /** @description Not available here (`board_mcp_not_found`): the request is not from the board’s own live Builder site, sign-in from AI assistants is not on for the board, or the board has no MCP server people can sign in to. */
+            /** @description Not available here (`board_mcp_not_found`): the request is not from the board’s own site (its live Builder site, or a self-hosted site calling with its publishable key and naming the key’s registered origin or one of the board’s development origins in `x-cavuno-mcp-site`), sign-in from AI assistants is not on for the board, or the board has no MCP server people can sign in to. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -15745,6 +15813,192 @@ export interface operations {
                 };
             };
             /** @description Rate limited: 100 requests per minute per board user. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listBoardMeAssistants: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Connected assistants, newest first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        object: "list";
+                        url: string;
+                        hasMore: boolean;
+                        nextCursor: string | null;
+                        data: components["schemas"]["Assistant"][];
+                    };
+                };
+            };
+            /** @description Missing/invalid (`board_auth_invalid_token`) or expired (`board_auth_token_expired`) access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Token was issued for a different board. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited (`rate_limited`): 100 requests per minute per board user. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getBoardMeAssistant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                /** @description The connected assistant’s `id`. */
+                assistantId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The connected assistant. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Assistant"];
+                };
+            };
+            /** @description Missing/invalid (`board_auth_invalid_token`) or expired (`board_auth_token_expired`) access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Token was issued for a different board. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board not found, or no such connected assistant for this board user (`assistant_not_found`): an unknown or malformed ID, another person’s, or one already disconnected, indistinguishably. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited (`rate_limited`): 100 requests per minute per board user. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    deleteBoardMeAssistant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                /** @description The connected assistant’s `id`. */
+                assistantId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Disconnected. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing/invalid (`board_auth_invalid_token`) or expired (`board_auth_token_expired`) access token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Token was issued for a different board. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Board not found, or no such connected assistant for this board user (`assistant_not_found`): an unknown or malformed ID, another person’s, or one already disconnected, indistinguishably. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited (`rate_limited`): 100 requests per minute per board user. */
             429: {
                 headers: {
                     [name: string]: unknown;
