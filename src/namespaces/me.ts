@@ -11,6 +11,7 @@ import type {
   CreateAlertBody,
   Application,
   ApplicationsListQuery,
+  Assistant,
   Block,
   BlockStatus,
   BlockUserBody,
@@ -2145,6 +2146,65 @@ export function meNamespace(client: BoardClient) {
           ...options,
           method: 'DELETE',
         });
+      },
+    },
+
+    /**
+     * The AI assistants (Claude, ChatGPT, other MCP clients) the
+     * authenticated board user allowed to use their account through the
+     * board's MCP server. Render them on the account settings page with a
+     * Disconnect button. Never cache these responses.
+     */
+    assistants: {
+      /**
+       * List my connected assistants, most recently connected first (up to
+       * 50; disconnected ones are omitted).
+       *
+       * @example
+       * const { data } = await board.me.assistants.list();
+       */
+      list(query?: Record<string, never>, options?: FetchOptions) {
+        return client.fetch<ListEnvelope<Assistant>>('/me/assistants', {
+          ...options,
+          query,
+        });
+      },
+
+      /**
+       * Retrieve one of my connected assistants. `assistant_not_found` (404)
+       * when it is unknown, someone else's, or already disconnected.
+       *
+       * @example
+       * const assistant = await board.me.assistants.retrieve(assistantId);
+       */
+      retrieve(
+        assistantId: string,
+        query?: Record<string, never>,
+        options?: FetchOptions,
+      ) {
+        return client.fetch<Assistant>(
+          `/me/assistants/${encodeURIComponent(assistantId)}`,
+          { ...options, query },
+        );
+      },
+
+      /**
+       * Disconnect an assistant: its access ends at once. Resolves void on
+       * success (204); `assistant_not_found` (404) when there was nothing of
+       * mine to disconnect.
+       *
+       * @example
+       * await board.me.assistants.revoke(assistantId);
+       */
+      revoke(
+        assistantId: string,
+        query?: Record<string, never>,
+        options?: FetchOptions,
+      ) {
+        return client.fetch<void>(
+          `/me/assistants/${encodeURIComponent(assistantId)}`,
+          { ...options, method: 'DELETE', query },
+        );
       },
     },
 
