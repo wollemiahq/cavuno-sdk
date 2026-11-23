@@ -17401,6 +17401,15 @@ export interface operations {
                     "application/json": components["schemas"]["MyCompanyProfileFieldValuesResponse"];
                 };
             };
+            /** @description A value was refused (`validation_bad_request`). When the refusal is about specific fields, `details.violations` lists each as `{ fieldKey, code, message }`, such as a required field left empty (`custom_field_required`), so a form can show each message on its field. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description A valid board-user access token is required. */
             401: {
                 headers: {
@@ -19038,7 +19047,7 @@ export interface operations {
                     "application/json": components["schemas"]["ProfileObjectReferencesResult"];
                 };
             };
-            /** @description Invalid selection or field value. */
+            /** @description Invalid selection or field value (`validation_bad_request`). When the refusal is about specific fields, `details.violations` lists each as `{ fieldKey, code, message }`: `fieldKey` is a required collection field left empty, or the key of an entry detail or row detail that was refused. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -22304,6 +22313,15 @@ export interface operations {
                     "application/json": components["schemas"]["MyCandidateProfileFieldValuesResponse"];
                 };
             };
+            /** @description A value was refused (`validation_bad_request`). When the refusal is about specific fields, `details.violations` lists each as `{ fieldKey, code, message }`, such as a required field left empty (`custom_field_required`), so a form can show each message on its field. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description A valid board-user access token is required. */
             401: {
                 headers: {
@@ -23265,7 +23283,7 @@ export interface operations {
                     "application/json": components["schemas"]["ProfileObjectReferencesResult"];
                 };
             };
-            /** @description Invalid selection or field value. */
+            /** @description Invalid selection or field value (`validation_bad_request`). When the refusal is about specific fields, `details.violations` lists each as `{ fieldKey, code, message }`: `fieldKey` is a required collection field left empty, or the key of an entry detail or row detail that was refused. */
             400: {
                 headers: {
                     [name: string]: unknown;
