@@ -3,6 +3,31 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.79.0 — 2026-11-23
+
+- Sign-in from AI assistants on a self-hosted board's own domain.
+  `createMcpHandler` from `@cavuno/board/mcp` takes a new `consentPath`
+  option, such as `/authorize`. With it, the handler serves the OAuth
+  discovery documents and `/oauth/register`, `/oauth/token` and
+  `/oauth/revoke`, sends `/oauth/authorize` to your consent page with the
+  query unchanged, and forwards the assistant's access token, so job seekers
+  and employers can use their own account from Claude, ChatGPT and other
+  assistants. Sign-in works on the publishable key's registered origin and
+  the board's development origins, and needs the publishable key (`pk_…`) as
+  `board`. `siteOrigin` sets the site's origin behind a proxy, and the new
+  `MCP_SITE_HEADER` export names the header your consent page sends with
+  `board.mcpConsent.get` and `submit`. Without `consentPath`, the handler
+  works as before.
+- `board.me.assistants.list()`, `retrieve(assistantId)` and
+  `revoke(assistantId)`: the AI assistants a person has connected to their
+  account through the board's MCP server, with name, website, scopes, and
+  when each was connected and last used. `revoke` disconnects one at once.
+  An unknown, someone else's or already disconnected assistant is
+  `assistant_not_found` (404).
+- Job listing pages that repeat another page's results carry
+  `canonicalPath` on `JobCardListEnvelope`: the board-relative path to use as
+  the page's canonical URL. Absent means the page is its own canonical.
+
 ## 4.78.0 — 2026-11-19
 
 - `board.auth.register`, `board.auth.consumeMagicLink`, `board.jobAlerts.subscribe`

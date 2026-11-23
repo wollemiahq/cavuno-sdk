@@ -1,6 +1,6 @@
 ---
 name: cavuno-board-mcp
-description: Serve the board's public MCP server at /mcp with @cavuno/board/mcp. Use when connecting a self-hosted board to Claude, ChatGPT, Cursor or another MCP client, or when /mcp or /mcp/docs returns 404 on the board's host.
+description: Serve the board's public MCP server at /mcp with @cavuno/board/mcp, and let people sign in to it from their assistant. Use when connecting a self-hosted board to Claude, ChatGPT, Cursor or another MCP client, adding assistant sign-in or a consent page, or when /mcp or /mcp/docs returns 404 on the board's host.
 ---
 
 # Board MCP server
@@ -34,8 +34,42 @@ export const POST = handler;
 
 Other frameworks mount the same `(request: Request) => Promise<Response>`
 function on each path. Do not add authentication, cookies or caching in front
-of `/mcp`: every tool is an anonymous read, and MCP clients POST without
-credentials.
+of `/mcp`: MCP clients POST without cookies, and with sign-in on they send
+their own bearer token, which the handler forwards.
+
+## Sign-in from assistants (self-hosted)
+
+With `consentPath`, people can sign in to their own account on the board from
+their assistant, on the site's own domain. Sign-in works only on origins the
+board has registered in **Settings → SDK**: its self-hosted frontend domain
+(the publishable key's origin) and its development origins, such as
+`http://localhost:5173` or a preview URL.
+
+```ts snippet
+import { createMcpHandler } from '@cavuno/board/mcp';
+
+// Mount at /mcp, /mcp/*, /.well-known/ai-catalog.json,
+// /.well-known/oauth-protected-resource (and /mcp below it),
+// /.well-known/oauth-authorization-server and /oauth/*,
+// for GET, HEAD, POST and OPTIONS.
+const handler = createMcpHandler({
+  board: process.env.NEXT_PUBLIC_CAVUNO_BOARD_KEY!,
+  consentPath: '/authorize',
+});
+```
+
+- Every forward then names the site in `x-cavuno-mcp-site`
+  (`MCP_SITE_HEADER`), the request URL's origin unless `siteOrigin` is set
+  (set it when a proxy rewrites the host or scheme the handler sees).
+  `POST /mcp` also forwards `Authorization`; a 401 `WWW-Authenticate`
+  challenge passes through.
+- The discovery documents and `POST /oauth/register`, `/oauth/token` and
+  `/oauth/revoke` forward to the Board API; `OPTIONS` on them answers the
+  browser preflight.
+- `GET /oauth/authorize` redirects to `consentPath` with the query unchanged.
+- Without `consentPath` those paths answer 404 and nothing extra is sent.
+- `consentPath` needs `board` to be the publishable key, and must be a path
+  on the site; otherwise `createMcpHandler` throws a `TypeError`.
 
 ## What each path answers
 
@@ -61,26 +95,37 @@ forwarded from a self-hosted server arrive from that server's address, so the
 limit applies to the board's MCP traffic as a whole. Over the limit, `/mcp`
 answers 429 with `Retry-After`.
 
-## The consent page (Builder sites)
+## The consent page
 
-When people can sign in to the board's MCP server from its live Cavuno
-Builder site, an assistant starts sign-in at the board's `/oauth/authorize`.
-A site that declares the `assistantConsent` route role gets the browser sent
-to that page with the sign-in request in the query; without the role, Cavuno
-shows its own page. The role needs the page's marker,
+An assistant starts sign-in at the board's `/oauth/authorize`, which sends the
+browser to the site's consent page with the sign-in request in the query. On
+a self-hosted site that is `consentPath`. On a live Cavuno Builder site, a
+page that declares the `assistantConsent` route role gets it; without the
+role, Cavuno shows its own page. The role needs the page's marker,
 `export const cavunoPage = 'assistantConsent'`: a page at the canonical
 `/authorize` alone does not take it. Keep `/oauth/*` for the platform: a page
 declared there is ignored.
 
 The page passes its query string on unchanged, words the step in the board's
 language from its facts (`access`, `trustLevel`, `publisherHost`,
-`redirectHost`), and posts the person's choice from a server function:
+`redirectHost`), and posts the person's choice from a server function. A
+self-hosted site calls with its publishable key and also sends
+`MCP_SITE_HEADER` with the same origin the handler sends: `siteOrigin` when
+it is set, otherwise the request URL's origin. That origin is the sign-in's
+issuer, so a different one fails the sign-in:
 
 ```ts snippet
 import { createBoardClient } from '@cavuno/board';
+import { MCP_SITE_HEADER } from '@cavuno/board/mcp';
 
-const board = createBoardClient({ board: 'acme-jobs' });
-const auth = { headers: { authorization: 'Bearer <session access token>' } };
+const board = createBoardClient({ board: 'pk_live_abc' });
+const auth = {
+  headers: {
+    authorization: 'Bearer <session access token>',
+    // Self-hosted sites only: the handler's origin (its siteOrigin if set).
+    [MCP_SITE_HEADER]: 'https://jobs.example.com',
+  },
+};
 
 const step = await board.mcpConsent.get('?request=eyJ9', auth);
 if (step.next === 'consent') {
@@ -111,6 +156,9 @@ Finish only after every check passes against the deployed board:
   `https://<board-host>/mcp/server-card`, and that card's `remotes` URL is
   `https://<board-host>/mcp`.
 - A job URL in a `search_jobs` result opens on the board's own host.
+- With `consentPath`: `GET /.well-known/oauth-protected-resource/mcp` returns
+  a document whose `resource` is `https://<board-host>/mcp`, and
+  `GET /oauth/authorize?state=x` redirects to `consentPath?state=x`.
 
 ## Cavuno SDK reference
 
