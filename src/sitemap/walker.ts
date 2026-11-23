@@ -1,6 +1,6 @@
 /**
  * Sitemap enumeration — turns a board's content into the URL list for each
- * bucket of the 8-bucket model (see `xml.ts`). Pure logic with injected
+ * bucket of the bucket model (see `xml.ts`). Pure logic with injected
  * I/O: every read arrives through the `BoardSdk` instance the caller
  * passes, so the walker is platform-neutral and unit-testable with a
  * stubbed client.
@@ -170,8 +170,9 @@ const MIRROR_PAGE = 1000;
  * Mirror path: exactly the buckets the board publishes, in the canonical
  * `SITEMAP_BUCKETS` order (the board omits empty ones).
  *
- * Legacy fallback (404): blog is gated by its feature; the rest emit an empty
- * urlset when a board lacks that content (valid, just zero URLs).
+ * Legacy fallback (404): blog is gated by its feature and help is left out
+ * (an API that old has no help center); the rest emit an empty urlset when a
+ * board lacks that content (valid, just zero URLs).
  */
 export async function listedBuckets(board: BoardSdk): Promise<SitemapBucket[]> {
   const listed = await listedBucketEntries(board);
@@ -216,9 +217,9 @@ export async function listedBucketEntries(
   } catch (error) {
     if (!isNotFound(error)) throw error;
     const { features } = await board.context();
-    return SITEMAP_BUCKETS.filter((b) => b !== 'blog' || features.blog).map(
-      (bucket) => ({ bucket }),
-    );
+    return SITEMAP_BUCKETS.filter(
+      (b) => b !== 'help' && (b !== 'blog' || features.blog),
+    ).map((bucket) => ({ bucket }));
   }
 }
 
@@ -336,6 +337,9 @@ async function legacyBucketUrls(
       return salaries(board, origin);
     case 'blog':
       return blog(board, origin);
+    case 'help':
+      // An API without the sitemap endpoints has no help center either.
+      return [];
   }
 }
 

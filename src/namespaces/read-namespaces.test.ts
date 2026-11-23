@@ -81,6 +81,7 @@ describe('board.context()', () => {
         mcp: false,
         tipJar: false,
         products: false,
+        helpCenter: false,
       },
       analytics: {
         ga4MeasurementId: null,
@@ -604,6 +605,29 @@ describe('board.companies', () => {
         { locale: 'de' },
       ),
     ).toEqual(category);
+  });
+});
+
+describe('board.help', () => {
+  it('categories and articles hit their routes', async () => {
+    const spy = stubFetch();
+    const board = makeBoard();
+    await board.help.categories.list({ limit: 50, cursor: 'cur_c' });
+    await board.help.categories.retrieve('getting started');
+    await board.help.articles.list({
+      categorySlug: 'billing',
+      limit: 10,
+      cursor: 'cur_a',
+    });
+    await board.help.articles.retrieve('how-to-apply');
+    expect(sentUrl(spy, 0)).toBe(
+      `${BASE}/help/categories?limit=50&cursor=cur_c`,
+    );
+    expect(sentUrl(spy, 1)).toBe(`${BASE}/help/categories/getting%20started`);
+    expect(sentUrl(spy, 2)).toBe(
+      `${BASE}/help/articles?categorySlug=billing&limit=10&cursor=cur_a`,
+    );
+    expect(sentUrl(spy, 3)).toBe(`${BASE}/help/articles/how-to-apply`);
   });
 });
 

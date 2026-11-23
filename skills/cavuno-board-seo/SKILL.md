@@ -14,6 +14,8 @@ Read the matching reference completely before implementing that page:
 
 - Job detail or breadcrumbs: [`JOB_AND_BREADCRUMBS.md`](JOB_AND_BREADCRUMBS.md)
 - Blog post or author profile: [`BLOG.md`](BLOG.md)
+- Help article: `createHelpArticleJsonLd` and a breadcrumb, in the
+  `cavuno-board-help` skill
 - Salary detail, index, comparison, or FAQ: [`SALARY.md`](SALARY.md)
 - Job-listing metadata or structural JSON-LD: [`LISTING.md`](LISTING.md)
 
