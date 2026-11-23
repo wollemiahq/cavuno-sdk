@@ -14,6 +14,8 @@ import {
   companyPath,
   companySalaryPath,
   encodePathSegment,
+  helpArticlePath,
+  helpCategoryPath,
   jobDetailPath,
   jobsCategoryPath,
   jobsLocationPath,
@@ -55,6 +57,8 @@ const SAMPLE_PARAMS: Record<string, string> = {
   handle: 'jane-doe',
   productSlug: 'salary-guide',
   purchaseToken: 'tok_abc',
+  helpCategorySlug: 'getting-started',
+  helpArticleSlug: 'how-to-apply',
 };
 
 /** Canonical path via the paths helpers / BOARD_PATHS — equivalence oracle. */
@@ -92,6 +96,10 @@ function canonicalHelperPath(role: RouteRole): string {
       return productPath(SAMPLE_PARAMS.productSlug!);
     case 'purchase':
       return purchasePath(SAMPLE_PARAMS.purchaseToken!);
+    case 'helpCategory':
+      return helpCategoryPath(SAMPLE_PARAMS.helpCategorySlug!);
+    case 'helpArticle':
+      return helpArticlePath(SAMPLE_PARAMS.helpArticleSlug!);
     case 'home':
     case 'jobs':
     case 'companies':
@@ -115,6 +123,7 @@ function canonicalHelperPath(role: RouteRole): string {
     case 'tip':
     case 'emailPreferences':
     case 'assistantConsent':
+    case 'help':
       return BOARD_PATHS[role];
     default: {
       const _exhaustive: never = role;

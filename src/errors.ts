@@ -81,6 +81,9 @@ export const BOARD_API_ERROR_CODES = [
   'blog_post_not_found',
   'blog_author_not_found',
   'blog_tag_not_found',
+  // Help center (public reads)
+  'help_category_not_found',
+  'help_article_not_found',
   // Public collections
   'collections_not_found',
   // Job aggregator feeds

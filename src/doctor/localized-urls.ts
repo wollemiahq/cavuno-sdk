@@ -59,6 +59,8 @@ const MAY_BE_UNPUBLISHED: ReadonlySet<RouteRole> = new Set([
   'tip',
   // A board whose MCP server has no sign-in has no consent page.
   'assistantConsent',
+  // A board with no published help article has no help center.
+  'help',
 ]);
 
 /** The board's access gates: a redirect there means the page was not served. */
