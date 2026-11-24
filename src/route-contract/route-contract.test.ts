@@ -58,6 +58,11 @@ const HARDCODED_CANONICAL_ROLES: Record<RouteRole, string> = {
   tip: '/tip',
   emailPreferences: '/email-preferences',
   assistantConsent: '/authorize',
+  help: '/help',
+  helpCategory: '/help/categories/:helpCategorySlug',
+  helpArticle: '/help/articles/:helpArticleSlug',
+  signUp: '/auth/sign-up',
+  matches: '/matches',
 };
 
 /** Starter fixture: one RouteEntry per hardcoded canonical role. */
@@ -236,6 +241,81 @@ describe('route-contract compiler', () => {
 
   // ──  ──────────────────────────────────────────────────────────────
   describe('validateManifest', () => {
+    it('keeps valid languages, default first', () => {
+      expect(
+        validateManifest({
+          version: 1,
+          roles: { jobs: '/jobs' },
+          languages: ['nl', 'en', 'de'],
+        }),
+      ).toEqual({
+        ok: true,
+        manifest: {
+          version: 1,
+          roles: { jobs: '/jobs' },
+          languages: ['nl', 'en', 'de'],
+        },
+      });
+    });
+
+    it.each([
+      ['not an array', 'de'],
+      ['empty', []],
+      ['a region tag', ['pt-BR']],
+      ['upper case', ['DE']],
+      ['a duplicate', ['de', 'de']],
+      ['a non-string', [7]],
+      // 21 distinct codes: aa, ab, … au.
+      [
+        'too many',
+        Array.from({ length: 21 }, (_, i) => `a${String.fromCharCode(97 + i)}`),
+      ],
+    ])('refuses languages that are %s', (_label, languages) => {
+      const result = validateManifest({ version: 1, roles: {}, languages });
+      expect(result.ok).toBe(false);
+      expect(!result.ok && result.errors.map((e) => e.code)).toEqual([
+        'invalid_languages',
+      ]);
+    });
+
+    it('keeps a valid basePath and drops a root one', () => {
+      const prefixed = validateManifest({
+        version: 1,
+        roles: { jobs: '/jobboard/jobs' },
+        basePath: '/jobboard',
+      });
+      expect(prefixed).toEqual({
+        ok: true,
+        manifest: {
+          version: 1,
+          roles: { jobs: '/jobboard/jobs' },
+          basePath: '/jobboard',
+        },
+      });
+      expect(
+        validateManifest({ version: 1, roles: {}, basePath: '/' }),
+      ).toEqual({ ok: true, manifest: { version: 1, roles: {} } });
+    });
+
+    it.each([
+      'jobboard',
+      '/jobboard/',
+      '//evil.example',
+      '/a//b',
+      '/a/../b',
+      '/job board',
+      '/jobs?x=1',
+      '/:board',
+      '',
+      7,
+    ])('rejects basePath %j', (basePath) => {
+      const result = validateManifest({ version: 1, roles: {}, basePath });
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.errors.map((e) => e.code)).toEqual(['invalid_base_path']);
+      }
+    });
+
     it('accepts a well-formed manifest', () => {
       const result = validateManifest(CANONICAL_MANIFEST);
       expect(result.ok).toBe(true);

@@ -14,6 +14,8 @@ import {
   companyPath,
   companySalaryPath,
   encodePathSegment,
+  helpArticlePath,
+  helpCategoryPath,
   jobDetailPath,
   jobsCategoryPath,
   jobsLocationPath,
@@ -55,6 +57,8 @@ const SAMPLE_PARAMS: Record<string, string> = {
   handle: 'jane-doe',
   productSlug: 'salary-guide',
   purchaseToken: 'tok_abc',
+  helpCategorySlug: 'getting-started',
+  helpArticleSlug: 'how-to-apply',
 };
 
 /** Canonical path via the paths helpers / BOARD_PATHS — equivalence oracle. */
@@ -92,6 +96,10 @@ function canonicalHelperPath(role: RouteRole): string {
       return productPath(SAMPLE_PARAMS.productSlug!);
     case 'purchase':
       return purchasePath(SAMPLE_PARAMS.purchaseToken!);
+    case 'helpCategory':
+      return helpCategoryPath(SAMPLE_PARAMS.helpCategorySlug!);
+    case 'helpArticle':
+      return helpArticlePath(SAMPLE_PARAMS.helpArticleSlug!);
     case 'home':
     case 'jobs':
     case 'companies':
@@ -115,6 +123,9 @@ function canonicalHelperPath(role: RouteRole): string {
     case 'tip':
     case 'emailPreferences':
     case 'assistantConsent':
+    case 'help':
+    case 'signUp':
+    case 'matches':
       return BOARD_PATHS[role];
     default: {
       const _exhaustive: never = role;
@@ -355,5 +366,105 @@ describe('createBoardLinkResolver', () => {
       path: '/wk/acme',
       source: 'wellKnown',
     });
+  });
+});
+
+describe('basePath', () => {
+  const prefixed = (
+    source: ManifestLayer['source'],
+    roles: Partial<Record<RouteRole, string>>,
+    basePath: string,
+  ): ManifestLayer => ({ source, manifest: { version: 1, roles, basePath } });
+
+  it('puts unnamed roles under the base and leaves named templates as written', () => {
+    const resolver = createBoardLinkResolver([
+      prefixed(
+        'wellKnown',
+        { jobDetail: '/jobboard/positions/:companySlug/:jobSlug' },
+        '/jobboard',
+      ),
+    ]);
+    expect(resolver.pathFor('jobDetail', paramsFor('jobDetail')).path).toBe(
+      '/jobboard/positions/acme/senior-eng',
+    );
+    expect(resolver.pathFor('company', paramsFor('company'))).toEqual({
+      path: '/jobboard/companies/acme',
+      source: 'canonical',
+    });
+    expect(resolver.pathFor('home').path).toBe('/jobboard');
+    expect(resolver.withBase('/auth/magic-link')).toBe(
+      '/jobboard/auth/magic-link',
+    );
+    expect(resolver.withBase('/')).toBe('/jobboard');
+  });
+
+  it('takes the base from declared or wellKnown, never from inferred', () => {
+    expect(
+      createBoardLinkResolver([prefixed('inferred', {}, '/crawled')]).basePath,
+    ).toBe('');
+    expect(
+      createBoardLinkResolver([
+        prefixed('wellKnown', {}, '/pulled'),
+        prefixed('declared', {}, '/declared'),
+      ]).basePath,
+    ).toBe('/declared');
+  });
+
+  it('no base: every path is exactly what it was', () => {
+    const resolver = createBoardLinkResolver([]);
+    expect(resolver.withBase('/auth/magic-link')).toBe('/auth/magic-link');
+    expect(resolver.mapCanonicalPath('/companies/acme/jobs/x')).toBe(
+      '/companies/acme/jobs/x',
+    );
+  });
+});
+
+describe('mapCanonicalPath', () => {
+  const resolver = createBoardLinkResolver([
+    {
+      source: 'wellKnown',
+      manifest: {
+        version: 1,
+        basePath: '/jobboard',
+        roles: {
+          jobDetail: '/jobboard/positions/:companySlug/:jobSlug',
+          blogTag: '/jobboard/news/topic/:tagSlug',
+          jobs: '/jobboard/vacancies',
+        },
+      },
+    },
+  ]);
+
+  it('maps a path of a named role onto its template', () => {
+    expect(resolver.mapCanonicalPath('/companies/acme/jobs/senior-eng')).toBe(
+      '/jobboard/positions/acme/senior-eng',
+    );
+    expect(resolver.mapCanonicalPath('/jobs')).toBe('/jobboard/vacancies');
+    expect(resolver.mapCanonicalPath('/jobs/')).toBe('/jobboard/vacancies');
+  });
+
+  it('matches the whole path: /blog/tag/x is a tag, /blog/x a post', () => {
+    expect(resolver.mapCanonicalPath('/blog/tag/launch')).toBe(
+      '/jobboard/news/topic/launch',
+    );
+    expect(resolver.mapCanonicalPath('/blog/launch')).toBe(
+      '/jobboard/blog/launch',
+    );
+  });
+
+  it('puts unnamed roles and unknown paths under the base, unchanged', () => {
+    expect(resolver.mapCanonicalPath('/companies/acme')).toBe(
+      '/jobboard/companies/acme',
+    );
+    expect(resolver.mapCanonicalPath('/auth/sign-in')).toBe(
+      '/jobboard/auth/sign-in',
+    );
+    expect(resolver.mapCanonicalPath('/')).toBe('/jobboard');
+  });
+
+  it('passes encoded segments through and never captures a slash', () => {
+    expect(resolver.mapCanonicalPath('/companies/a%2Fb/jobs/x')).toBe(
+      '/jobboard/positions/a%2Fb/x',
+    );
   });
 });

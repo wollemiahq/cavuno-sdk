@@ -298,18 +298,22 @@ afterEach(() => {
 });
 
 describe('listedBuckets', () => {
-  it('lists all 8 buckets, in the canonical order, when blog is enabled', async () => {
+  // stubBoard's default `sitemap` 404s (an older API), which has no help
+  // center, so the fallback never lists the help bucket.
+  it('lists every bucket but help, in the canonical order, when blog is enabled', async () => {
     const buckets = await listedBuckets(
       stubBoard({ features: { blog: true } }),
     );
-    expect(buckets).toEqual([...SITEMAP_BUCKETS]);
+    expect(buckets).toEqual(SITEMAP_BUCKETS.filter((b) => b !== 'help'));
   });
 
-  it('drops only the blog bucket when the blog feature is off', async () => {
+  it('also drops the blog bucket when the blog feature is off', async () => {
     const buckets = await listedBuckets(
       stubBoard({ features: { blog: false } }),
     );
-    expect(buckets).toEqual(SITEMAP_BUCKETS.filter((b) => b !== 'blog'));
+    expect(buckets).toEqual(
+      SITEMAP_BUCKETS.filter((b) => b !== 'blog' && b !== 'help'),
+    );
   });
 });
 
@@ -656,6 +660,43 @@ describe('blog bucket', () => {
   });
 });
 
+describe('help bucket', () => {
+  it('lists the bucket and mirrors its entries when the board publishes it', async () => {
+    const board = stubBoard({
+      sitemapIndex: async () => ({
+        object: 'board_sitemap',
+        buckets: [
+          { bucket: 'help', count: 3 },
+          { bucket: 'marketing', count: 6 },
+        ],
+      }),
+      sitemapEntries: async () =>
+        envelope([
+          { path: '/help' },
+          { path: '/help/categories/applying' },
+          {
+            path: '/help/articles/how-to-apply',
+            lastModified: '2026-11-20T09:30:00.000Z',
+          },
+        ]),
+    });
+
+    expect(await listedBuckets(board)).toEqual(['marketing', 'help']);
+    expect(await buildBucketEntries(board, ORIGIN, 'help')).toEqual([
+      { url: `${ORIGIN}/help` },
+      { url: `${ORIGIN}/help/categories/applying` },
+      {
+        url: `${ORIGIN}/help/articles/how-to-apply`,
+        lastModified: '2026-11-20T09:30:00.000Z',
+      },
+    ]);
+  });
+
+  it('is empty against an API without the sitemap endpoints', async () => {
+    expect(await buildBucketUrls(stubBoard(), ORIGIN, 'help')).toEqual([]);
+  });
+});
+
 describe('pagination behavior', () => {
   it('enumerates jobs by parallel offsets when the envelope carries count', async () => {
     const offsets: number[] = [];
@@ -986,7 +1027,7 @@ describe('404 fallback to the legacy path', () => {
     // stubBoard's default `sitemap` 404s — i.e. an older API.
     expect(
       await listedBuckets(stubBoard({ features: { blog: false } })),
-    ).toEqual(SITEMAP_BUCKETS.filter((b) => b !== 'blog'));
+    ).toEqual(SITEMAP_BUCKETS.filter((b) => b !== 'blog' && b !== 'help'));
   });
 
   it('falls back to per-family enumeration for a bucket', async () => {
