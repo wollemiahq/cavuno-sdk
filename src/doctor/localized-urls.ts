@@ -40,6 +40,7 @@ const REDIRECT_OK: ReadonlySet<RouteRole> = new Set([
   'mePurchases',
   'emailPreferences',
   'assistantConsent',
+  'matches',
 ]);
 
 /**
@@ -61,6 +62,8 @@ const MAY_BE_UNPUBLISHED: ReadonlySet<RouteRole> = new Set([
   'assistantConsent',
   // A board with no published help article has no help center.
   'help',
+  // A board with job recommendations off has no matches page.
+  'matches',
 ]);
 
 /** The board's access gates: a redirect there means the page was not served. */
