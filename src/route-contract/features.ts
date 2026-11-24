@@ -7,11 +7,19 @@
  * - `talentFreeTrial`: the talent directory, profile and messaging pages let
  *   an employer spend free profile unlocks and free conversations before
  *   they hold a plan, and say when an action is free.
+ * - `assistantConsentScopes`: the assistant consent page (`assistantConsent`)
+ *   lists the step's `requestedScopes` as checkboxes and sends the ticked
+ *   ones back as `approvedScopes`, so it can take sign-ins that ask for
+ *   fine scopes (`profile.read`, `jobs.publish`) as well as `candidate` and
+ *   `employer`.
  *
  * Pure + isomorphic: no imports.
  */
 
-export const ALL_FEATURES = ['talentFreeTrial'] as const;
+export const ALL_FEATURES = [
+  'talentFreeTrial',
+  'assistantConsentScopes',
+] as const;
 
 export type RouteFeature = (typeof ALL_FEATURES)[number];
 

@@ -8361,6 +8361,13 @@ export interface components {
                 /** @description YouTube channel URL (`https://www.youtube.com/...`). Null when unset or invalid. */
                 youtubeUrl: string | null;
             };
+            /** @description Which place job landing pages duplicate another page, so links and canonical URLs can point at the page they duplicate. Resolve a page with `resolveJobLandingPage` from `@cavuno/board/paths`. Empty `places` (or absent) means every page is its own. */
+            jobLandingConsolidation?: {
+                /** @description Place job landing pages whose results duplicate another page's, keyed by place slug as it appears in the board's URLs. The value is the slug of the place whose pages they duplicate, or `null` for the same page with no place. An entry holds one step; the target place may have its own entry. */
+                places: {
+                    [key: string]: string | null;
+                };
+            };
         };
         PublicCollectionEntry: {
             /** @description The entry's ID. */
