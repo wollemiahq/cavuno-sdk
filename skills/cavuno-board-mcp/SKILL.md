@@ -14,8 +14,8 @@ other Cavuno board.
 
 ## Mount the handler
 
-Mount one handler at `/mcp`, `/mcp/*` and `/.well-known/ai-catalog.json`, for
-GET, HEAD and POST. Pass
+Mount one handler at `/mcp`, `/mcp/*`, `/.well-known/ard.json` and
+`/.well-known/ai-catalog.json`, for GET, HEAD and POST. Pass
 the board's publishable key: job and company links in tool results then point
 at the key's own origin.
 
@@ -23,7 +23,7 @@ at the key's own origin.
 import { createMcpHandler } from '@cavuno/board/mcp';
 
 // app/mcp/[[...path]]/route.ts, and the same lines in
-// app/.well-known/ai-catalog.json/route.ts
+// app/.well-known/ard.json/route.ts and app/.well-known/ai-catalog.json/route.ts
 const handler = createMcpHandler({
   board: process.env.NEXT_PUBLIC_CAVUNO_BOARD_KEY!,
 });
@@ -48,7 +48,7 @@ board has registered in **Settings → SDK**: its self-hosted frontend domain
 ```ts snippet
 import { createMcpHandler } from '@cavuno/board/mcp';
 
-// Mount at /mcp, /mcp/*, /.well-known/ai-catalog.json,
+// Mount at /mcp, /mcp/*, /.well-known/ard.json, /.well-known/ai-catalog.json,
 // /.well-known/oauth-protected-resource (and /mcp below it),
 // /.well-known/oauth-authorization-server and /oauth/*,
 // for GET, HEAD, POST and OPTIONS.
@@ -67,6 +67,15 @@ const handler = createMcpHandler({
   `/oauth/revoke` forward to the Board API; `OPTIONS` on them answers the
   browser preflight.
 - `GET /oauth/authorize` redirects to `consentPath` with the query unchanged.
+- A site under a `basePath` such as `/jobboard` mounts `/jobboard/mcp` and
+  `/jobboard/oauth/*`. The two discovery documents stay at the domain root,
+  with the path after their name:
+  `/.well-known/oauth-protected-resource/jobboard/mcp` and
+  `/.well-known/oauth-authorization-server/jobboard`. When the framework
+  serves only below the base path, the server at the root routes those two.
+  The site's route manifest (`/.well-known/cavuno.json`) declares
+  `basePath: '/jobboard'`, which is where the Board API reads the folder
+  from, and `consentPath` includes the base, such as `/jobboard/authorize`.
 - Without `consentPath` those paths answer 404 and nothing extra is sent.
 - `consentPath` needs `board` to be the publishable key, and must be a path
   on the site; otherwise `createMcpHandler` throws a `TypeError`.
@@ -82,8 +91,11 @@ const handler = createMcpHandler({
 - `GET /mcp/server-card`: the MCP Server Card, the server's name, version,
   title, icons and URL as `application/mcp-server-card+json`, for an
   assistant to read before it connects.
-- `GET /.well-known/ai-catalog.json`: the AI Catalog, which lists the Server
-  Card so an assistant that knows only the board's domain can find the server.
+- `GET /.well-known/ard.json`: the Agentic Resource Discovery (ARD) manifest,
+  which lists the Server Card with a display name and example queries, so an
+  assistant or registry that knows only the board's domain can find the
+  server. `/.well-known/ai-catalog.json`, the path of its predecessor, returns
+  the same manifest.
 
 A free-plan board, a password-protected board, or a board whose operator has
 switched the server off answers 404 on every path.
@@ -152,7 +164,7 @@ Finish only after every check passes against the deployed board:
   `Accept: application/json, text/event-stream` returns the tool list.
 - Opening `/mcp` in a browser lands on `/mcp/docs`, and that page names the
   board and shows `https://<board-host>/mcp` as the server URL.
-- `GET /.well-known/ai-catalog.json` returns an entry whose `url` is
+- `GET /.well-known/ard.json` returns an entry whose `url` is
   `https://<board-host>/mcp/server-card`, and that card's `remotes` URL is
   `https://<board-host>/mcp`.
 - A job URL in a `search_jobs` result opens on the board's own host.
