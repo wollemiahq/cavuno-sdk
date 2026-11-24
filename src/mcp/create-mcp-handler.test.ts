@@ -310,6 +310,8 @@ describe('createMcpHandler without consentPath', () => {
     ['GET', '/.well-known/oauth-protected-resource'],
     ['GET', '/.well-known/oauth-protected-resource/mcp'],
     ['GET', '/.well-known/oauth-authorization-server'],
+    ['GET', '/.well-known/oauth-protected-resource/jobboard/mcp'],
+    ['GET', '/.well-known/oauth-authorization-server/jobboard'],
     ['POST', '/oauth/register'],
     ['POST', '/oauth/token'],
     ['POST', '/oauth/revoke'],
@@ -399,6 +401,14 @@ describe('createMcpHandler with consentPath', () => {
       '/.well-known/oauth-authorization-server',
       `${API}/mcp/oauth/.well-known/oauth-authorization-server`,
     ],
+    [
+      '/.well-known/oauth-protected-resource/jobboard/mcp',
+      `${API}/mcp/oauth/.well-known/oauth-protected-resource/mcp`,
+    ],
+    [
+      '/.well-known/oauth-authorization-server/jobboard',
+      `${API}/mcp/oauth/.well-known/oauth-authorization-server`,
+    ],
   ])('forwards GET and HEAD %s', async (path, upstream) => {
     const calls = stubUpstream(() =>
       Response.json(
@@ -438,6 +448,11 @@ describe('createMcpHandler with consentPath', () => {
     [
       '/oauth/revoke',
       `${API}/mcp/oauth/revoke`,
+      'application/x-www-form-urlencoded',
+    ],
+    [
+      '/jobboard/oauth/token',
+      `${API}/mcp/oauth/token`,
       'application/x-www-form-urlencoded',
     ],
   ])(

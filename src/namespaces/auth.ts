@@ -223,8 +223,10 @@ export function authNamespace(client: BoardClient, board = '') {
     },
 
     /**
-     * Request a password-reset email. Always resolves (204) whether or
-     * not the email exists — no account oracle.
+     * Request a password-reset email. Resolves (204) whether or not the
+     * email exists — no account oracle. Rejects with 422
+     * `email_domain_undeliverable` when the address's domain can't
+     * receive mail (judged on the domain alone).
      *
      * @example
      * await board.auth.forgotPassword({ email: 'a@b.com' });
@@ -253,8 +255,9 @@ export function authNamespace(client: BoardClient, board = '') {
     },
 
     /**
-     * Request a passwordless magic link. The API always resolves 204
-     * when the request is accepted; the email link lands on the
+     * Request a passwordless magic link. The API resolves 204 when the
+     * request is accepted, and rejects with 422 `email_domain_undeliverable`
+     * when the address's domain can't receive mail; the email link lands on the
      * board/starter `/auth/magic-link` route. Pass `intent: 'sign_in'`
      * from a sign-in form so an unknown email is 404 instead of a
      * silent sign-up.

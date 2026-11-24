@@ -105,6 +105,22 @@ try {
 
 `purchase.files` holds files (`state`: `ready`, `preparing`, `limit_reached`; `downloadsLeft`, `sizeBytes`, `pageCount`, `stamped`) and links (`url`, opened directly). Also `downloadCap`, `stamping`, `receiptUrl` (null for free), `refundPolicy`, `ratingsEnabled` and the buyer's own `review`.
 
+### Offer after purchase
+
+`purchase.offer`, when not `null`, is another product of the board the buyer doesn't own, chosen by the board. Show it on the download page as a card: `name`, `summary`, `coverImageUrl`, and the price from `priceCents` and `fullPriceCents` in `currency` (strike through the full price when `discountPercent` is above 0). When `discountEndsAt` is set, show a countdown to it; after it the product is still offered, at full price, so read the purchase again rather than hiding the card. Link to the product page with `offer.slug`, and send `offer.token` as `offerToken` with that product's checkout so the offer price applies:
+
+```ts snippet
+if (purchase.offer) {
+  await board.products.checkout(purchase.offer.slug, {
+    email: purchase.email,
+    answers: [],
+    offerToken: purchase.offer.token,
+  });
+}
+```
+
+The token works once, for the same buyer email and that product; otherwise checkout answers `product_offer_invalid` (409), and the product can be bought at its normal price without it.
+
 ## Downloads
 
 Each call counts a download, so trigger it from a button, then redirect to the short-lived signed `url` at once.
@@ -172,6 +188,7 @@ Stripe collects the tipper's email (prefilled for a signed-in board user), so th
 - A free claim redirects to `downloadUrl`; a paid test checkout mounts, returns with `session_id`, and `getCheckout` reaches `paid`.
 - A forwarded download link asks for the email, and the confirmation survives a reload through your own cookie.
 - Downloads start from a button; `purchase_download_limit_reached` disables the button instead of retrying.
+- The download page shows `purchase.offer` when there is one, and its checkout sends `offerToken`.
 - Download pages, checkout status and `mine()` are `no-store`; purchase paths never reach analytics or the sitemap.
 - The tip page hides when `board.tipJar.get()` is `tip_jar_not_found`; a test tip returns with `session_id` and `getCheckout` reaches `paid`.
 
