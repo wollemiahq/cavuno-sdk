@@ -5399,7 +5399,7 @@ export interface components {
              * @enum {string}
              */
             kind: "builtin";
-            /** @description The built-in field, rendered by your own control for that key. Job: `employmentType`, `seniority`, `title`, `workArrangement`, `location`, `remoteEligibility`, `description`, `salary`, `applyMethod`, `company`. Company: `name`, `website`, `summary`, `xUrl`, `linkedinUrl`, `facebookUrl`, `logo`, `description`. Talent: `name`, `email`, `avatar`, `headline`, `location`, `jobSearchStatus`, `bio`, `experience`, `education`, `skills`, `languages`. New built-ins may be added; skip keys you do not recognise. */
+            /** @description The built-in field, rendered by your own control for that key. Job: `employmentType`, `seniority`, `title`, `workArrangement`, `location`, `remoteEligibility`, `description`, `salary`, `applyMethod`, `company`. Company: `name`, `website`, `summary`, `xUrl`, `linkedinUrl`, `facebookUrl`, `logo`, `description`. Talent: `name`, `email`, `avatar`, `headline`, `location`, `jobSearchStatus`, `bio`, `interestedRoles`, `experience`, `education`, `skills`, `languages`. New built-ins may be added; skip keys you do not recognise. */
             key: string;
             /** @description Whether the form shows this field. Omit hidden fields from the form entirely; any value already stored on a record is kept. */
             visible: boolean;
@@ -5833,6 +5833,8 @@ export interface components {
             commuteRadiusKm: number | null;
             /** @description The commute distance used when `commuteRadiusKm` is `null`: 40 km (25 miles) where distances are shown in miles (US, GB, LR, MM), 50 km elsewhere. Use it to prefill a commute field. */
             commuteRadiusDefaultKm: number;
+            /** @description Roles the candidate is interested in, set by the candidate (`PATCH`) or read from their resume. Job matches rank on them alongside skills, so a profile with either one can be matched. Empty when there are none. */
+            interestedRoles: string[];
         };
         CandidateSkill: {
             /** @enum {string} */
@@ -10488,6 +10490,8 @@ export interface components {
             openToRelocate?: boolean;
             /** @description How far the candidate is willing to commute, in kilometres (1–250, stored to one decimal place). `null` resets it to the default for their country. */
             commuteRadiusKm?: number | null;
+            /** @description Roles the candidate is interested in, such as "Product Designer". Replaces the whole list, in order; `[]` clears it. Up to 50 roles of up to 100 characters. Each role is trimmed, and a role repeated with different capitalisation is kept once (the first spelling). Job matches use the new roles on the next read. */
+            interestedRoles?: string[];
         };
         UpdateCompanyMemberRoleBody: {
             /** @enum {string} */
