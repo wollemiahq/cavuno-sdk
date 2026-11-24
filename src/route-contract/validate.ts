@@ -164,6 +164,71 @@ function isParamsOnly(template: string): boolean {
   );
 }
 
+/** A path segment of a base path: the template charset without `:`. */
+const BASE_PATH_SEGMENT_RE = /^[A-Za-z0-9_.@-]+$/;
+
+/**
+ * `basePath` checks: a path from the domain root with one or more plain
+ * segments and no trailing slash (`/jobboard`, `/en/jobs`). `/` is the
+ * domain root, the same as leaving it out.
+ */
+function checkBasePath(value: unknown): ValidateManifestError[] {
+  const invalid = (reason: string): ValidateManifestError[] => [
+    {
+      code: 'invalid_base_path',
+      message: `basePath ${reason}, got ${JSON.stringify(value)}`,
+    },
+  ];
+  if (typeof value !== 'string') return invalid('must be a string');
+  if (value === '/') return [];
+  if (!value.startsWith('/')) return invalid("must start with '/'");
+  if (value.endsWith('/')) return invalid("must not end with '/'");
+  const segments = value.slice(1).split('/');
+  for (const segment of segments) {
+    if (segment === '' || segment === '.' || segment === '..') {
+      return invalid("must not contain empty, '.' or '..' segments");
+    }
+    if (!BASE_PATH_SEGMENT_RE.test(segment)) {
+      return invalid('may only contain letters, digits and - _ . @');
+    }
+  }
+  return [];
+}
+
+/** At most this many `languages`, so a manifest can't grow without bound. */
+const MAX_LANGUAGES = 20;
+
+/** A language code: the primary subtag, lowercase (`de`, `fil`). */
+const LANGUAGE_CODE_RE = /^[a-z]{2,3}$/;
+
+/**
+ * `languages` checks: 1 to MAX_LANGUAGES distinct language codes. Region
+ * and script subtags are not codes here: `pt-BR` serves as `pt`.
+ */
+function checkLanguages(value: unknown): ValidateManifestError[] {
+  const invalid = (reason: string): ValidateManifestError[] => [
+    {
+      code: 'invalid_languages',
+      message: `languages ${reason}, got ${JSON.stringify(value)}`,
+    },
+  ];
+  if (!Array.isArray(value)) return invalid('must be an array');
+  if (value.length === 0 || value.length > MAX_LANGUAGES) {
+    return invalid(`must list 1 to ${MAX_LANGUAGES} languages`);
+  }
+  if (
+    value.some(
+      (code) => typeof code !== 'string' || !LANGUAGE_CODE_RE.test(code),
+    )
+  ) {
+    return invalid('must be lowercase language codes such as "de"');
+  }
+  if (new Set(value).size !== value.length) {
+    return invalid('must not list a language twice');
+  }
+  return [];
+}
+
 /**
  * Structural + registry validation of an unknown value as ManifestV1.
  * Never throws — returns typed errors.
@@ -255,16 +320,24 @@ export function validateManifest(value: unknown): ValidateManifestResult {
     }
   }
 
+  const basePath = record.basePath;
+  if (basePath !== undefined) errors.push(...checkBasePath(basePath));
+  const languages = record.languages;
+  if (languages !== undefined) errors.push(...checkLanguages(languages));
+
   if (errors.length > 0) {
     return { ok: false, errors };
   }
 
-  return {
-    ok: true,
-    manifest: {
-      version: 1,
-      roles: rolesOut,
-      ...(featuresOut.length > 0 ? { features: featuresOut } : {}),
-    },
-  };
+  const manifest: ManifestV1 = { version: 1, roles: rolesOut };
+  if (featuresOut.length > 0) {
+    manifest.features = featuresOut;
+  }
+  if (typeof basePath === 'string' && basePath !== '/') {
+    manifest.basePath = basePath;
+  }
+  if (Array.isArray(languages)) {
+    manifest.languages = languages.map(String);
+  }
+  return { ok: true, manifest };
 }
