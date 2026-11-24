@@ -272,6 +272,19 @@ export function purchasePath(purchaseToken: string): string {
 }
 
 /**
+ * A help center category (`/help/categories/<slug>`): the published
+ * articles of one category.
+ */
+export function helpCategoryPath(categorySlug: string): string {
+  return `/help/categories/${encodePathSegment(categorySlug)}`;
+}
+
+/** A help center article (`/help/articles/<slug>`). */
+export function helpArticlePath(articleSlug: string): string {
+  return `/help/articles/${encodePathSegment(articleSlug)}`;
+}
+
+/**
  * Static top-level board paths (indexed marketing + index surfaces). Kept
  * here so the sitemap and consumers share one definition of the chrome
  * routes too.
@@ -307,6 +320,12 @@ export const BOARD_PATHS = {
   mePurchases: '/me/purchases',
   /** The tip page: visitors tip the board through its tip jar. */
   tip: '/tip',
+  /** The help center home: the board's help categories and articles. */
+  help: '/help',
+  /** A job seeker creates an account. */
+  signUp: '/auth/sign-up',
+  /** A signed-in job seeker's job matches, picked from their profile. */
+  matches: '/matches',
   /**
    * The person's email preferences (job alerts, job matches, marketing and
    * its topics), opened from every email footer with a preferences token.
@@ -319,6 +338,110 @@ export const BOARD_PATHS = {
    */
   assistantConsent: '/authorize',
 } as const;
+
+/**
+ * A board's consolidation map for place job landing pages. Each key in
+ * `places` is a place slug as it appears in public URLs. Its value is the
+ * place whose pages this place's pages duplicate, or `null` when they
+ * duplicate the same page with no place (for example `/jobs` for
+ * `/jobs/locations/<place>`). Each entry holds one step; the target may
+ * have its own entry, and `resolveJobLandingPage` follows them to the end.
+ */
+export type JobLandingConsolidationMap = {
+  places: Record<string, string | null>;
+};
+
+/**
+ * A place job landing page: a place, with at most one category or skill.
+ */
+export type JobLandingPageInput =
+  | { placeSlug: string; categorySlug?: string; skillSlug?: never }
+  | { placeSlug: string; skillSlug?: string; categorySlug?: never };
+
+/** Where a place job landing page resolves to. */
+export type ResolvedJobLandingPage = {
+  /** The resolved place slug, or `null` for the page with no place. */
+  placeSlug: string | null;
+  /** The resolved page's path, built by the `*Path` helpers above. */
+  path: string;
+};
+
+function nextPlace(
+  places: Record<string, string | null>,
+  placeSlug: string,
+): string | null | undefined {
+  if (!Object.prototype.hasOwnProperty.call(places, placeSlug)) {
+    return undefined;
+  }
+  const target = places[placeSlug];
+  if (target === null) return null;
+  return typeof target === 'string' && target !== '' ? target : undefined;
+}
+
+/**
+ * Resolve a place job landing page through a consolidation map: the page
+ * whose results this page duplicates, followed to the end of the chain.
+ *
+ * With no map, or no entry for the place, the page resolves to itself. A
+ * place resolving to `null` gives the same page with no place: the category
+ * or skill listing, or `BOARD_PATHS.jobs` for a bare place. If the chain
+ * comes back to a place it already passed, it stops at the last place
+ * before the repeat.
+ *
+ * Compare `path` with the page's own path to decide whether to link to,
+ * or name as canonical, another page.
+ *
+ * | page | map | result |
+ * | --- | --- | --- |
+ * | `{ placeSlug: 'a' }` | none | `/jobs/locations/a` |
+ * | `{ placeSlug: 'a' }` | `a → b`, `b → c` | `/jobs/locations/c` |
+ * | `{ placeSlug: 'a', categorySlug: 'x' }` | `a → b` | `/jobs/locations/b/x` |
+ * | `{ placeSlug: 'a', skillSlug: 'y' }` | `a → null` | `/jobs/skills/y` |
+ * | `{ placeSlug: 'a' }` | `a → null` | `/jobs` |
+ */
+export function resolveJobLandingPage(
+  page: JobLandingPageInput,
+  map?: JobLandingConsolidationMap | null,
+): ResolvedJobLandingPage {
+  const places = map?.places;
+  let placeSlug: string | null = page.placeSlug;
+
+  if (places && typeof places === 'object') {
+    const seen = new Set<string>([page.placeSlug]);
+    let current = page.placeSlug;
+    for (;;) {
+      const next = nextPlace(places, current);
+      if (next === undefined) break;
+      if (next === null) {
+        placeSlug = null;
+        break;
+      }
+      if (seen.has(next)) break;
+      seen.add(next);
+      current = next;
+      placeSlug = next;
+    }
+  }
+
+  return { placeSlug, path: jobLandingPagePath(page, placeSlug) };
+}
+
+function jobLandingPagePath(
+  page: JobLandingPageInput,
+  placeSlug: string | null,
+): string {
+  if (page.categorySlug) {
+    return placeSlug === null
+      ? jobsCategoryPath(page.categorySlug)
+      : jobsLocationCategoryPath(placeSlug, page.categorySlug);
+  }
+  if (page.skillSlug) {
+    return placeSlug === null
+      ? jobsSkillPath(page.skillSlug)
+      : jobsLocationSkillPath(placeSlug, page.skillSlug);
+  }
+  return placeSlug === null ? BOARD_PATHS.jobs : jobsLocationPath(placeSlug);
+}
 
 /**
  * Email `/go` indirection paths. Pure builders so

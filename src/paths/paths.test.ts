@@ -19,6 +19,7 @@ import {
   jobsLocationPath,
   jobsLocationSkillPath,
   jobsSkillPath,
+  resolveJobLandingPage,
   salaryLocationPath,
   salarySkillPath,
   salaryTitlePath,
@@ -224,5 +225,125 @@ describe('suggestionPath', () => {
     expect(suggestionPath(skill, { scope: 'blog' })).toBeNull();
     expect(suggestionPath(post, { scope: 'jobs' })).toBeNull();
     expect(suggestionPath(tag, { scope: 'companies' })).toBeNull();
+  });
+});
+
+describe('resolveJobLandingPage', () => {
+  const map = (places: Record<string, string | null>) => ({ places });
+
+  it('returns the page itself with no map or an empty map', () => {
+    expect(resolveJobLandingPage({ placeSlug: 'berlin' })).toEqual({
+      placeSlug: 'berlin',
+      path: '/jobs/locations/berlin',
+    });
+    expect(resolveJobLandingPage({ placeSlug: 'berlin' }, null).path).toBe(
+      '/jobs/locations/berlin',
+    );
+    expect(
+      resolveJobLandingPage(
+        { placeSlug: 'berlin', categorySlug: 'design' },
+        map({}),
+      ).path,
+    ).toBe('/jobs/locations/berlin/design');
+  });
+
+  it('returns the page itself when the place has no entry', () => {
+    expect(
+      resolveJobLandingPage(
+        { placeSlug: 'berlin' },
+        map({ germany: 'berlin' }),
+      ),
+    ).toEqual({ placeSlug: 'berlin', path: '/jobs/locations/berlin' });
+  });
+
+  it('ignores inherited object keys', () => {
+    expect(
+      resolveJobLandingPage({ placeSlug: 'constructor' }, map({})).path,
+    ).toBe('/jobs/locations/constructor');
+  });
+
+  it('follows one hop', () => {
+    expect(
+      resolveJobLandingPage(
+        { placeSlug: 'noord-holland' },
+        map({ 'noord-holland': 'amsterdam' }),
+      ),
+    ).toEqual({ placeSlug: 'amsterdam', path: '/jobs/locations/amsterdam' });
+  });
+
+  it('follows a chain to the end', () => {
+    const chain = map({
+      netherlands: 'noord-holland',
+      'noord-holland': 'amsterdam',
+    });
+    expect(resolveJobLandingPage({ placeSlug: 'netherlands' }, chain)).toEqual({
+      placeSlug: 'amsterdam',
+      path: '/jobs/locations/amsterdam',
+    });
+  });
+
+  it('resolves place x category and place x skill pages', () => {
+    const chain = map({
+      netherlands: 'noord-holland',
+      'noord-holland': 'amsterdam',
+    });
+    expect(
+      resolveJobLandingPage(
+        { placeSlug: 'netherlands', categorySlug: 'design' },
+        chain,
+      ).path,
+    ).toBe('/jobs/locations/amsterdam/design');
+    expect(
+      resolveJobLandingPage(
+        { placeSlug: 'noord-holland', skillSlug: 'react' },
+        chain,
+      ).path,
+    ).toBe('/jobs/locations/amsterdam/skills/react');
+  });
+
+  it('resolves a null target to the page with no place', () => {
+    const toNoPlace = map({ germany: null });
+    expect(resolveJobLandingPage({ placeSlug: 'germany' }, toNoPlace)).toEqual({
+      placeSlug: null,
+      path: BOARD_PATHS.jobs,
+    });
+    expect(
+      resolveJobLandingPage(
+        { placeSlug: 'germany', categorySlug: 'design' },
+        toNoPlace,
+      ),
+    ).toEqual({ placeSlug: null, path: '/jobs/design' });
+    expect(
+      resolveJobLandingPage(
+        { placeSlug: 'germany', skillSlug: 'react' },
+        toNoPlace,
+      ).path,
+    ).toBe('/jobs/skills/react');
+  });
+
+  it('follows a chain that ends in a null target', () => {
+    expect(
+      resolveJobLandingPage(
+        { placeSlug: 'bavaria', categorySlug: 'design' },
+        map({ bavaria: 'germany', germany: null }),
+      ).path,
+    ).toBe('/jobs/design');
+  });
+
+  it('stops at the last place before a repeat in a cycle', () => {
+    const cycle = map({ a: 'b', b: 'c', c: 'a' });
+    expect(resolveJobLandingPage({ placeSlug: 'a' }, cycle)).toEqual({
+      placeSlug: 'c',
+      path: '/jobs/locations/c',
+    });
+    expect(
+      resolveJobLandingPage({ placeSlug: 'a' }, map({ a: 'a' })).path,
+    ).toBe('/jobs/locations/a');
+  });
+
+  it('encodes resolved slugs like the path builders', () => {
+    expect(
+      resolveJobLandingPage({ placeSlug: 'a' }, map({ a: 'zürich' })).path,
+    ).toBe('/jobs/locations/z%C3%BCrich');
   });
 });
