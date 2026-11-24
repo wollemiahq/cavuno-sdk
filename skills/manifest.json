@@ -1,5 +1,5 @@
 {
-  "version": "4.79.0",
+  "version": "4.80.0",
   "skills": [
     {
       "name": "cavuno-board-account",
@@ -75,6 +75,13 @@
       "name": "cavuno-board-format",
       "description": "Board-language display formatting with @cavuno/board/format. Use for salary ranges, dates, custom-field display, or salary-stat numbers.",
       "path": "skills/cavuno-board-format/SKILL.md",
+      "framework": null,
+      "category": "core"
+    },
+    {
+      "name": "cavuno-board-help",
+      "description": "Public help center reads with @cavuno/board. Use for a help home, help category pages, help article pages, article structured data, or the help link in navigation.",
+      "path": "skills/cavuno-board-help/SKILL.md",
       "framework": null,
       "category": "core"
     },
