@@ -50,8 +50,8 @@ import { createMcpHandler } from '@cavuno/board/mcp';
 
 // Mount at /mcp, /mcp/*, /.well-known/ard.json, /.well-known/ai-catalog.json,
 // /.well-known/oauth-protected-resource (and /mcp below it),
-// /.well-known/oauth-authorization-server and /oauth/*,
-// for GET, HEAD, POST and OPTIONS.
+// /.well-known/oauth-authorization-server, /.well-known/poppy.json and
+// /oauth/*, for GET, HEAD, POST and OPTIONS.
 const handler = createMcpHandler({
   board: process.env.NEXT_PUBLIC_CAVUNO_BOARD_KEY!,
   consentPath: '/authorize',
@@ -66,6 +66,10 @@ const handler = createMcpHandler({
 - The discovery documents and `POST /oauth/register`, `/oauth/token` and
   `/oauth/revoke` forward to the Board API; `OPTIONS` on them answers the
   browser preflight.
+- `/.well-known/poppy.json` is the Personal Agent Protocol discovery
+  document, so personal agents can sign people in too. The Board API
+  answers it while the board's Personal agents switch is on, and 404
+  otherwise. It stays at the domain root under a `basePath`.
 - `GET /oauth/authorize` redirects to `consentPath` with the query unchanged.
 - A site under a `basePath` such as `/jobboard` mounts `/jobboard/mcp` and
   `/jobboard/oauth/*`. The two discovery documents stay at the domain root,
