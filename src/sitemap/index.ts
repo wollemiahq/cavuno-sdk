@@ -1,5 +1,5 @@
 /**
- * `@cavuno/board/sitemap` — the hosted board's 8-bucket sitemap model for
+ * `@cavuno/board/sitemap` — the board's bucketed sitemap model for
  * custom frontends. Two tiers:
  *
  * - `xml.ts` — pure primitives: bucket names, 45k chunking, filename

@@ -67,6 +67,15 @@ const handler = createMcpHandler({
   `/oauth/revoke` forward to the Board API; `OPTIONS` on them answers the
   browser preflight.
 - `GET /oauth/authorize` redirects to `consentPath` with the query unchanged.
+- A site under a `basePath` such as `/jobboard` mounts `/jobboard/mcp` and
+  `/jobboard/oauth/*`. The two discovery documents stay at the domain root,
+  with the path after their name:
+  `/.well-known/oauth-protected-resource/jobboard/mcp` and
+  `/.well-known/oauth-authorization-server/jobboard`. When the framework
+  serves only below the base path, the server at the root routes those two.
+  The site's route manifest (`/.well-known/cavuno.json`) declares
+  `basePath: '/jobboard'`, which is where the Board API reads the folder
+  from, and `consentPath` includes the base, such as `/jobboard/authorize`.
 - Without `consentPath` those paths answer 404 and nothing extra is sent.
 - `consentPath` needs `board` to be the publishable key, and must be a path
   on the site; otherwise `createMcpHandler` throws a `TypeError`.
