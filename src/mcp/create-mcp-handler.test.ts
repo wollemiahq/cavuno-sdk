@@ -317,6 +317,9 @@ describe('createMcpHandler without consentPath', () => {
     ['GET', '/.well-known/oauth-authorization-server'],
     ['GET', '/.well-known/oauth-protected-resource/jobboard/mcp'],
     ['GET', '/.well-known/oauth-authorization-server/jobboard'],
+    ['GET', '/.well-known/poppy.json'],
+    ['HEAD', '/.well-known/poppy.json'],
+    ['OPTIONS', '/.well-known/poppy.json'],
     ['POST', '/oauth/register'],
     ['POST', '/oauth/token'],
     ['POST', '/oauth/revoke'],
@@ -414,6 +417,7 @@ describe('createMcpHandler with consentPath', () => {
       '/.well-known/oauth-authorization-server/jobboard',
       `${API}/mcp/oauth/.well-known/oauth-authorization-server`,
     ],
+    ['/.well-known/poppy.json', `${API}/mcp/oauth/.well-known/poppy.json`],
   ])('forwards GET and HEAD %s', async (path, upstream) => {
     const calls = stubUpstream(() =>
       Response.json(
@@ -526,6 +530,7 @@ describe('createMcpHandler with consentPath', () => {
     for (const path of [
       '/oauth/token',
       '/.well-known/oauth-authorization-server',
+      '/.well-known/poppy.json',
     ]) {
       const response = await signIn(
         new Request(`https://jobs.example.com${path}`, { method: 'OPTIONS' }),
@@ -542,6 +547,7 @@ describe('createMcpHandler with consentPath', () => {
   it.each([
     ['GET', '/oauth/token', 'POST'],
     ['POST', '/.well-known/oauth-authorization-server', 'GET, HEAD'],
+    ['POST', '/.well-known/poppy.json', 'GET, HEAD'],
     ['POST', '/oauth/authorize', 'GET, HEAD'],
   ])('answers %s %s with 405', async (method, path, allow) => {
     const calls = stubUpstream(() => Response.json({}));
