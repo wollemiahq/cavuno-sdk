@@ -3,6 +3,31 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.80.0 — 2026-11-24
+
+- `board.auth.requestMagicLink` and `board.auth.forgotPassword` now refuse
+  an address whose domain has no mail server (no MX, A or AAAA record) with
+  `email_domain_undeliverable` (422), as `board.auth.register` does, and
+  send nothing. It is judged on the domain alone, so `forgotPassword` still
+  never reveals whether an address is registered. A lookup that fails or
+  times out never refuses.
+- Offers after a purchase. A purchase (`board.purchases.get`)
+  has a new `offer`: another product of the board the buyer doesn't own,
+  with `name`, `summary`, `coverImageUrl`, `priceCents`, `fullPriceCents`,
+  `currency`, `discountPercent` and `discountEndsAt`, or `null`. Send its
+  `token` as `offerToken` with that product's checkout to charge the offer
+  price; checkout answers `product_offer_invalid` (409) for another buyer,
+  another product, or a token already used. The `cavuno-board-products`
+  skill shows the download-page card.
+- `@cavuno/board/paths` adds `resolveJobLandingPage(page, map)`. Pass a
+  place job landing page (a place slug, with an optional category or skill
+  slug) and a board's `JobLandingConsolidationMap`; it returns the page whose
+  results this page duplicates, following the map to the end, as
+  `{ placeSlug, path }`. `placeSlug` is `null` when the page resolves to the same page with
+  no place. With no map, or no entry for the place, the page resolves to its
+  own path. New types: `JobLandingConsolidationMap`, `JobLandingPageInput` and
+  `ResolvedJobLandingPage`.
+
 ## 4.79.0 — 2026-11-23
 
 - Sign-in from AI assistants on a self-hosted board's own domain.
