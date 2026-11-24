@@ -25,10 +25,15 @@
  * board from their assistant (OAuth 2.1), on this site's own domain. Mount
  * the handler at `/.well-known/oauth-protected-resource`,
  * `/.well-known/oauth-protected-resource/mcp`,
- * `/.well-known/oauth-authorization-server` and `/oauth/*` too:
+ * `/.well-known/oauth-authorization-server`, `/.well-known/poppy.json` and
+ * `/oauth/*` too:
  *
  * - The discovery documents and `POST /oauth/register`, `/oauth/token` and
  *   `/oauth/revoke` are forwarded to `/v1/boards/{board}/mcp/oauth/*`.
+ * - `/.well-known/poppy.json` is the Personal Agent Protocol discovery
+ *   document, so personal agents can find the board and sign people in.
+ *   The Board API answers it while the board takes personal agents, and
+ *   404 otherwise. It stays at the domain root under a `basePath`.
  * - A site served under a path, such as `/jobboard`, mounts the handler at
  *   `/jobboard/mcp` and `/jobboard/oauth/*`, and its discovery documents at
  *   `/.well-known/oauth-protected-resource/jobboard/mcp` and
@@ -118,6 +123,7 @@ const OAUTH_UPSTREAMS = [
     'GET',
     'mcp/oauth/.well-known/oauth-authorization-server',
   ],
+  ['/.well-known/poppy.json', 'GET', 'mcp/oauth/.well-known/poppy.json'],
   ['/oauth/register', 'POST', 'mcp/oauth/register'],
   ['/oauth/token', 'POST', 'mcp/oauth/token'],
   ['/oauth/revoke', 'POST', 'mcp/oauth/revoke'],
@@ -279,7 +285,8 @@ function checkConsentPath(path: string): string {
  * `/.well-known/ai-catalog.json`, and with
  * `consentPath` the sign-in paths `/.well-known/oauth-protected-resource`,
  * `/.well-known/oauth-protected-resource/mcp`,
- * `/.well-known/oauth-authorization-server` and `/oauth/*`. A site under a
+ * `/.well-known/oauth-authorization-server`, `/.well-known/poppy.json` and
+ * `/oauth/*`. A site under a
  * `basePath` such as `/jobboard` mounts `/jobboard/mcp` and
  * `/jobboard/oauth/*`, and at the domain root
  * `/.well-known/oauth-protected-resource/jobboard/mcp` and
@@ -301,8 +308,9 @@ function checkConsentPath(path: string): string {
  * export { handler as GET, handler as HEAD, handler as POST } from '@/lib/mcp';
  *
  * // With sign-in, also app/.well-known/oauth-protected-resource/[[...path]]/route.ts,
- * // app/.well-known/oauth-authorization-server/[[...path]]/route.ts and
- * // app/oauth/[...path]/route.ts, which answer browser preflights too:
+ * // app/.well-known/oauth-authorization-server/[[...path]]/route.ts,
+ * // app/.well-known/poppy.json/route.ts and app/oauth/[...path]/route.ts,
+ * // which answer browser preflights too:
  * export {
  *   handler as GET,
  *   handler as HEAD,

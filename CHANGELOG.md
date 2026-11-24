@@ -3,6 +3,13 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.81.0 — 2026-11-24
+
+- The board context (`board.context()`, `GET /v1/boards/{identifier}`) adds
+  an optional `jobLandingConsolidation` field: the board's
+  `JobLandingConsolidationMap`, ready to pass to `resolveJobLandingPage`. Its
+  `places` is empty when no place page duplicates another.
+
 ## 4.80.0 — 2026-11-24
 
 - `createMcpHandler` from `@cavuno/board/mcp` also answers
