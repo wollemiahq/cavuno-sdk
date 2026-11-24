@@ -50,8 +50,8 @@ import { createMcpHandler } from '@cavuno/board/mcp';
 
 // Mount at /mcp, /mcp/*, /.well-known/ard.json, /.well-known/ai-catalog.json,
 // /.well-known/oauth-protected-resource (and /mcp below it),
-// /.well-known/oauth-authorization-server and /oauth/*,
-// for GET, HEAD, POST and OPTIONS.
+// /.well-known/oauth-authorization-server, /.well-known/poppy.json and
+// /oauth/*, for GET, HEAD, POST and OPTIONS.
 const handler = createMcpHandler({
   board: process.env.NEXT_PUBLIC_CAVUNO_BOARD_KEY!,
   consentPath: '/authorize',
@@ -66,6 +66,10 @@ const handler = createMcpHandler({
 - The discovery documents and `POST /oauth/register`, `/oauth/token` and
   `/oauth/revoke` forward to the Board API; `OPTIONS` on them answers the
   browser preflight.
+- `/.well-known/poppy.json` is the Personal Agent Protocol discovery
+  document, so personal agents can sign people in too. The Board API
+  answers it while the board's Personal agents switch is on, and 404
+  otherwise. It stays at the domain root under a `basePath`.
 - `GET /oauth/authorize` redirects to `consentPath` with the query unchanged.
 - A site under a `basePath` such as `/jobboard` mounts `/jobboard/mcp` and
   `/jobboard/oauth/*`. The two discovery documents stay at the domain root,
@@ -117,6 +121,18 @@ role, Cavuno shows its own page. The role needs the page's marker,
 `export const cavunoPage = 'assistantConsent'`: a page at the canonical
 `/authorize` alone does not take it. Keep `/oauth/*` for the platform: a page
 declared there is ignored.
+
+Some assistants, such as personal agents, ask for fine scopes
+(`profile.read`, `jobs.publish`) instead of `candidate` or `employer`. A page
+with a picker lists the step's `requestedScopes` as checkboxes, all ticked,
+marks the ones whose `changes` is `irreversible` or that read `personalData`,
+refuses Allow with none ticked, and sends the ticked `id`s as
+`approvedScopes`. On a Builder site the page gets those requests only once
+the site declares the `assistantConsentScopes` route feature,
+`export const cavunoFeatures = ['assistantConsentScopes'] as const`, in the
+file that marks the page; until then Cavuno shows its own page for them. A self-hosted
+site's `consentPath` gets every request, so its page needs the picker before
+the site takes personal agents.
 
 The page passes its query string on unchanged, words the step in the board's
 language from its facts (`access`, `trustLevel`, `publisherHost`,

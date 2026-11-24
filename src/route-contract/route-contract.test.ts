@@ -748,6 +748,48 @@ describe('route-contract compiler', () => {
       expect(typed.manifest.features).toEqual(['talentFreeTrial']);
     });
 
+    it('records a consent page that lists scopes beside its role', () => {
+      const result = compileManifestFromTree(
+        tree([
+          {
+            path: 'src/routes/authorize.tsx',
+            contents: [
+              "export const cavunoPage = 'assistantConsent';",
+              "export const cavunoFeatures = ['assistantConsentScopes'] as const;",
+            ].join('\n'),
+          },
+        ]),
+      );
+      expect(result.manifest.roles.assistantConsent).toBe('/authorize');
+      expect(result.manifest.features).toEqual(['assistantConsentScopes']);
+      expect(result.warnings).not.toContain(
+        "unknown feature 'assistantConsentScopes' in cavunoFeatures",
+      );
+    });
+
+    it('takes the consent page’s feature only from that page, and others from any file', () => {
+      const result = compileManifestFromTree(
+        tree([
+          {
+            path: 'src/routes/authorize.tsx',
+            contents: "export const cavunoPage = 'assistantConsent';",
+          },
+          {
+            path: 'src/routes/p.$handle.tsx',
+            contents: [
+              "export const cavunoPage = 'talentProfile';",
+              "export const cavunoFeatures = ['talentFreeTrial', 'assistantConsentScopes'] as const;",
+            ].join('\n'),
+          },
+        ]),
+      );
+      expect(result.manifest.roles.assistantConsent).toBe('/authorize');
+      expect(result.manifest.features).toEqual(['talentFreeTrial']);
+      expect(result.warnings).toContain(
+        "feature 'assistantConsentScopes' in cavunoFeatures of src/routes/p.$handle.tsx ignored: declare it on the page with export const cavunoPage = 'assistantConsent'",
+      );
+    });
+
     it('leaves features out of a manifest whose site declares none', () => {
       const result = compileManifestFromTree(tree([]));
       expect('features' in result.manifest).toBe(false);
