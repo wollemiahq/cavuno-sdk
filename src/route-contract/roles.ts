@@ -16,6 +16,8 @@ import {
   companyMarketPath,
   companyPath,
   companySalaryPath,
+  helpArticlePath,
+  helpCategoryPath,
   jobDetailPath,
   jobsCategoryPath,
   jobsLocationPath,
@@ -88,7 +90,22 @@ export type RouteRole =
    * marker, never from its path. A board that does not declare it gets a
    * Cavuno-hosted page.
    */
-  | 'assistantConsent';
+  | 'assistantConsent'
+  /**
+   * The help center: its home, a category's page and an article's page. All
+   * three are optional, never required. The dashboard offers the help center
+   * to a board whose site declares `helpArticle`.
+   */
+  | 'help'
+  | 'helpCategory'
+  | 'helpArticle'
+  /**
+   * A job seeker's sign-up page and their job matches; both optional, never
+   * required. Emails link them (the job alert digest's resume line); a board
+   * that does not declare them is linked at their canonical paths.
+   */
+  | 'signUp'
+  | 'matches';
 
 /**
  * Exact param-name set per role, derived from each helper's signature.
@@ -134,6 +151,13 @@ export const ROLE_PARAM_REGISTRY: Record<RouteRole, readonly string[]> = {
   tip: [],
   emailPreferences: [],
   assistantConsent: [],
+  help: [],
+  // Names no other role uses, so a renamed help folder still classifies
+  // without a marker.
+  helpCategory: ['helpCategorySlug'],
+  helpArticle: ['helpArticleSlug'],
+  signUp: [],
+  matches: [],
 };
 
 /** Email-emitting roles — a missing one blocks publish. */
@@ -201,5 +225,10 @@ export const CANONICAL_MANIFEST: ManifestV1 = {
     tip: BOARD_PATHS.tip,
     emailPreferences: BOARD_PATHS.emailPreferences,
     assistantConsent: BOARD_PATHS.assistantConsent,
+    help: BOARD_PATHS.help,
+    helpCategory: helpCategoryPath(':helpCategorySlug'),
+    helpArticle: helpArticlePath(':helpArticleSlug'),
+    signUp: BOARD_PATHS.signUp,
+    matches: BOARD_PATHS.matches,
   },
 };

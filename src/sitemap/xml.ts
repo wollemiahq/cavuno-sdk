@@ -1,9 +1,10 @@
 /**
  * Sitemap primitives — the pure XML + bucket-filename logic behind a board
  * frontend's `/sitemap.xml` index and `/sitemap/:file` bucket routes.
- * Mirrors the hosted board's 8-bucket model (`board-sitemap.loader.ts`): a
- * sitemap index points at one file per content bucket, each an ordinary
- * `<urlset>`.
+ * Mirrors the board's bucket model (`board-sitemap.loader.ts`): a sitemap
+ * index points at one file per content bucket, each an ordinary `<urlset>`.
+ * The `help` bucket lists the help center of a board whose site has help
+ * pages; the hosted board does not serve it.
  *
  * The XML byte layout transcribes the hosted serializers
  * (`sitemap-xml.utils.ts` — `serializeBoardSitemap` /
@@ -24,6 +25,7 @@ export const SITEMAP_BUCKETS = [
   'companies',
   'salaries',
   'blog',
+  'help',
 ] as const;
 
 export type SitemapBucket = (typeof SITEMAP_BUCKETS)[number];

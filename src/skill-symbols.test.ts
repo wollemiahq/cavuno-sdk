@@ -6,6 +6,7 @@ import * as formatModule from './format';
 import { createBoardClient } from './index';
 import * as sdk from './index';
 import * as mcpModule from './mcp';
+import * as pathsModule from './paths';
 import * as seoModule from './seo';
 import * as serverModule from './server';
 import * as sitemapModule from './sitemap';
@@ -34,6 +35,7 @@ const SUBPATH_EXPORTS: Record<string, Set<string>> = {
   '/seo': new Set(Object.keys(seoModule)),
   '/sitemap': new Set(Object.keys(sitemapModule)),
   '/mcp': new Set(Object.keys(mcpModule)),
+  '/paths': new Set(Object.keys(pathsModule)),
   '/server': new Set(Object.keys(serverModule)),
 };
 const corpus = loadSkillCorpus();
