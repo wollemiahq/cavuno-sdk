@@ -81,11 +81,16 @@ export const BOARD_API_ERROR_CODES = [
   'blog_post_not_found',
   'blog_author_not_found',
   'blog_tag_not_found',
+  // Help center (public reads)
+  'help_category_not_found',
+  'help_article_not_found',
   // Public collections
   'collections_not_found',
   // Job aggregator feeds
   'feeds_not_found',
   'feed_not_ready',
+  // Self-hosted frontend route manifest
+  'route_manifest_origin_not_registered',
   // Talent directory
   'talent_not_found',
   'talent_directory_not_found',
@@ -217,6 +222,8 @@ export const BOARD_API_ERROR_CODES = [
   'product_amount_below_minimum',
   'product_amount_invalid',
   'product_answers_invalid',
+  // The offer after purchase is used, another buyer's, or another product's.
+  'product_offer_invalid',
   'purchases_not_found',
   'purchase_file_not_found',
   'purchase_unavailable',

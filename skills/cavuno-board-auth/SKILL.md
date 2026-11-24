@@ -83,7 +83,7 @@ Successful logout revokes the refresh token and clears SDK storage. A failed log
 
 ## Mistyped email addresses
 
-Under the email field, offer a one-tap fix for a mistyped domain: `suggestEmailAddress` from `@cavuno/board/email` compares the domain with common mailbox providers and returns the corrected address, or `null`. It never changes the part before the @, and it runs in the browser, so call it on blur. The API also refuses an address whose domain has no mail server (no MX, A or AAAA record) with 422 `email_domain_undeliverable`, before anything is created or emailed; `details.suggestion` carries the same correction when there is one.
+Under the email field, offer a one-tap fix for a mistyped domain: `suggestEmailAddress` from `@cavuno/board/email` compares the domain with common mailbox providers and returns the corrected address, or `null`. It never changes the part before the @, and it runs in the browser, so call it on blur. The API also refuses an address whose domain has no mail server (no MX, A or AAAA record) with 422 `email_domain_undeliverable` on `register`, `requestMagicLink` and `forgotPassword`, before anything is created or emailed; `details.suggestion` carries the same correction when there is one.
 
 ```ts snippet
 import { BoardApiError } from '@cavuno/board';

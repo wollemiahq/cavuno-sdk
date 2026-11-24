@@ -11,6 +11,7 @@ import { collectionsNamespace } from './namespaces/collections';
 import { companiesNamespace } from './namespaces/companies';
 import { emailPreferencesNamespace } from './namespaces/email-preferences';
 import { embedNamespace } from './namespaces/embed';
+import { helpNamespace } from './namespaces/help';
 import { invitesNamespace } from './namespaces/invites';
 import { jobAlertsNamespace } from './namespaces/job-alerts';
 import { jobPostingNamespace } from './namespaces/job-posting';
@@ -147,6 +148,7 @@ export function createBoardClient(options: CreateBoardClientOptions) {
     embed: embedNamespace(client),
     companies: companiesNamespace(client),
     blog: blogNamespace(client),
+    help: helpNamespace(client),
     collections: collectionsNamespace(client),
     auth: authNamespace(client, options.board),
     me: meNamespace(client),
@@ -414,6 +416,15 @@ export type {
   McpConsentDecisionBody,
   McpConsentStep,
 } from './types/mcp-consent';
+// Help center — `board.help.*` (published categories and articles).
+export type {
+  HelpArticlesListQuery,
+  HelpCategoriesListQuery,
+  HelpCategoryEmbed,
+  PublicHelpArticle,
+  PublicHelpArticleSummary,
+  PublicHelpCategory,
+} from './types/help';
 // Tip jar — `board.tipJar.*` (the tip page and tip checkout).
 export { tipCoverFeeCents } from './tip-cover-fee';
 export type {

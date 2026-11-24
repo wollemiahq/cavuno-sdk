@@ -79,6 +79,13 @@
       "category": "core"
     },
     {
+      "name": "cavuno-board-help",
+      "description": "Public help center reads with @cavuno/board. Use for a help home, help category pages, help article pages, article structured data, or the help link in navigation.",
+      "path": "skills/cavuno-board-help/SKILL.md",
+      "framework": null,
+      "category": "core"
+    },
+    {
       "name": "cavuno-board-i18n",
       "description": "One-seam board localization with @cavuno/board. Use when localizing UI chrome, adding locale routing, or preserving board-language content.",
       "path": "skills/cavuno-board-i18n/SKILL.md",
