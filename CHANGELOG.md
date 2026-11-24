@@ -3,6 +3,29 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.81.0 — 2026-11-24
+
+- The board context (`board.context()`, `GET /v1/boards/{identifier}`) adds
+  an optional `jobLandingConsolidation` field: the board's
+  `JobLandingConsolidationMap`, ready to pass to `resolveJobLandingPage`. Its
+  `places` is empty when no place page duplicates another.
+- Personal agents on self-hosted sites. `createMcpHandler` from
+  `@cavuno/board/mcp` also answers `/.well-known/poppy.json`, the Personal
+  Agent Protocol discovery document, so a person's own agent can find the
+  board and sign them in. Mount the handler there too; it stays at the
+  domain root under a `basePath`. The document lists the board's MCP server
+  and the scopes it offers, and answers 404 while the board doesn't take
+  personal agents.
+- Route feature `assistantConsentScopes`. Declare it with
+  `export const cavunoFeatures = ['assistantConsentScopes'] as const` in the
+  file that marks the assistant consent page
+  (`export const cavunoPage = 'assistantConsent'`) once that page lists the
+  consent step's `requestedScopes` as checkboxes and sends the ticked ones
+  back as `approvedScopes`. Sign-ins that ask for fine scopes
+  (`profile.read`, `jobs.publish` and the like) then reach the site's own
+  page. Declared in any other file, the feature is ignored with a compile
+  warning.
+
 ## 4.80.0 — 2026-11-24
 
 - `createMcpHandler` from `@cavuno/board/mcp` also answers
