@@ -5,8 +5,10 @@
  * Imports only sibling route-contract / paths modules.
  */
 
+import { matchPathToTemplate } from './match-history';
 import { extractParamNames } from './params';
 import {
+  ALL_ROLES,
   CANONICAL_MANIFEST,
   REQUIRED_ROLES,
   ROLE_PARAM_REGISTRY,
@@ -98,52 +100,100 @@ export function createBoardLinkResolver(layers: readonly ManifestLayer[]) {
       bySource.set(layer.source, layer);
     }
   }
+  // The base path of the highest layer that sets one. Inferred manifests
+  // come from crawling and never carry one.
+  const basePath =
+    (['declared', 'wellKnown'] as const)
+      .map((source) => bySource.get(source)?.manifest.basePath)
+      .find(
+        (base) => typeof base === 'string' && base !== '' && base !== '/',
+      ) ?? '';
+
+  /** `path` (from the board's root) under the base path. */
+  function withBase(path: string): string {
+    if (basePath === '') return path;
+    return path === '/' ? basePath : `${basePath}${path}`;
+  }
+
+  function pathFor(
+    role: RouteRole,
+    params?: Record<string, string>,
+  ): ResolvedBoardPath {
+    let sawMissingParam = false;
+
+    for (const source of LAYER_ORDER) {
+      if (source === 'inferred' && REQUIRED_SET.has(role)) {
+        // Email-adjacent defense: never serve REQUIRED_ROLES from inferred.
+        continue;
+      }
+      const layer = bySource.get(source);
+      if (!layer) continue;
+
+      const template = templateFor(layer.manifest, role);
+      if (template === undefined) continue;
+
+      const path = trySubstitute(template, role, params);
+      if (path !== null) {
+        // A complete later layer wins cleanly (no fallback flag) — the
+        // missing-param flag is only attached when we land on canonical.
+        return { path, source };
+      }
+      sawMissingParam = true;
+    }
+
+    // Canonical default (always present for every registry role), under
+    // the base path.
+    const canonicalTemplate =
+      templateFor(CANONICAL_MANIFEST, role) ??
+      CANONICAL_MANIFEST.roles[role] ??
+      '/';
+    const path = trySubstitute(canonicalTemplate, role, params);
+    if (path !== null) {
+      return sawMissingParam
+        ? {
+            path: withBase(path),
+            source: 'canonical',
+            fallback: 'missing-param',
+          }
+        : { path: withBase(path), source: 'canonical' };
+    }
+
+    // Incomplete even on canonical — never emit ':' tokens.
+    return {
+      path: withBase(forceSubstitute(canonicalTemplate, params)),
+      source: 'canonical',
+      fallback: 'missing-param',
+    };
+  }
+
+  /**
+   * Where a canonical board path (`/companies/acme/jobs/x`, as the hosted
+   * board serves it) lives on this board: the path of the role it is when a
+   * declared or pulled layer names that role, otherwise the same path under
+   * the base path. Segments pass through as given, so a raw (still
+   * encoded) path comes back raw; a capture never contains `/` or `\`.
+   * A path that isn't a role but has a role's shape (`/jobs/locations`
+   * looks like a `jobsCategory`) follows that role's template.
+   */
+  function mapCanonicalPath(pathname: string): string {
+    for (const role of ALL_ROLES) {
+      const template = CANONICAL_MANIFEST.roles[role];
+      if (template === undefined) continue;
+      const params = matchPathToTemplate(template, pathname);
+      if (params === null) continue;
+      const resolved = pathFor(role, params);
+      return resolved.source === 'canonical'
+        ? withBase(pathname)
+        : resolved.path;
+    }
+    return withBase(pathname);
+  }
 
   return {
-    pathFor(
-      role: RouteRole,
-      params?: Record<string, string>,
-    ): ResolvedBoardPath {
-      let sawMissingParam = false;
-
-      for (const source of LAYER_ORDER) {
-        if (source === 'inferred' && REQUIRED_SET.has(role)) {
-          // Email-adjacent defense: never serve REQUIRED_ROLES from inferred.
-          continue;
-        }
-        const layer = bySource.get(source);
-        if (!layer) continue;
-
-        const template = templateFor(layer.manifest, role);
-        if (template === undefined) continue;
-
-        const path = trySubstitute(template, role, params);
-        if (path !== null) {
-          // A complete later layer wins cleanly (no fallback flag) — the
-          // missing-param flag is only attached when we land on canonical.
-          return { path, source };
-        }
-        sawMissingParam = true;
-      }
-
-      // Canonical default (always present for every registry role).
-      const canonicalTemplate =
-        templateFor(CANONICAL_MANIFEST, role) ??
-        CANONICAL_MANIFEST.roles[role] ??
-        '/';
-      const path = trySubstitute(canonicalTemplate, role, params);
-      if (path !== null) {
-        return sawMissingParam
-          ? { path, source: 'canonical', fallback: 'missing-param' }
-          : { path, source: 'canonical' };
-      }
-
-      // Incomplete even on canonical — never emit ':' tokens.
-      return {
-        path: forceSubstitute(canonicalTemplate, params),
-        source: 'canonical',
-        fallback: 'missing-param',
-      };
-    },
+    /** The board's base path: `''` at the domain root, else `/jobboard`. */
+    basePath,
+    withBase,
+    mapCanonicalPath,
+    pathFor,
   };
 }

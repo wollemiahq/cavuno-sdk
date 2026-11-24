@@ -26,6 +26,12 @@
  *
  * - The discovery documents and `POST /oauth/register`, `/oauth/token` and
  *   `/oauth/revoke` are forwarded to `/v1/boards/{board}/mcp/oauth/*`.
+ * - A site served under a path, such as `/jobboard`, mounts the handler at
+ *   `/jobboard/mcp` and `/jobboard/oauth/*`, and its discovery documents at
+ *   `/.well-known/oauth-protected-resource/jobboard/mcp` and
+ *   `/.well-known/oauth-authorization-server/jobboard`. The Board API reads
+ *   the path from the board's route manifest (`basePath`), so the site must
+ *   publish one.
  * - `GET /oauth/authorize` sends the browser to `consentPath` with the
  *   assistant's query unchanged; the site's own consent page shows the step
  *   from `board.mcpConsent.get` and answers it with `board.mcpConsent.submit`.
@@ -114,6 +120,31 @@ const OAUTH_UPSTREAMS = [
 ] as const;
 
 const AUTHORIZE_PATH = '/oauth/authorize';
+
+/**
+ * Under a `basePath` the discovery documents stay at the domain root, with
+ * the base after the well-known name (RFC 9728 §3.1, RFC 8414 §3.1):
+ * `/.well-known/oauth-protected-resource/jobboard/mcp` and
+ * `/.well-known/oauth-authorization-server/jobboard`. The Board API answers
+ * both for the base the board's route manifest declares, so each is
+ * forwarded like its root document; the base in the path is not passed on.
+ */
+const BASE_PATH_DISCOVERY = [
+  [
+    /\/\.well-known\/oauth-protected-resource\/.+\/mcp$/,
+    '/.well-known/oauth-protected-resource/mcp',
+  ],
+  [
+    /\/\.well-known\/oauth-authorization-server\/.+$/,
+    '/.well-known/oauth-authorization-server',
+  ],
+] as const;
+
+/** The root document a base-path discovery path stands for, else the path. */
+function discoveryPath(path: string): string {
+  const match = BASE_PATH_DISCOVERY.find(([pattern]) => pattern.test(path));
+  return match ? match[1] : path;
+}
 
 /**
  * The preflight the Board API answers for these endpoints, answered here:
@@ -243,7 +274,13 @@ function checkConsentPath(path: string): string {
  * `/mcp/server-card` and `/.well-known/ai-catalog.json`, and with
  * `consentPath` the sign-in paths `/.well-known/oauth-protected-resource`,
  * `/.well-known/oauth-protected-resource/mcp`,
- * `/.well-known/oauth-authorization-server` and `/oauth/*`.
+ * `/.well-known/oauth-authorization-server` and `/oauth/*`. A site under a
+ * `basePath` such as `/jobboard` mounts `/jobboard/mcp` and
+ * `/jobboard/oauth/*`, and at the domain root
+ * `/.well-known/oauth-protected-resource/jobboard/mcp` and
+ * `/.well-known/oauth-authorization-server/jobboard`. Its route manifest
+ * (`/.well-known/cavuno.json`) declares `basePath: '/jobboard'`, and its
+ * `consentPath` includes the base, such as `/jobboard/authorize`.
  *
  * @example
  * // Next.js App Router: one handler module, lib/mcp.ts:
@@ -258,7 +295,7 @@ function checkConsentPath(path: string): string {
  * export { handler as GET, handler as HEAD, handler as POST } from '@/lib/mcp';
  *
  * // With sign-in, also app/.well-known/oauth-protected-resource/[[...path]]/route.ts,
- * // app/.well-known/oauth-authorization-server/route.ts and
+ * // app/.well-known/oauth-authorization-server/[[...path]]/route.ts and
  * // app/oauth/[...path]/route.ts, which answer browser preflights too:
  * export {
  *   handler as GET,
@@ -291,8 +328,9 @@ export function createMcpHandler(config: CreateMcpHandlerConfig) {
     let forwarded: readonly string[] = FORWARDED_HEADERS;
     let oauth = false;
 
+    const oauthPath = discoveryPath(path);
     const oauthRoute = OAUTH_UPSTREAMS.find(([suffix]) =>
-      path.endsWith(suffix),
+      oauthPath.endsWith(suffix),
     );
     const document = DOCUMENT_UPSTREAMS.find(([suffix]) =>
       path.endsWith(suffix),

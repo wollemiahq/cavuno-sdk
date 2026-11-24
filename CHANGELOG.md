@@ -3,6 +3,15 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.80.0 — 2026-11-24
+
+- `board.auth.requestMagicLink` and `board.auth.forgotPassword` now refuse
+  an address whose domain has no mail server (no MX, A or AAAA record) with
+  `email_domain_undeliverable` (422), as `board.auth.register` does, and
+  send nothing. It is judged on the domain alone, so `forgotPassword` still
+  never reveals whether an address is registered. A lookup that fails or
+  times out never refuses.
+
 ## 4.79.0 — 2026-11-23
 
 - Sign-in from AI assistants on a self-hosted board's own domain.
