@@ -211,6 +211,33 @@ describe('read.localizedUrls', () => {
     expect(result.status).toBe('pass');
   });
 
+  it('lets the job matches page send a signed-out visitor to sign in, or be off', async () => {
+    const manifest = {
+      version: 1,
+      roles: { ...DUTCH_ROLES, matches: '/passende-vacatures' },
+    };
+    const english = { status: 308, location: '/passende-vacatures' };
+    const signIn = await probeLocalizedUrls(
+      board({
+        '/matches': english,
+        '/passende-vacatures': {
+          status: 307,
+          location: '/auth/inloggen?returnTo=%2Fmatches',
+        },
+      }),
+      BASE,
+      manifest,
+    );
+    expect(signIn.status).toBe('pass');
+
+    const off = await probeLocalizedUrls(
+      board({ '/matches': english, '/passende-vacatures': { status: 404 } }),
+      BASE,
+      manifest,
+    );
+    expect(off.status).toBe('pass');
+  });
+
   it('does not let content pages redirect', async () => {
     const result = await probeLocalizedUrls(
       board({ '/bedrijven': { status: 302, location: '/' } }),

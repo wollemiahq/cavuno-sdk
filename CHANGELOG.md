@@ -3,6 +3,24 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.82.0 — 2026-11-24
+
+- A candidate's interested roles. `me.profile.retrieve()`
+  (`GET /v1/boards/{identifier}/me/profile`) returns `interestedRoles`, and
+  `me.profile.update()` (`PATCH`) takes `interestedRoles` to replace the list:
+  up to 50 roles of up to 100 characters, trimmed, with a role repeated in
+  different capitalisation kept once. Job matches rank on skills and
+  interested roles, so a profile with either can be matched.
+- Doctor: `read.localizedUrls` accepts a job matches page that sends a
+  signed-out visitor to sign in, or answers 404 because job recommendations
+  are off.
+- The talent form (`board.context().forms.talent`) adds an `interestedRoles`
+  built-in: the operator can hide it, require it or move it like `skills`. A
+  board that hasn't arranged its talent form lists it right after `bio`; on a
+  board that has, it sits just before `experience`. Render it from
+  `me.profile.retrieve().interestedRoles`. As with every form, skip built-in
+  keys you don't recognise.
+
 ## 4.81.0 — 2026-11-24
 
 - The board context (`board.context()`, `GET /v1/boards/{identifier}`) adds
