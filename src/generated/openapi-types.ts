@@ -34,7 +34,7 @@ export interface paths {
         put?: never;
         /**
          * Request a password reset email
-         * @description Request a password reset link for a board user. Always returns 204, whether or not the email is registered: no account enumeration. When the account exists, an email is sent in the background with a link to the board’s own `/auth/reset-password?token=…` page (custom primary domain honored: same headless-frontend contract as the verification email). The token is single-use and expires after 1 hour.
+         * @description Request a password reset link for a board user. Returns 204 whether or not the email is registered: no account enumeration. Only an address whose domain has no mail server is refused, with 422 `email_domain_undeliverable`, judged on the domain alone. When the account exists, an email is sent in the background with a link to the board’s own `/auth/reset-password?token=…` page (custom primary domain honored: same headless-frontend contract as the verification email). The token is single-use and expires after 1 hour.
          */
         post: operations["createBoardAuthForgotPassword"];
         delete?: never;
@@ -900,6 +900,86 @@ export interface paths {
          * @description Returns one of the board's job aggregator feeds as XML, the file an aggregator such as Indeed or Jooble crawls. A board serves each feed on its own host at `/feeds/<slug>.xml`; this endpoint is what that route answers with. `HEAD` returns the same headers without a body. Every response carries `X-Robots-Tag: noindex` and, for a known feed, `X-Cavuno-Feed: boards_<id>/<slug>`. A built feed returns `200` with an `ETag`; send it back in `If-None-Match` for a `304`. A feed that exists but has no file yet returns `503 feed_not_ready` with `Retry-After`, never an empty feed. A name that is not a feed returns `404 feeds_not_found`. Feeds of a password-protected board are not served.
          */
         get: operations["getBoardFeed"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/help/articles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List a public board's help articles
+         * @description Returns the published help articles of the named public board without their bodies, ordered by category and then by position inside the category, as the board set them. Optionally filter by `categorySlug`. Cursor-paginated: follow `nextCursor` for the rest. Drafts and edits that are not yet published are never returned.
+         */
+        get: operations["listBoardHelpArticles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/help/articles/{articleSlug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieve a public help article
+         * @description Retrieves a published help article on the named public board by its slug, including its `html` body. A slug the article used to have still resolves, with `redirected: true` and the current slug in `newSlug`.
+         */
+        get: operations["getBoardHelpArticle"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/help/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List a public board's help categories
+         * @description Returns the help center categories of the named public board that hold at least one published article, in the order the board set. Cursor-paginated: follow `nextCursor` for the rest.
+         */
+        get: operations["listBoardHelpCategories"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/help/categories/{categorySlug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieve a public help category
+         * @description Retrieves one help center category on the named public board by its slug. A category with no published article is not found.
+         */
+        get: operations["getBoardHelpCategory"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4338,6 +4418,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/route-manifest/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Re-read the self-hosted frontend's route manifest
+         * @description Asks Cavuno to fetch the route manifest the board's self-hosted frontend publishes at `<registered frontend URL>/.well-known/cavuno.json`, so the links Cavuno builds (emails, Stripe returns, webhooks, feeds) follow the frontend's paths and `basePath` straight away instead of at the next daily check. Call it after the frontend changes its routes. The identifier must be the board's active publishable key (`pk_…`) and the key must have a registered frontend URL; only that URL is fetched. The request takes no body. A frontend that publishes no manifest, or an invalid one, keeps the paths it had.
+         */
+        post: operations["refreshBoardRouteManifest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/boards/{identifier}/salaries/companies": {
         parameters: {
             query?: never;
@@ -5363,10 +5463,10 @@ export interface components {
             /** @description Show this to the person. */
             message: string;
             /**
-             * @description Why: `invalid_link` the link is broken; `unknown_client` the assistant isn’t registered with the board; `client_rejected` the assistant’s registration couldn’t be used; `redirect_mismatch` it asked to return to an address it didn’t register; `not_signed_in` the person came back from sign-in but the site’s session wasn’t seen; `no_account` the person has no account kind the assistant can use (see `accountScopes`); `expired` the page expired; `unavailable` the assistant can’t be connected right now. `message` says the same in English.
+             * @description Why: `invalid_link` the link is broken; `unknown_client` the assistant isn’t registered with the board; `client_rejected` the assistant’s registration couldn’t be used; `redirect_mismatch` it asked to return to an address it didn’t register; `not_signed_in` the person came back from sign-in but the site’s session wasn’t seen; `no_account` the person has no account kind the assistant can use (see `accountScopes`); `expired` the page expired; `unavailable` the assistant can’t be connected right now; `scopes_not_requested` Allow named no scope, or one the step didn’t list in `requestedScopes`. `message` says the same in English.
              * @enum {string}
              */
-            code: "invalid_link" | "unknown_client" | "client_rejected" | "redirect_mismatch" | "not_signed_in" | "no_account" | "expired" | "unavailable";
+            code: "invalid_link" | "unknown_client" | "client_rejected" | "redirect_mismatch" | "not_signed_in" | "no_account" | "expired" | "unavailable" | "scopes_not_requested";
         };
         BoardMcpConsentDecisionBody: {
             /** @description The `request` of the consent step shown. */
@@ -5378,10 +5478,28 @@ export interface components {
              * @enum {string}
              */
             decision: "allow" | "deny";
+            /** @description For `allow`: the `id`s the person ticked of the step’s `requestedScopes`, at least one. Omitted, every requested scope is approved. One the step didn’t list is refused (`scopes_not_requested`). */
+            approvedScopes?: string[];
         };
         BoardMcpConsentStep: {
             /** @enum {string} */
             next: "consent";
+            /** @description What the assistant asked for and the person can grant, one entry per scope. A page with a picker lists them as checkboxes, all ticked, and sends the ticked ones back in `approvedScopes`; a page without one approves them all. `access` and `scopes` describe the umbrella scopes among them. */
+            requestedScopes: {
+                /** @description The scope, as Allow sends it back in `approvedScopes`: `candidate` or `employer` (a whole side of the person’s account), or a fine scope such as `profile.read` or `jobs.publish`. Levels are inclusive: `manage` includes `read`, `publish` includes `manage`. New scopes may be added; show an unknown one by its `label`. */
+                id: string;
+                /** @description What the scope allows, as a short phrase, in English. */
+                label: string;
+                /** @description What the scope allows, in a sentence or two, in English. */
+                description: string;
+                /**
+                 * @description The most consequential change behind the scope: `none` it only reads; `reversible` its changes can be undone; `irreversible` one of them can’t (say so, e.g. “Can’t be undone”).
+                 * @enum {string}
+                 */
+                changes: "none" | "reversible" | "irreversible";
+                /** @description Whether the scope reads personal data, such as the person’s profile or applicants’ details (say so, e.g. “Personal data”). */
+                personalData: boolean;
+            }[];
             /** @description Send back unchanged with Allow or Cancel. */
             request: string;
             /** @description Send back unchanged with Allow or Cancel. Good for ten minutes, for this person and request only. */
@@ -5445,10 +5563,10 @@ export interface components {
             /** @description Show this to the person. */
             message: string;
             /**
-             * @description Why: `invalid_link` the link is broken; `unknown_client` the assistant isn’t registered with the board; `client_rejected` the assistant’s registration couldn’t be used; `redirect_mismatch` it asked to return to an address it didn’t register; `not_signed_in` the person came back from sign-in but the site’s session wasn’t seen; `no_account` the person has no account kind the assistant can use (see `accountScopes`); `expired` the page expired; `unavailable` the assistant can’t be connected right now. `message` says the same in English.
+             * @description Why: `invalid_link` the link is broken; `unknown_client` the assistant isn’t registered with the board; `client_rejected` the assistant’s registration couldn’t be used; `redirect_mismatch` it asked to return to an address it didn’t register; `not_signed_in` the person came back from sign-in but the site’s session wasn’t seen; `no_account` the person has no account kind the assistant can use (see `accountScopes`); `expired` the page expired; `unavailable` the assistant can’t be connected right now; `scopes_not_requested` Allow named no scope, or one the step didn’t list in `requestedScopes`. `message` says the same in English.
              * @enum {string}
              */
-            code: "invalid_link" | "unknown_client" | "client_rejected" | "redirect_mismatch" | "not_signed_in" | "no_account" | "expired" | "unavailable";
+            code: "invalid_link" | "unknown_client" | "client_rejected" | "redirect_mismatch" | "not_signed_in" | "no_account" | "expired" | "unavailable" | "scopes_not_requested";
             /** @description For `no_account`: the account kinds the board’s assistants can use. */
             accountScopes?: ("candidate" | "employer")[];
         };
@@ -8108,6 +8226,8 @@ export interface components {
                 tipJar: boolean;
                 /** @description Whether the board lists at least one digital product. Matches `GET /v1/boards/{identifier}/products` returning a non-empty first page with no filters, so chrome can decide whether to link to the products page from this context alone. */
                 products: boolean;
+                /** @description Whether the board has at least one published help article. Matches `GET /v1/boards/{identifier}/help/articles` returning a non-empty list, so chrome can decide whether to link to the help center from this context alone. */
+                helpCenter: boolean;
             };
             /**
              * @description How the operator charges employers for the candidate directory. `paid_messaging` leaves profiles fully visible and spends a credit on a first cold message; `paid_unlocks_and_messaging` also redacts directory cards and gates the opaque `/p/{id}` profile route behind an unlock credit. `null` means the operator has not chosen explicitly, in which case infer it from the published `talent_access` plans: any plan granting profile unlocks means `paid_unlocks_and_messaging`, otherwise `paid_messaging`. The paywall is inert regardless when the board publishes no talent plan. An anonymous viewer has no entitlement read to derive this from, so it ships here rather than only on `me/talent-access`.
@@ -8419,6 +8539,40 @@ export interface components {
         PublicEmailPreferencesUpdateResult: components["schemas"]["PublicEmailPreferences"] & {
             /** @description This change emailed the person a fresh confirmation link: job alerts came back on with alerts that wait for one. Show "check your inbox" only when this is true. The email is queued, so it can still fail to arrive. */
             confirmationEmailQueued: boolean;
+        };
+        PublicHelpArticle: components["schemas"]["PublicHelpArticleSummary"] & {
+            /** @description The article body as sanitized HTML. */
+            html: string | null;
+            redirected: boolean;
+            newSlug: string | null;
+        };
+        PublicHelpArticleSummary: {
+            id: string;
+            /** @enum {string} */
+            object: "public_help_article";
+            slug: string;
+            title: string;
+            /** @description A short plain-text description of the article, also meant as the page description; `null` when unset. */
+            summary: string | null;
+            category: components["schemas"]["PublicHelpCategoryEmbed"];
+            /** @description When the article was first published (ISO 8601). */
+            publishedAt: string;
+            /** @description When the published article last changed (ISO 8601). Edits that are saved but not yet published do not move it. */
+            updatedAt: string;
+        };
+        PublicHelpCategory: {
+            id: string;
+            /** @enum {string} */
+            object: "public_help_category";
+            slug: string;
+            title: string;
+            description: string | null;
+        };
+        /** @description The category the article is in. */
+        PublicHelpCategoryEmbed: {
+            id: string;
+            slug: string;
+            title: string;
         };
         PublicJob: {
             /** @description Unique identifier for the object. Use this value as the `{id}` path parameter for the job endpoints (e.g. `GET /v1/jobs/{id}`). */
@@ -9359,6 +9513,17 @@ export interface components {
                 contentType: string;
                 sizeBytes: number;
             } | null;
+        };
+        RouteManifestRefresh: {
+            /** @enum {string} */
+            object: "route_manifest_refresh";
+            /**
+             * @description The pull is queued. It usually runs within a minute; until a valid manifest is read, links keep the paths they had.
+             * @enum {string}
+             */
+            status: "queued";
+            /** @description The registered frontend URL whose `/.well-known/cavuno.json` will be fetched. */
+            origin: string;
         };
         SalaryCompanyIndexItem: {
             /** @enum {string} */
@@ -10437,6 +10602,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description The email domain has no mail server (no MX, A or AAAA record), usually a mistyped domain (`email_domain_undeliverable`, with `details.domain`, and `details.suggestion` holding the corrected address when the domain looks like a mistyped common one, such as `gmial.com` for `gmail.com`). Nothing is sent; show the suggestion or ask for a different address. A failed or timed-out lookup never refuses. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Rate limited (`rate_limited`): 10 requests per minute per IP, plus 3 requests per 15 minutes per (IP, email). */
             429: {
                 headers: {
@@ -10588,6 +10762,15 @@ export interface operations {
             };
             /** @description Board not found (nonexistent or private), or no account exists for that email (`board_auth_account_not_found`). */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The email domain has no mail server (no MX, A or AAAA record), usually a mistyped domain (`email_domain_undeliverable`, with `details.domain`, and `details.suggestion` holding the corrected address when the domain looks like a mistyped common one, such as `gmial.com` for `gmail.com`). Nothing is sent; show the suggestion or ask for a different address. A failed or timed-out lookup never refuses. */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -12956,6 +13139,188 @@ export interface operations {
             };
             /** @description The feed has no file yet (`feed_not_ready`). Retry after the `Retry-After` seconds. */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listBoardHelpArticles: {
+        parameters: {
+            query?: {
+                /** @description An opaque pagination cursor returned in the `nextCursor` field of a previous response. Pass it back, with the same filters, to fetch the next page. */
+                cursor?: string;
+                /**
+                 * @description A limit on the number of objects to be returned. Limit can range between 1 and 100, and defaults to 25.
+                 * @example 25
+                 */
+                limit?: number;
+                /** @description Restrict the list to one category, by its slug. A slug no category has returns an empty list. */
+                categorySlug?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        object: "list";
+                        url: string;
+                        hasMore: boolean;
+                        nextCursor: string | null;
+                        data: components["schemas"]["PublicHelpArticleSummary"][];
+                    };
+                };
+            };
+            /** @description A `cursor` this list did not return (`pagination_invalid_cursor`), or an invalid query parameter. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Public board not found, or the board is private. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getBoardHelpArticle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                /** @description URL slug of the help article. */
+                articleSlug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicHelpArticle"];
+                };
+            };
+            /** @description Public board not found, or no published article has or had this slug (`help_article_not_found`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listBoardHelpCategories: {
+        parameters: {
+            query?: {
+                /** @description An opaque pagination cursor returned in the `nextCursor` field of a previous response. Pass it back, with the same filters, to fetch the next page. */
+                cursor?: string;
+                /**
+                 * @description A limit on the number of objects to be returned. Limit can range between 1 and 100, and defaults to 25.
+                 * @example 25
+                 */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        object: "list";
+                        url: string;
+                        hasMore: boolean;
+                        nextCursor: string | null;
+                        data: components["schemas"]["PublicHelpCategory"][];
+                    };
+                };
+            };
+            /** @description A `cursor` this list did not return (`pagination_invalid_cursor`), or an invalid query parameter. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Public board not found, or the board is private. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getBoardHelpCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                /** @description URL slug of the help category. */
+                categorySlug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicHelpCategory"];
+                };
+            };
+            /** @description Public board not found, or no category with a published article has this slug (`help_category_not_found`). */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -17401,6 +17766,15 @@ export interface operations {
                     "application/json": components["schemas"]["MyCompanyProfileFieldValuesResponse"];
                 };
             };
+            /** @description A value was refused (`validation_bad_request`). When the refusal is about specific fields, `details.violations` lists each as `{ fieldKey, code, message }`, such as a required field left empty (`custom_field_required`), so a form can show each message on its field. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description A valid board-user access token is required. */
             401: {
                 headers: {
@@ -19038,7 +19412,7 @@ export interface operations {
                     "application/json": components["schemas"]["ProfileObjectReferencesResult"];
                 };
             };
-            /** @description Invalid selection or field value. */
+            /** @description Invalid selection or field value (`validation_bad_request`). When the refusal is about specific fields, `details.violations` lists each as `{ fieldKey, code, message }`: `fieldKey` is a required collection field left empty, or the key of an entry detail or row detail that was refused. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -22304,6 +22678,15 @@ export interface operations {
                     "application/json": components["schemas"]["MyCandidateProfileFieldValuesResponse"];
                 };
             };
+            /** @description A value was refused (`validation_bad_request`). When the refusal is about specific fields, `details.violations` lists each as `{ fieldKey, code, message }`, such as a required field left empty (`custom_field_required`), so a form can show each message on its field. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description A valid board-user access token is required. */
             401: {
                 headers: {
@@ -23265,7 +23648,7 @@ export interface operations {
                     "application/json": components["schemas"]["ProfileObjectReferencesResult"];
                 };
             };
-            /** @description Invalid selection or field value. */
+            /** @description Invalid selection or field value (`validation_bad_request`). When the refusal is about specific fields, `details.violations` lists each as `{ fieldKey, code, message }`: `fieldKey` is a required collection field left empty, or the key of an entry detail or row detail that was refused. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -25870,6 +26253,56 @@ export interface operations {
             };
             /** @description Public board not found, or the board is private. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    refreshBoardRouteManifest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The manifest pull is queued. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RouteManifestRefresh"];
+                };
+            };
+            /** @description Public board not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not called with the active publishable key, or the key has no registered frontend URL (`route_manifest_origin_not_registered`). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Refresh limit reached; respect Retry-After. */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };

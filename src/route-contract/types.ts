@@ -21,6 +21,23 @@ export type ManifestV1 = {
    * Absent when the site declares none.
    */
   features?: RouteFeature[];
+  /**
+   * Where the board's pages live that `roles` doesn't name, such as
+   * `/jobboard` for a board served under a path prefix: a role missing from
+   * `roles` resolves to its canonical path under it, and so does every
+   * fixed path the platform links to (sign-in email links, checkout
+   * returns, `/go/` email links). Templates in `roles` are used as written,
+   * from the domain root. Absent means the domain root.
+   */
+  basePath?: string;
+  /**
+   * The languages the board's pages are served in, by language code
+   * (`de`, `pt`), the default language first, for a site that serves its
+   * interface in several: the platform shows the ones besides the board's
+   * language as the site's secondary languages. Templates in `roles` are in
+   * the default language's words. Absent means the board's language only.
+   */
+  languages?: string[];
 };
 
 export type Ambiguity = {
@@ -57,7 +74,11 @@ export type ValidateManifestError = {
     /** Query string or fragment in a path template. */
     | 'template_query_or_fragment'
     /** Characters outside the allowed path/token charset. */
-    | 'template_illegal_charset';
+    | 'template_illegal_charset'
+    /** A `basePath` that isn't a plain path without a trailing slash. */
+    | 'invalid_base_path'
+    /** `languages` that aren't distinct lowercase language codes. */
+    | 'invalid_languages';
   message: string;
   role?: string;
   token?: string;

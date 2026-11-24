@@ -5,7 +5,8 @@
  * the platform's rules: Google for Jobs `JobPosting` JSON-LD (including the
  * 249-country worldwide-remote enumeration), salary-page `Occupation`/
  * `MonetaryAmountDistribution`/`ItemList`/`FAQPage` builders, blog
- * `Article`/`ProfilePage`, `BreadcrumbList`, and framework-neutral listing
+ * `Article`/`ProfilePage`, help `Article`, `BreadcrumbList`, and
+ * framework-neutral listing
  * `<head>` descriptors.
  *
  * Transcribed from the hosted board's builders and tested against
@@ -21,6 +22,8 @@ export { createAuthorProfileJsonLd, createBlogArticleJsonLd } from './blog';
 export type { ArticleJsonLdPost } from './blog';
 export { buildJobBreadcrumbs, createBreadcrumbJsonLd } from './breadcrumbs';
 export type { BreadcrumbItemInput, JobBreadcrumb } from './breadcrumbs';
+export { createHelpArticleJsonLd } from './help';
+export type { HelpArticleJsonLdArticle } from './help';
 export {
   ALL_COUNTRY_CODES,
   createJobPostingJsonLd,

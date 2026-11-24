@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { createAuthorProfileJsonLd, createBlogArticleJsonLd } from './blog';
 import { createBreadcrumbJsonLd } from './breadcrumbs';
+import { createHelpArticleJsonLd } from './help';
 import { ALL_COUNTRY_CODES, createJobPostingJsonLd } from './job-posting';
 import { listingHead, listingJsonLd } from './listing';
 import {
@@ -60,6 +61,7 @@ const BOARD = {
     mcp: false,
     tipJar: false,
     products: false,
+    helpCenter: false,
   },
   analytics: {
     ga4MeasurementId: null,
@@ -1427,5 +1429,46 @@ describe('createJobPostingJsonLd — organization-name precedence', () => {
     expect((ld.hiringOrganization as { name: string }).name).toBe(
       'Acme Holdings Pty Ltd',
     );
+  });
+});
+
+describe('createHelpArticleJsonLd', () => {
+  const ARTICLE = {
+    title: 'How do I apply for a job?',
+    summary: 'Open the job and press Apply.',
+    publishedAt: '2026-11-01T00:00:00.000Z',
+    updatedAt: '2026-11-20T09:30:00.000Z',
+  };
+
+  it('builds the Article with both dates and the board as publisher', () => {
+    expect(
+      createHelpArticleJsonLd({
+        article: ARTICLE,
+        boardName: 'Acme Jobs',
+        permalink: 'https://acme.example.com/help/articles/how-to-apply',
+      }),
+    ).toEqual({
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: 'How do I apply for a job?',
+      description: 'Open the job and press Apply.',
+      url: 'https://acme.example.com/help/articles/how-to-apply',
+      mainEntityOfPage: {
+        '@type': 'WebPage',
+        '@id': 'https://acme.example.com/help/articles/how-to-apply',
+      },
+      publisher: { '@type': 'Organization', name: 'Acme Jobs' },
+      datePublished: '2026-11-01T00:00:00.000Z',
+      dateModified: '2026-11-20T09:30:00.000Z',
+    });
+  });
+
+  it('leaves out the description when the article has no summary', () => {
+    const ld = createHelpArticleJsonLd({
+      article: { ...ARTICLE, summary: null },
+      boardName: 'Acme Jobs',
+      permalink: 'https://acme.example.com/help/articles/how-to-apply',
+    });
+    expect(ld).not.toHaveProperty('description');
   });
 });
