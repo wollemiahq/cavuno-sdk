@@ -278,6 +278,35 @@ describe('route-contract compiler', () => {
       ]);
     });
 
+    it('keeps cavunoAnalytics only when it is false', () => {
+      expect(
+        validateManifest({
+          version: 1,
+          roles: { jobs: '/jobs' },
+          cavunoAnalytics: false,
+        }),
+      ).toEqual({
+        ok: true,
+        manifest: {
+          version: 1,
+          roles: { jobs: '/jobs' },
+          cavunoAnalytics: false,
+        },
+      });
+      for (const cavunoAnalytics of [true, 'false', 0, null]) {
+        expect(
+          validateManifest({
+            version: 1,
+            roles: { jobs: '/jobs' },
+            cavunoAnalytics,
+          }),
+        ).toEqual({
+          ok: true,
+          manifest: { version: 1, roles: { jobs: '/jobs' } },
+        });
+      }
+    });
+
     it('keeps a valid basePath and drops a root one', () => {
       const prefixed = validateManifest({
         version: 1,
@@ -701,6 +730,30 @@ describe('route-contract compiler', () => {
       { path: 'src/routes/index.tsx', contents: 'export const Route = {}' },
       ...extra,
     ];
+
+    it('lists the features of every file in vocabulary order', () => {
+      const result = compileManifestFromTree(
+        tree([
+          {
+            path: 'src/routes/help.index.tsx',
+            contents:
+              "export const cavunoFeatures = ['helpCategoryIcons'] as const;",
+          },
+          {
+            path: 'src/board/talent-view-model.ts',
+            contents:
+              "export const cavunoFeatures = ['talentFreeTrial'] as const;",
+          },
+        ]),
+      );
+      expect(result.manifest.features).toEqual([
+        'talentFreeTrial',
+        'helpCategoryIcons',
+      ]);
+      expect(
+        result.warnings.filter((warning) => warning.includes('feature')),
+      ).toEqual([]);
+    });
 
     it('declares a feature from a cavunoFeatures marker in any file', () => {
       const result = compileManifestFromTree(

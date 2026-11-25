@@ -948,6 +948,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/boards/{identifier}/help/articles/{articleSlug}/similar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List help articles similar to one article
+         * @description Returns the published help articles nearest in meaning to the named article, without their bodies: nearest first, with articles of the same category ranked a little higher. They come from every category and never include the article itself. The list is empty until the article is in the search index, a few minutes after it is published. When the search index cannot answer, the response is `503 search_unavailable`, never an empty list.
+         */
+        get: operations["listBoardHelpArticleSimilar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/boards/{identifier}/help/categories": {
         parameters: {
             query?: never;
@@ -980,6 +1000,26 @@ export interface paths {
          * @description Retrieves one help center category on the named public board by its slug. A category with no published article is not found.
          */
         get: operations["getBoardHelpCategory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boards/{identifier}/help/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search a public board's help articles
+         * @description Returns the published help articles of the named public board that match `q`, best match first, without their bodies. Titles, summaries and bodies are searched, by meaning as well as by word. One page of at most `limit` articles: `hasMore` is always `false`. An article is searchable a few minutes after it is published. When the search index cannot answer, the response is `503 search_unavailable`, never an empty list.
+         */
+        get: operations["searchBoardHelp"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1580,7 +1620,7 @@ export interface paths {
         put?: never;
         /**
          * Call the board's MCP server
-         * @description The board's public Model Context Protocol server, over stateless Streamable HTTP: send JSON-RPC messages (`initialize`, `tools/list`, `tools/call`) as the request body. A board serves it on its own host at `/mcp`; this endpoint is what that route answers with. Its tools are read-only searches and reads of the board's published jobs, companies, categories, places and salary summaries, and return what the board shows any visitor who is not signed in. Requests are rate limited per visitor and per board; a limited request returns `429` with `Retry-After`.
+         * @description The board's public Model Context Protocol server, over stateless Streamable HTTP: send JSON-RPC messages (`initialize`, `tools/list`, `tools/call`) as the request body. A board serves it on its own host at `/mcp`; this endpoint is what that route answers with. Its public tools search and read the board's published jobs, companies, categories, places and salary summaries, and return what the board shows any visitor who is not signed in; `post_job_public` posts a job under the board's own plans and rules. When the request comes through the board's own site with sign-in on (forwarded by its Builder gateway, or from a self-hosted site calling with its publishable key and naming one of the key's registered origins in `x-cavuno-mcp-site`), the server also lists tools that work with the person's own account on the board. Each tool's `_meta.securitySchemes` says whether it needs sign-in: `noauth`, `oauth2` with the scope it needs, or both for a public tool that shows a signed-in person more. Calling a tool that needs sign-in without a valid token answers `401` with a `WWW-Authenticate` challenge, the MCP authorization flow. Requests are rate limited per visitor and per board; a limited request returns `429` with `Retry-After`.
          */
         post: operations["queryBoardMcpServer"];
         delete?: never;
@@ -8586,12 +8626,31 @@ export interface components {
             slug: string;
             title: string;
             description: string | null;
+            /** @description The icon shown beside the category name; `null` when it has none. */
+            icon: (components["schemas"]["PublicHelpCategoryIcon"] | null) | null;
         };
         /** @description The category the article is in. */
         PublicHelpCategoryEmbed: {
             id: string;
             slug: string;
             title: string;
+        };
+        /** @description The icon shown beside the category name: an emoji, a built-in icon or an uploaded image. Treat a `type` you do not know as no icon set. */
+        PublicHelpCategoryIcon: {
+            /** @enum {string} */
+            type: "emoji";
+            /** @description The emoji. */
+            value: string;
+        } | {
+            /** @enum {string} */
+            type: "icon";
+            /** @description The icon as SVG markup, to put in the page as it is. It is drawn in `currentColor`, so it takes the colour of the text around it, and is `1em` wide and high unless CSS sizes it. */
+            svg: string;
+        } | {
+            /** @enum {string} */
+            type: "image";
+            /** @description URL of the uploaded image. */
+            url: string;
         };
         PublicJob: {
             /** @description Unique identifier for the object. Use this value as the `{id}` path parameter for the job endpoints (e.g. `GET /v1/jobs/{id}`). */
@@ -13279,6 +13338,71 @@ export interface operations {
             };
         };
     };
+    listBoardHelpArticleSimilar: {
+        parameters: {
+            query?: {
+                /**
+                 * @description The most related articles to return. Limit can range between 1 and 20, and defaults to 6.
+                 * @example 6
+                 */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+                /** @description URL slug of the help article. */
+                articleSlug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        object: "list";
+                        url: string;
+                        hasMore: boolean;
+                        nextCursor: string | null;
+                        data: components["schemas"]["PublicHelpArticleSummary"][];
+                    };
+                };
+            };
+            /** @description An invalid query parameter. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Public board not found, or no published article has or had this slug (`help_article_not_found`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The search index cannot answer right now (`search_unavailable`). */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     listBoardHelpCategories: {
         parameters: {
             query?: {
@@ -13360,6 +13484,71 @@ export interface operations {
             };
             /** @description Public board not found, or no category with a published article has this slug (`help_category_not_found`). */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    searchBoardHelp: {
+        parameters: {
+            query: {
+                /** @description What to search for, as the visitor typed it. Up to 200 characters. Matched against article titles, summaries and bodies. */
+                q: string;
+                /**
+                 * @description The most articles to return. Limit can range between 1 and 50, and defaults to 10.
+                 * @example 10
+                 */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Board identifier, prefix-discriminated: the board slug (mutable), a `boards_…` board ID (immutable), or a `pk_…` publishable key (immutable, revocable). Headless frontends should bind to `boards_…` or `pk_…` — slugs can be renamed by the operator. */
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        object: "list";
+                        url: string;
+                        hasMore: boolean;
+                        nextCursor: string | null;
+                        data: components["schemas"]["PublicHelpArticleSummary"][];
+                    };
+                };
+            };
+            /** @description A missing or invalid query parameter. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Public board not found, or the board is private. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The search index cannot answer right now (`search_unavailable`). Retry, or match on the article list. */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
