@@ -278,6 +278,35 @@ describe('route-contract compiler', () => {
       ]);
     });
 
+    it('keeps cavunoAnalytics only when it is false', () => {
+      expect(
+        validateManifest({
+          version: 1,
+          roles: { jobs: '/jobs' },
+          cavunoAnalytics: false,
+        }),
+      ).toEqual({
+        ok: true,
+        manifest: {
+          version: 1,
+          roles: { jobs: '/jobs' },
+          cavunoAnalytics: false,
+        },
+      });
+      for (const cavunoAnalytics of [true, 'false', 0, null]) {
+        expect(
+          validateManifest({
+            version: 1,
+            roles: { jobs: '/jobs' },
+            cavunoAnalytics,
+          }),
+        ).toEqual({
+          ok: true,
+          manifest: { version: 1, roles: { jobs: '/jobs' } },
+        });
+      }
+    });
+
     it('keeps a valid basePath and drops a root one', () => {
       const prefixed = validateManifest({
         version: 1,
