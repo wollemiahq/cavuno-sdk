@@ -26,3 +26,15 @@ export type HelpArticlesListQuery = HelpCategoriesListQuery & {
   /** Keep one category's articles, by its slug. */
   categorySlug?: string;
 };
+
+export type HelpSearchQuery = {
+  /** What the visitor typed. 1-200 characters. */
+  q: string;
+  /** The most articles to return, 1-50. Defaults to 10. */
+  limit?: number;
+};
+
+export type HelpSimilarQuery = {
+  /** The most related articles to return, 1-20. Defaults to 6. */
+  limit?: number;
+};
