@@ -8265,6 +8265,8 @@ export interface components {
                 talentDirectory: "off" | "public" | "employers_only";
                 registrationWall: boolean;
                 passwordProtected: boolean;
+                /** @description Whether the board is offline because its owner's subscription is paused or has lapsed. While `true`, content reads return 402 `board_offline`: show a page saying the board is offline instead of the board's pages. */
+                offline: boolean;
                 publicJobSubmission: boolean;
                 candidatePaywall: boolean;
                 /**
@@ -13197,7 +13199,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description The board's plan does not include API access (`plan_upgrade_required`). */
+            /** @description The board's plan does not include API access (`plan_upgrade_required`), or the board is offline because its owner's subscription is paused or has lapsed (`board_offline`). */
             402: {
                 headers: {
                     [name: string]: unknown;

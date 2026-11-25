@@ -82,6 +82,7 @@ describe('board.context()', () => {
         tipJar: false,
         products: false,
         helpCenter: false,
+        offline: false,
       },
       analytics: {
         ga4MeasurementId: null,
