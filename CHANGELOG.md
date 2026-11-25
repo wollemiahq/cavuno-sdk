@@ -3,6 +3,13 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.83.0 — 2026-11-25
+
+- Route manifests can say a site has Cavuno Analytics turned off.
+  `ManifestV1` gains an optional `cavunoAnalytics: false`, and
+  `validateManifest()` keeps it. Any other value is dropped without failing
+  validation, and a manifest without it means the site runs Cavuno Analytics.
+
 ## 4.82.0 — 2026-11-24
 
 - A candidate's interested roles. `me.profile.retrieve()`

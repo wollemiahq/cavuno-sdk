@@ -38,6 +38,12 @@ export type ManifestV1 = {
    * the default language's words. Absent means the board's language only.
    */
   languages?: string[];
+  /**
+   * `false` when the site's owner turned Cavuno Analytics off on the site,
+   * so the platform expects no page views, job views or traffic sources
+   * from it. Absent means the site runs it.
+   */
+  cavunoAnalytics?: false;
 };
 
 export type Ambiguity = {
