@@ -421,6 +421,8 @@ export type {
   HelpArticlesListQuery,
   HelpCategoriesListQuery,
   HelpCategoryEmbed,
+  HelpSearchQuery,
+  HelpSimilarQuery,
   PublicHelpArticle,
   PublicHelpArticleSummary,
   PublicHelpCategory,

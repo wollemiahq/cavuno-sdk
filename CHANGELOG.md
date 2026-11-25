@@ -3,6 +3,33 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.83.0 — 2026-11-25
+
+- Route manifests can say a site has Cavuno Analytics turned off.
+  `ManifestV1` gains an optional `cavunoAnalytics: false`, and
+  `validateManifest()` keeps it. Any other value is dropped without failing
+  validation, and a manifest without it means the site runs Cavuno Analytics.
+- Help search. `board.help.search({ q })`
+  (`GET /v1/boards/{identifier}/help/search`) returns the published articles
+  that match `q` by title, summary or body, by meaning as well as by word,
+  best match first, as summaries: one page of up to 10 by default and 50 at
+  most, with no cursor. An article is searchable a few minutes after it is
+  published. A `search_unavailable` error (503) means the index cannot
+  answer, so fall back to matching the article list yourself.
+- Related help articles. `board.help.articles.similar(slug)`
+  (`GET /v1/boards/{identifier}/help/articles/{slug}/similar`) returns the
+  published articles nearest in meaning to one article, from every category,
+  nearest first: up to 6 by default and 20 at most. The list is empty until
+  the article is in the search index, and a `search_unavailable` error (503)
+  means the index cannot answer; show the category's other articles in both
+  cases.
+- Help category icons. A help category gains `icon`: `null`, or one of
+  `{ type: 'emoji', value }`, `{ type: 'icon', svg }` (SVG markup drawn in
+  `currentColor`) and `{ type: 'image', url }`. Treat a `type` you don't
+  recognise as no icon. The new `helpCategoryIcons` route feature says a
+  site's help pages show that icon; the dashboard offers the icon field only
+  to boards whose site declares it.
+
 ## 4.82.0 — 2026-11-24
 
 - A candidate's interested roles. `me.profile.retrieve()`
