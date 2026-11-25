@@ -12,6 +12,8 @@
  *   ones back as `approvedScopes`, so it can take sign-ins that ask for
  *   fine scopes (`profile.read`, `jobs.publish`) as well as `candidate` and
  *   `employer`.
+ * - `helpCategoryIcons`: the help pages show the icon a help category
+ *   carries. A site that draws its own category icons does not declare it.
  *
  * Pure + isomorphic: no imports.
  */
@@ -19,6 +21,7 @@
 export const ALL_FEATURES = [
   'talentFreeTrial',
   'assistantConsentScopes',
+  'helpCategoryIcons',
 ] as const;
 
 export type RouteFeature = (typeof ALL_FEATURES)[number];

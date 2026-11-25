@@ -80,7 +80,7 @@
     },
     {
       "name": "cavuno-board-help",
-      "description": "Public help center reads with @cavuno/board. Use for a help home, help category pages, help article pages, article structured data, or the help link in navigation.",
+      "description": "Public help center reads with @cavuno/board. Use for a help home, help category pages, help article pages, help search, related articles, article structured data, or the help link in navigation.",
       "path": "skills/cavuno-board-help/SKILL.md",
       "framework": null,
       "category": "core"
