@@ -349,6 +349,11 @@ export type UpdateResumeBody = Schemas['UpdateResumeBody'];
 // ── Employer companies & claims ──────────────────
 /** The caller's tie to a company, with a computed claim `status`. */
 export type CompanyMembership = Schemas['CompanyMembership'];
+/**
+ * A confirmed work-email link: the membership, plus how a website change
+ * ended when the link was sent for one (`board.auth.verifyWorkEmail`).
+ */
+export type WorkEmailVerification = Schemas['WorkEmailVerification'];
 /** The full editable company (`board.me.companies.update` echoes this). */
 export type EmployerCompany = Schemas['EmployerCompany'];
 /** A search hit from `board.me.companies.search`. */

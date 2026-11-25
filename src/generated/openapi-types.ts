@@ -354,7 +354,7 @@ export interface paths {
         put?: never;
         /**
          * Verify an employer work email
-         * @description Consume the work-email verification token from the employer’s email link (24-hour TTL) and promote the pending company claim: auto-approved on domain match, otherwise `awaiting_admin`. Token-action — no session, the single-use token IS the authorization (like the candidate unsubscribe link), and it alone identifies the membership. Every rejection (unknown, expired, already used, wrong-type, or cross-board token) is the single opaque 401 `board_auth_invalid_token`; request a fresh verification email to recover.
+         * @description Consume the work-email verification token from the employer’s email link (24-hour TTL) and promote the pending company claim: auto-approved on domain match, otherwise `awaiting_admin`. Token-action — no session, the single-use token IS the authorization (like the candidate unsubscribe link), and it alone identifies the membership. Every rejection (unknown, expired, already used, wrong-type, or cross-board token) is the single opaque 401 `board_auth_invalid_token`; request a fresh verification email to recover. A token sent for a website change (`websiteChange.verificationEmail` on the company PATCH) finishes that change instead: the website moves to the new domain, or on a board that approves employers by hand the change waits for the board, and `websiteChange` says which (or that another company took the domain meanwhile). The response is the requester’s membership either way.
          */
         post: operations["createBoardAuthVerifyWorkEmail"];
         delete?: never;
@@ -2092,7 +2092,7 @@ export interface paths {
         head?: never;
         /**
          * Edit my company profile
-         * @description Optional-field merge-patch of the company profile (name, description, website, socials). Requires an approved membership for `:slug`. Returns the updated company.
+         * @description Optional-field merge-patch of the company profile (name, description, website, socials). Requires an approved membership for `:slug`. A `website` on a new domain does not take effect directly: it becomes a pending website change (see `websiteChange` and `pendingWebsiteChange`) and the rest of the patch is saved. An employer cannot remove the website. Returns the updated company.
          */
         patch: operations["updateBoardMeCompany"];
         trace?: never;
@@ -6715,6 +6715,16 @@ export interface components {
             logoUrl: string | null;
             /** @description Whether company admins may delete this company. Mirrors the board Features toggle `employerCompanyDeletionEnabled`. Absent board config defaults to `true`. When `false`, DELETE returns 403 `company_deletion_disabled` and clients should hide the danger zone. */
             deletionEnabled: boolean;
+            /** @description A change to a new website domain that has not taken effect yet. `website` keeps the current value until the domain is proven or the board approves. `null` when nothing is waiting. */
+            pendingWebsiteChange?: {
+                /** @description The requested website domain. */
+                websiteDomain: string;
+                /**
+                 * @description `awaiting_verification`: a link went to an email on the new domain; clicking it (`POST /boards/{identifier}/auth/verify-work-email`) finishes the change. `pending_review`: the board decides.
+                 * @enum {string}
+                 */
+                status: "awaiting_verification" | "pending_review";
+            } | null;
         };
         EmployerCreateJobBody: {
             /** @description Long-form description of the role, as HTML. Up to 25,000 characters. The HTML is sanitized on write: tags and attributes outside the supported formatting set (paragraphs, headings, lists, links, inline emphasis) are removed. Plain text without HTML tags is converted to paragraphs. */
@@ -10576,6 +10586,14 @@ export interface components {
             xUrl?: string;
             linkedinUrl?: string;
             facebookUrl?: string;
+            /** @description How to prove a change of `website` to a new domain. A new domain never takes effect directly: without this, it is sent to the board for review. Ignored when `website` keeps the current domain. */
+            websiteChange?: {
+                /**
+                 * Format: email
+                 * @description An address on the new website domain. A verification link goes there, and clicking it applies the change (on a board that approves employers by hand, it then waits for the board). Omit to send the change to the board for review.
+                 */
+                verificationEmail?: string;
+            };
             instagramUrl?: string;
         };
         UpdateExperienceBody: {
@@ -10626,6 +10644,18 @@ export interface components {
         };
         VerifyEmailOtpBody: {
             code: string;
+        };
+        WorkEmailVerification: components["schemas"]["CompanyMembership"] & {
+            /** @description Set when the token was sent for a website change (`websiteChange.verificationEmail` on the company PATCH), to the company in `company`. `null` when it confirmed a claim. */
+            websiteChange: {
+                /**
+                 * @description `changed`: the company website is now on `websiteDomain`. `pending_review`: the board approves employers by hand, so the change waits for the board. `conflict`: another company on the board took the domain after the request, so the change was cancelled.
+                 * @enum {string}
+                 */
+                outcome: "changed" | "pending_review" | "conflict";
+                /** @description The requested website domain. */
+                websiteDomain: string;
+            } | null;
         };
     };
     responses: never;
@@ -11672,7 +11702,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CompanyMembership"];
+                    "application/json": components["schemas"]["WorkEmailVerification"];
                 };
             };
             /** @description Invalid or expired token (`board_auth_invalid_token`). */
@@ -20912,7 +20942,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CompanyMembership"];
+                    "application/json": components["schemas"]["WorkEmailVerification"];
                 };
             };
             /** @description Invalid or expired token (`board_auth_invalid_token`). */

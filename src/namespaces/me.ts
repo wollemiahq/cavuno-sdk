@@ -28,6 +28,7 @@ import type {
   CompanyBillingPortalBody,
   CompanyBillingPortalSession,
   CompanyMembership,
+  WorkEmailVerification,
   CompanyMember,
   CompanyMemberInvite,
   CompanyMemberInviteAcceptance,
@@ -1072,7 +1073,7 @@ export function meNamespace(client: BoardClient) {
           body: ConfirmWorkEmailBody,
           options?: FetchOptions,
         ) {
-          return client.fetch<CompanyMembership>(
+          return client.fetch<WorkEmailVerification>(
             `/me/companies/${encodeURIComponent(slug)}/work-email/confirm`,
             { ...options, method: 'POST', body },
           );
