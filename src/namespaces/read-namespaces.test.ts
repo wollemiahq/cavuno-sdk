@@ -629,6 +629,21 @@ describe('board.help', () => {
     );
     expect(sentUrl(spy, 3)).toBe(`${BASE}/help/articles/how-to-apply`);
   });
+
+  it('search and similar hit their routes', async () => {
+    const spy = stubFetch();
+    const board = makeBoard();
+    await board.help.search({ q: 'reset my password', limit: 5 });
+    await board.help.articles.similar('how to apply', { limit: 4 });
+    await board.help.articles.similar('how-to-apply');
+    expect(sentUrl(spy, 0)).toBe(
+      `${BASE}/help/search?q=reset+my+password&limit=5`,
+    );
+    expect(sentUrl(spy, 1)).toBe(
+      `${BASE}/help/articles/how%20to%20apply/similar?limit=4`,
+    );
+    expect(sentUrl(spy, 2)).toBe(`${BASE}/help/articles/how-to-apply/similar`);
+  });
 });
 
 describe('board.blog', () => {
