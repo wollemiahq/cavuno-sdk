@@ -3,6 +3,26 @@
 This changelog records changes that affect Board API compatibility, exported
 types, runtime behavior, or supported integration patterns.
 
+## 4.84.0 — 2026-11-25
+
+- Changing a company's website to a new domain is now a request, not an
+  edit. `me.companies.update()` (`PATCH /v1/boards/{identifier}/me/companies/{slug}`)
+  takes `websiteChange`: pass `{ verificationEmail }` with an address on the
+  new domain to email it a link that applies the change, or `{}` to send the
+  change to the board for review. The website keeps its old value until then,
+  and the company read returns the open request as `pendingWebsiteChange`
+  (`null` when there is none). Edits that keep the same domain save directly,
+  as before, and the website can change but not be removed.
+- A website on a domain another company on the board already uses is refused
+  with a 400 `validation_bad_request` on `website`, before any email is sent.
+  It was a 409 `employer_company_name_taken` before.
+- `auth.verifyWorkEmail()` (`POST /v1/boards/{identifier}/auth/verify-work-email`)
+  and the deprecated `me.companies.workEmail.confirm()` return the new
+  `WorkEmailVerification` type: the company membership plus `websiteChange`,
+  which is `null` for a membership claim. For a website change it carries
+  `outcome` (`changed`, `pending_review`, or `conflict` when another company
+  took the domain after the request) and `websiteDomain`.
+
 ## 4.83.0 — 2026-11-25
 
 - Route manifests can say a site has Cavuno Analytics turned off.

@@ -22,7 +22,7 @@ import type {
   VerifyEmailBody,
 } from '../types/auth';
 import type {
-  CompanyMembership,
+  WorkEmailVerification,
   ConfirmItemEmailDomainVerificationLinkBody,
   ConfirmWorkEmailBody,
   ItemVerification,
@@ -157,11 +157,16 @@ export function authNamespace(client: BoardClient, board = '') {
      * the single-use token IS the authorization, and it alone identifies the
      * membership. Returns the membership in its new state.
      *
+     * A link sent for a website change (`websiteChange.verificationEmail` on
+     * `board.me.companies.update`) finishes that change instead, and
+     * `websiteChange` on the result says how it ended: `changed`,
+     * `pending_review`, or `conflict`.
+     *
      * @example
      * const membership = await board.auth.verifyWorkEmail({ token });
      */
     verifyWorkEmail(body: ConfirmWorkEmailBody, options?: FetchOptions) {
-      return client.fetch<CompanyMembership>('/auth/verify-work-email', {
+      return client.fetch<WorkEmailVerification>('/auth/verify-work-email', {
         ...options,
         method: 'POST',
         body,
