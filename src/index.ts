@@ -553,6 +553,7 @@ export type {
   CompanyMemberInvite,
   CompanyMemberInviteAcceptance,
   CompanyMembership,
+  WorkEmailVerification,
   ConfirmWorkEmailBody,
   CreateCompanyBody,
   CreateCompanyMemberInviteBody,
