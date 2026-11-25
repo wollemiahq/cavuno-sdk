@@ -3,6 +3,8 @@ import type { ListEnvelope } from '../types/common';
 import type {
   HelpArticlesListQuery,
   HelpCategoriesListQuery,
+  HelpSearchQuery,
+  HelpSimilarQuery,
   PublicHelpArticle,
   PublicHelpArticleSummary,
   PublicHelpCategory,
@@ -90,6 +92,49 @@ export function helpNamespace(client: BoardClient) {
           { ...options, query },
         );
       },
+
+      /**
+       * Published articles nearest in meaning to one article, from every
+       * category and without the article itself: nearest first, with
+       * articles of the same category ranked a little higher. Up to 6 by
+       * default, 20 at most. The list is empty until the article is in
+       * the search index, a few minutes after it is published; a
+       * `search_unavailable` error (503) means the index cannot answer.
+       * Show the category's other articles in both cases.
+       *
+       * @example
+       * const { data } = await board.help.articles.similar('how-to-apply', {
+       *   limit: 4,
+       * });
+       */
+      similar(
+        articleSlug: string,
+        query?: HelpSimilarQuery,
+        options?: FetchOptions,
+      ) {
+        return client.fetch<ListEnvelope<PublicHelpArticleSummary>>(
+          `/help/articles/${encodeURIComponent(articleSlug)}/similar`,
+          { ...options, query },
+        );
+      },
+    },
+
+    /**
+     * Published articles that match `q` by title, summary or body, best
+     * match first (summaries: no `html`). One page of up to 10 by default,
+     * 50 at most; there is no cursor. An article is searchable a few
+     * minutes after it is published. A `search_unavailable` error (503)
+     * means the index cannot answer: fall back to matching the article
+     * list yourself.
+     *
+     * @example
+     * const { data } = await board.help.search({ q: 'reset my password' });
+     */
+    search(query: HelpSearchQuery, options?: FetchOptions) {
+      return client.fetch<ListEnvelope<PublicHelpArticleSummary>>(
+        '/help/search',
+        { ...options, query },
+      );
     },
   };
 }

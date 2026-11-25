@@ -339,5 +339,10 @@ export function validateManifest(value: unknown): ValidateManifestResult {
   if (Array.isArray(languages)) {
     manifest.languages = languages.map(String);
   }
+  // Only `false` means anything; any other value is dropped, not refused,
+  // so a malformed flag never discards the site's roles.
+  if (record.cavunoAnalytics === false) {
+    manifest.cavunoAnalytics = false;
+  }
   return { ok: true, manifest };
 }
