@@ -41,6 +41,7 @@ const BOARD = {
   },
   primaryDomain: null,
   showCavunoBranding: true,
+  contentVersion: null,
   features: {
     jobAlerts: true,
     jobRecommendationsEnabled: true,
@@ -62,6 +63,7 @@ const BOARD = {
     tipJar: false,
     products: false,
     helpCenter: false,
+    offline: false,
   },
   analytics: {
     ga4MeasurementId: null,

@@ -56,6 +56,8 @@ export const BOARD_API_ERROR_CODES = [
   // Board password gate
   'board_password_required',
   'board_password_invalid',
+  // Board offline (its owner's subscription is paused or lapsed)
+  'board_offline',
   // Jobs browse
   'jobs_not_found',
   'jobs_invalid_filter',
