@@ -13,6 +13,7 @@ import {
   type RouteEntry,
   type RouteFeature,
   type RouteRole,
+  validateManifest,
 } from '../route-contract';
 
 /** Modest CDN/browser cache — structure changes only on redeploy/HMR. */
@@ -30,6 +31,13 @@ export type WellKnownHandlerConfig = {
   markers?: ReadonlyMap<string, RouteRole>;
   /** Behaviours the site supports across its pages. */
   features?: ReadonlySet<RouteFeature>;
+  /**
+   * The folder the board is served from, such as `/careers` when the app
+   * runs at `example.com/careers`. Give `routes` as the router sees them,
+   * without the folder: the manifest names every role under it and carries
+   * it as `basePath`. Omit it, or pass `/`, for the domain root.
+   */
+  basePath?: string;
 };
 
 export type WellKnownHandler = (request: Request) => Promise<Response>;
@@ -42,6 +50,9 @@ export type WellKnownHandler = (request: Request) => Promise<Response>;
 export function createWellKnownHandler(
   config: WellKnownHandlerConfig,
 ): WellKnownHandler {
+  // Checked here, not per request: a bad folder fails at startup instead of
+  // as a bare 500 the board's manifest pull can't explain.
+  const basePath = checkedBasePath(config.basePath);
   return async (_request: Request): Promise<Response> => {
     try {
       const routes = await resolveRoutes(config.routes);
@@ -50,7 +61,7 @@ export function createWellKnownHandler(
         config.markers,
         config.features,
       );
-      const body = serializeManifest(manifest);
+      const body = serializeManifest(underBasePath(manifest, basePath));
       return new Response(body, {
         status: 200,
         headers: {
@@ -72,6 +83,37 @@ async function resolveRoutes(
     return await routes();
   }
   return routes;
+}
+
+/**
+ * The configured folder as the manifest carries it: `undefined` for the
+ * domain root. Throws on a folder `validateManifest` would refuse.
+ */
+export function checkedBasePath(
+  basePath: string | undefined,
+): string | undefined {
+  if (basePath === undefined) return undefined;
+  const result = validateManifest({ version: 1, roles: {}, basePath });
+  if (!result.ok) {
+    throw new Error(result.errors.map((error) => error.message).join('; '));
+  }
+  return result.manifest.basePath;
+}
+
+/** `manifest` with every role template under `basePath`, and `basePath` set. */
+export function underBasePath(
+  manifest: ManifestV1,
+  basePath: string | undefined,
+): ManifestV1 {
+  if (basePath === undefined) return manifest;
+  const roles: ManifestV1['roles'] = {};
+  for (const [role, template] of Object.entries(manifest.roles) as [
+    RouteRole,
+    string,
+  ][]) {
+    roles[role] = template === '/' ? basePath : `${basePath}${template}`;
+  }
+  return { ...manifest, roles, basePath };
 }
 
 /**

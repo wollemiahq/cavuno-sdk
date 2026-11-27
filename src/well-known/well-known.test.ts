@@ -4,8 +4,10 @@ import {
   ALL_ROLES,
   CANONICAL_MANIFEST,
   compileManifest,
+  createBoardLinkResolver,
   type RouteEntry,
   type RouteRole,
+  validateManifest,
 } from '../route-contract';
 import {
   createWellKnownHandler,
@@ -360,6 +362,69 @@ describe('well-known endpoint', () => {
   });
 
   // ──  ──────────────────────────────────────────────────────────────
+  describe('basePath', () => {
+    const request = new Request('https://example.com/.well-known/cavuno.json');
+    // A folder app names only some roles; the rest fall back to canonical.
+    const routes: RouteEntry[] = [
+      { template: '/', sourcePath: 'home.tsx' },
+      {
+        template: '/companies/:companySlug/jobs/:jobSlug',
+        sourcePath: 'j.tsx',
+      },
+      { template: '/alerts/manage', sourcePath: 'alerts-manage.tsx' },
+      { template: '/alerts/confirm', sourcePath: 'alerts-confirm.tsx' },
+    ];
+
+    it('serves the roles under the folder, and links resolve there', async () => {
+      const handler = createWellKnownHandler({ routes, basePath: '/careers' });
+      const body: unknown = await (await handler(request)).json();
+
+      const validated = validateManifest(body);
+      expect(validated.ok).toBe(true);
+      if (!validated.ok) return;
+      expect(validated.manifest.basePath).toBe('/careers');
+
+      const links = createBoardLinkResolver([
+        { source: 'wellKnown', manifest: validated.manifest },
+      ]);
+      expect(links.pathFor('home').path).toBe('/careers');
+      expect(
+        links.pathFor('jobDetail', { companySlug: 'acme', jobSlug: 'dev' })
+          .path,
+      ).toBe('/careers/companies/acme/jobs/dev');
+      expect(links.pathFor('alertsManage').path).toBe('/careers/alerts/manage');
+      // A role the app doesn't name still lands in the folder.
+      expect(links.pathFor('companies').path).toBe('/careers/companies');
+    });
+
+    it('emits the same manifest the handler serves', async () => {
+      const handler = createWellKnownHandler({ routes, basePath: '/careers' });
+      const served = await (await handler(request)).text();
+      expect(
+        emitWellKnownManifest({ routes, basePath: '/careers' }).contents,
+      ).toBe(served);
+    });
+
+    it("leaves the manifest unchanged for '/'", async () => {
+      const handler = createWellKnownHandler({ routes, basePath: '/' });
+      expect(await (await handler(request)).json()).toEqual(
+        compileManifest(routes).manifest,
+      );
+    });
+
+    it.each(['careers', '/careers/', '/a//b', '/../x'])(
+      'refuses %j when configured, not per request',
+      (basePath) => {
+        expect(() => createWellKnownHandler({ routes, basePath })).toThrow(
+          /basePath/,
+        );
+        expect(() => emitWellKnownManifest({ routes, basePath })).toThrow(
+          /basePath/,
+        );
+      },
+    );
+  });
+
   describe('purity guard', () => {
     it('imports nothing outside the package (no node: / no external pkgs)', () => {
       const dir = dirname(fileURLToPath(import.meta.url));
