@@ -8249,6 +8249,8 @@ export interface components {
             primaryDomain: string | null;
             /** @description Whitelabel toggle (default `true`). Render the "Powered by Cavuno" badge unless `false`. */
             showCavunoBranding: boolean;
+            /** @description Opaque version of the board's public content. It changes after jobs, companies, taxonomy, salaries, plans, the blog or settings change, once the new content is readable. Send it as the `v` query parameter on the board's GET reads, which ignore it, so a cache keyed by URL misses once content changes. A content read (a `Cache-Control` with `s-maxage`, other than a sitemap) can then be kept until the version changes. `null` when unknown: cache content reads briefly instead. */
+            contentVersion: string | null;
             features: {
                 jobAlerts: boolean;
                 /** @description Whether personalized candidate job recommendations are available on this board. Absent board config defaults to `true`. */
@@ -8265,6 +8267,8 @@ export interface components {
                 talentDirectory: "off" | "public" | "employers_only";
                 registrationWall: boolean;
                 passwordProtected: boolean;
+                /** @description Whether the board is offline because its owner's subscription is paused or has lapsed. While `true`, content reads return 402 `board_offline`: show a page saying the board is offline instead of the board's pages. */
+                offline: boolean;
                 publicJobSubmission: boolean;
                 candidatePaywall: boolean;
                 /**
@@ -13197,7 +13201,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description The board's plan does not include API access (`plan_upgrade_required`). */
+            /** @description The board's plan does not include API access (`plan_upgrade_required`), or the board is offline because its owner's subscription is paused or has lapsed (`board_offline`). */
             402: {
                 headers: {
                     [name: string]: unknown;
