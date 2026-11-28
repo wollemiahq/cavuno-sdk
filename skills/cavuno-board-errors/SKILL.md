@@ -68,6 +68,12 @@ The grant is board access, not a user session. Server-rendered apps keep it in t
 
 **Complete when:** a valid password unlocks one retry, an invalid password renders its typed error, and a stale server grant is cleared before rechallenge.
 
+## Offline board
+
+A board whose owner's subscription is paused or has lapsed is offline: content reads return 402 `board_offline`, and no password grant opens it. The board context stays readable and reports `features.offline: true`, so check it when building the layout and render one "this board is offline" page instead of the board's pages, rather than waiting for each read to fail. Serve that page with a 503 so search engines keep the board's URLs. Email opt-out links (email preferences, job-alert manage and unsubscribe) keep working while offline.
+
+**Complete when:** an offline board renders the offline page from the context alone, and a `board_offline` read that races a cached context renders the same page.
+
 ## Cavuno SDK reference
 
 For setup and API details beyond this workflow, use the [Cavuno Board SDK documentation](https://cavuno.com/docs/sdk).

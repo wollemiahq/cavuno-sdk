@@ -61,6 +61,7 @@ describe('board.context()', () => {
       },
       primaryDomain: null,
       showCavunoBranding: true,
+      contentVersion: null,
       features: {
         jobAlerts: true,
         jobRecommendationsEnabled: true,
@@ -82,6 +83,7 @@ describe('board.context()', () => {
         tipJar: false,
         products: false,
         helpCenter: false,
+        offline: false,
       },
       analytics: {
         ga4MeasurementId: null,
