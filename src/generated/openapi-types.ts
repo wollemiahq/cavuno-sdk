@@ -6316,6 +6316,8 @@ export interface components {
             instagramUrl?: string | null;
             /** @description Canonical market slugs assigned to the company. Pass an empty array to clear all markets. */
             markets?: string[];
+            /** @description Approval of a specific Backfill feed move. If saving would move a subsidiary feed to its parent, the request returns 409 company_feed_move_confirmation_required without saving anything. Show the operator error.details.transfers (source and destination names) and explain that future jobs go to the destination unless a routing rule sends them elsewhere. Only after explicit approval, retry the same request with error.details.confirmationToken as feedMoveConfirmation. A stale token returns 409 with a fresh preview; review and confirm again. Omit for ordinary saves. */
+            feedMoveConfirmation?: string;
             /** @description Makes this company a subsidiary of another company in the same account: the parent company's `id`. Groups are one level deep, so the parent cannot itself be a subsidiary, and a company with subsidiaries cannot get a parent. A subsidiary may use its parent's website domain (or a path on it); it is then not filled in automatically from the website, and shows the parent's logo until it has its own. Changing it changes the public company page, so confirm with the operator first. `null` or `""` means not set. */
             parentCompanyId?: string | null;
             /** @description The company's display name. */
@@ -8249,6 +8251,8 @@ export interface components {
             primaryDomain: string | null;
             /** @description Whitelabel toggle (default `true`). Render the "Powered by Cavuno" badge unless `false`. */
             showCavunoBranding: boolean;
+            /** @description Opaque version of the board's public content. It changes after jobs, companies, taxonomy, salaries, plans, the blog or settings change, once the new content is readable. Send it as the `v` query parameter on the board's GET reads, which ignore it, so a cache keyed by URL misses once content changes. A content read (a `Cache-Control` with `s-maxage`, other than a sitemap) can then be kept until the version changes. `null` when unknown: cache content reads briefly instead. */
+            contentVersion: string | null;
             features: {
                 jobAlerts: boolean;
                 /** @description Whether personalized candidate job recommendations are available on this board. Absent board config defaults to `true`. */
@@ -8265,6 +8269,8 @@ export interface components {
                 talentDirectory: "off" | "public" | "employers_only";
                 registrationWall: boolean;
                 passwordProtected: boolean;
+                /** @description Whether the board is offline because its owner's subscription is paused or has lapsed. While `true`, content reads return 402 `board_offline`: show a page saying the board is offline instead of the board's pages. */
+                offline: boolean;
                 publicJobSubmission: boolean;
                 candidatePaywall: boolean;
                 /**
@@ -13197,7 +13203,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description The board's plan does not include API access (`plan_upgrade_required`). */
+            /** @description The board's plan does not include API access (`plan_upgrade_required`), or the board is offline because its owner's subscription is paused or has lapsed (`board_offline`). */
             402: {
                 headers: {
                     [name: string]: unknown;
